@@ -1,46 +1,30 @@
-import os
-from file_parser import parse_structure
-from csv_reader import read_csv
+from file_parser import read_files_from_csv
+from data_processor import process_structure
+from pprint import pprint
 
-def main():
-    # Pfad zur Eingabe-CSV
-    csv_path = "C:\\Users\\Gregor\\Documents\\Uni Bioinformatik\\9. Semester\\B.A\\PDBFiles\\PathsCSV.csv"
 
-    # CSV-Datei lesen
+def main(csv_path):
+    """
+    Hauptfunktion, die die Datenstrukturen erstellt und ausgibt.
+    """
     try:
-        file_paths = read_csv(csv_path)
-        print(f"Gefundene Dateien: {len(file_paths)}")
+        structures = read_files_from_csv(csv_path)
+        combined_data = []
+        for structure_data in structures:
+            processed_data = process_structure(structure_data)
+            combined_data.append(processed_data)
+
+        print("\nKontrolle der extrahierten Daten:")
+        for data in combined_data:
+            file_name = data["file_path"].split("\\")[-1]  # Extrahiere nur den Dateinamen
+            print(f"\nDatei: {file_name}")
+            for chain in data["atom_data"]:
+                print(
+                    f"  Kette: {chain['chain_id']}, Molekültyp: {chain['molecule_type']}, Molekülname: {chain['molecule_name']}")
     except Exception as e:
-        print(f"Fehler beim Lesen der CSV-Datei: {e}")
-        return
+        print(f"Fehler: {e}")
 
-    # Jede Datei parsen
-    for file_path in file_paths:
-        if os.path.exists(file_path):
-            print(f"\nAnalysiere Datei: {file_path}")
-            try:
-                atom_chains, hetatm_molecules = parse_structure(file_path)
-
-                # ATOM-Daten anzeigen
-                print("\n--- ATOM-Daten ---")
-                for chain in atom_chains:
-                    print(f"Kette: {chain['chain_id']}, "
-                          f"Residuen: {len(chain['residues'])}, "
-                          f"Molekültyp: {chain['molecule_type']}, "
-                          f"Molekülname: {chain['molecule_name']}")
-
-                # HETATM-Daten anzeigen
-                print("\n--- HETATM-Daten ---")
-                for hetatm in hetatm_molecules:
-                    print(f"HETATM-Kette: {hetatm['chain_id']}, "
-                          f"Residuen: {len(hetatm['residues'])}, "
-                          f"Molekültyp: {hetatm['molecule_type']}, "
-                          f"Molekülname: {hetatm['molecule_name']}")
-
-            except Exception as e:
-                print(f"Fehler bei der Verarbeitung von {file_path}: {e}")
-        else:
-            print(f"Datei nicht gefunden: {file_path}")
 
 if __name__ == "__main__":
-    main()
+    csv_path = "C:\\Users\\Gregor\\Documents\\Uni Bioinformatik\\9. Semester\\B.A\\PDBFiles\\PathsCSV.csv"
+    main(csv_path)

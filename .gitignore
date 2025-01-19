@@ -1,0 +1,10 @@
+# Ignoriere PyCharm-Projektdateien
+.idea/
+
+# Ignoriere virtuelle Umgebungen
+venv/
+
+# Ignoriere Python-Cache-Dateien
+__pycache__/
+*.pyc
+*.pyo

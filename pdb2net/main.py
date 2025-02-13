@@ -1,14 +1,16 @@
 from file_parser import read_files_from_csv
 from data_processor import process_structure
-from unknown_molecule_uniprot import process_unknown_molecules, list_unknown_molecules
+from unknown_molecule_uniprot import process_molecule_info, update_names_with_uniprot
 from distances import calculate_distances_with_ckdtree
-from cytoscape_utils import create_cytoscape_network  # Neues File importiert
 
+# Setze hier die externen Pfade für PDB FASTA und UniProt FASTA
+PDB_FASTA_PATH = "C:\\Users\\Gregor\\Documents\\Uni Bioinformatik\\9. Semester\\B.A\\Neuer Ordner\\pdb_seqres.txt"
+UNIPROT_FASTA_PATH = "C:\\Users\\Gregor\\Documents\\Uni Bioinformatik\\9. Semester\\B.A\\Neuer Ordner\\uniprot_sprot.fasta"
 
 def main(csv_path):
     """
-    Hauptfunktion, die die Datenstrukturen erstellt, unbekannte Moleküle verarbeitet, Distanzen berechnet
-    und das Netzwerk in Cytoscape erstellt.
+    Hauptfunktion, die die Datenstrukturen erstellt, Molekülnamen und -typen bestimmt,
+    Distanzen berechnet und die Ergebnisse ausgibt.
     """
     try:
         # Schritt 1: Dateien lesen und Strukturen verarbeiten
@@ -18,45 +20,38 @@ def main(csv_path):
             processed_data = process_structure(structure_data)
             combined_data.append(processed_data)
 
-        # Schritt 2: Liste aller UNKNOWN-Ketten vor UniProt-Verarbeitung
-        unknown_molecules = list_unknown_molecules(combined_data)
-        print("\nMolekülnamen vor UniProt-Verarbeitung:")
-        for entry in unknown_molecules:
-            print(f"Datei: {entry['file_path']}, Kette: {entry['chain_id']}")
+        # Schritt 2: Bestimme Namen, Typen und Sequenzen aus PDB FASTA
+        print("\n🔍 Bestimme Namen, Typen und Sequenzen aus PDB FASTA...")
+        process_molecule_info(combined_data, PDB_FASTA_PATH)
 
-        # Schritt 3: Unbekannte Moleküle verarbeiten
-        print("\nÜberprüfung auf unbekannte Moleküle...")
-        process_unknown_molecules(combined_data)
+        # Schritt 3: Falls UniProt-Treffer existieren, aktualisiere die Namen
+        print("\n🔄 Aktualisiere Namen mit UniProt FASTA (exakt + Teilstring-Suche)...")
+        update_names_with_uniprot(combined_data, UNIPROT_FASTA_PATH)
 
-        # Schritt 4: Ergebnisse ausgeben
-        print("\nKontrolle der extrahierten Daten:")
-        for data in combined_data:
-            file_name = data["file_path"].split("\\")[-1]  # Extrahiere nur den Dateinamen
-            print(f"\nDatei: {file_name}")
-            for chain in data["atom_data"]:
-                print(
-                    f"  Kette: {chain['chain_id']}, Molekültyp: {chain['molecule_type']}, Molekülname: {chain['molecule_name']}"
-                )
+        # Kontrollausgabe der aktualisierten Namen
+        print("\n📌 Kontrollausgabe: Alle Ketten mit Name, Typ und Sequenz:")
+        for structure in combined_data:
+            print(f"\n📄 Datei: {structure['file_path']} (PDB-ID: {structure['pdb_id']})")
+            for chain in structure["atom_data"]:
+                print(f"  🔹 Kette: {chain['chain_id']}")
+                print(f"     🏷 Name: {chain['molecule_name']}")
+                print(f"     🔬 Typ: {chain['molecule_type']}")
+                print(f"     🧬 Sequenz: {chain['sequence'][:50]}... (gekürzt)")
 
-        # Schritt 5: Distanzberechnungen durchführen
-        print("\nBerechnung der Atomdistanzen...")
+        # Schritt 4: Distanzberechnungen durchführen
+        print("\n📏 Berechnung der Atomdistanzen...")
         results = calculate_distances_with_ckdtree(combined_data)
 
-        # Ergebnisse der Distanzberechnung ausgeben
-        print("\nErgebnisse der Distanzberechnung:")
+        # Ergebnisse zur Kontrolle
+        print("\n📊 Ergebnisse der Distanzberechnung:")
         for result in results:
-            print(f"Datei: {result['file_path']}")
-            print(f"  Kettenpaar: {result['chain_a']} - {result['chain_b']}")
-            print(f"  Cα/Cβ mit Abstand <15 Å: {result['ca_cb_count']}")
-            print(f"  Atome mit Abstand <5 Å: {result['all_atoms_close_count']}")
-
-        # Schritt 6: Netzwerk in Cytoscape erstellen
-        print("\nErstelle Netzwerk in Cytoscape...")
-        create_cytoscape_network(results)
+            print(f"\n📄 Datei: {result['file_path']}")
+            print(f"  🔗 Kettenpaar: {result['chain_a']} - {result['chain_b']}")
+            print(f"  ⚛ Cα/Cβ mit Abstand <15 Å: {result['ca_cb_count']}")
+            print(f"  🔍 Atome mit Abstand <5 Å: {result['all_atoms_close_count']}")
 
     except Exception as e:
-        print(f"Fehler: {e}")
-
+        print(f"❌ Fehler: {e}")
 
 if __name__ == "__main__":
     csv_path = "C:\\Users\\Gregor\\Documents\\Uni Bioinformatik\\9. Semester\\B.A\\PDBFiles\\PathsCSV.csv"

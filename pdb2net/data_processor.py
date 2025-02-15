@@ -7,11 +7,10 @@ def process_structure(structure_data):
     for model in structure:
         for chain in model:
             chain_id = chain.id.strip()
-            residues = []
-            for residue in chain.get_residues():
-                atoms = [{"atom_name": atom.get_name(), "coordinates": atom.get_coord().tolist()} for atom in
-                         residue.get_atoms()]
-                residues.append({"residue_name": residue.resname, "atoms": atoms})  # Speichere die Atome in Residuen
+            residues = [
+                {"residue_name": residue.resname, "atoms": [{"atom_name": atom.get_name(), "coordinates": atom.get_coord().tolist()} for atom in residue.get_atoms()]}
+                for residue in chain.get_residues()
+            ]
 
             atom_data.append({
                 "chain_id": chain_id,
@@ -19,11 +18,7 @@ def process_structure(structure_data):
                 "molecule_name": "UNKNOWN",
                 "molecule_type": "UNKNOWN",
                 "sequence": "",
-                "residues": residues  # Residuen mit Atomen werden nun gespeichert!
+                "residues": residues
             })
 
-    return {
-        "file_path": structure_data["file_path"],
-        "pdb_id": pdb_id,
-        "atom_data": atom_data
-    }
+    return {"file_path": structure_data["file_path"], "pdb_id": pdb_id, "atom_data": atom_data}

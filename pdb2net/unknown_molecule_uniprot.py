@@ -76,21 +76,22 @@ def determine_molecule_info(pdb_id, chain_id, pdb_fasta):
     Bestimmt den Namen & Molekültyp für eine PDB-Kette mit SIFTS, UniProt oder PDB FASTA.
     """
     search_key = f"{pdb_id.lower()}_{chain_id.upper()}"
+    print(f"🔍 Bestimme Name/Typ für {search_key}")  # Debugging
 
-    # 🔹 Falls SIFTS einen UniProt-Match hat → Namen aus UniProt nehmen
     if search_key in pdb_to_uniprot:
         uniprot_id = pdb_to_uniprot[search_key]
         if uniprot_id in uniprot_dict:
+            print(f"✅ {search_key}: UniProt-Match gefunden: {uniprot_id} → {uniprot_dict[uniprot_id]}")  # Debugging
             return uniprot_dict[uniprot_id], "Protein"
 
-    # 🔹 Falls kein UniProt-Match → Fallback auf PDB FASTA
     if search_key in pdb_fasta:
         fasta_info = pdb_fasta[search_key]["info"]
         sequence = pdb_fasta[search_key]["sequence"]
         molecule_type = "Protein" if "mol:protein" in fasta_info else "Nucleic Acid"
+        print(f"✅ {search_key}: PDB FASTA Fallback → {fasta_info}")  # Debugging
         return fasta_info.split("length:")[-1].strip(), molecule_type
 
-    # 🔹 Falls keine Daten vorhanden sind
+    print(f"⚠ {search_key}: KEINE Zuordnung gefunden")  # Debugging
     return "Unknown", "Unknown"
 
 
@@ -104,7 +105,7 @@ def process_molecule_info(combined_data):
     pdb_fasta = load_pdb_fasta(PDB_FASTA_PATH)
 
     for structure_data in combined_data:
-        pdb_id = os.path.basename(structure_data["file_path"]).split(".")[0].lower()
+        pdb_id = structure_data["pdb_id"].lower()  # ✅ NUR DIE EXTRAHIERTE ID VERWENDEN!
         for chain in structure_data["atom_data"]:
             chain_id = chain["chain_id"].upper()
             name, mol_type = determine_molecule_info(pdb_id, chain_id, pdb_fasta)
@@ -112,6 +113,7 @@ def process_molecule_info(combined_data):
             chain["molecule_type"] = mol_type
 
             print(f"✅ {pdb_id}_{chain_id}: {name} ({mol_type})")
+
 
 
 # 🔹 Initialisierung

@@ -1,6 +1,7 @@
 import os
 import csv
 from Bio import SeqIO
+import re
 
 # 🔹 Globale Pfade
 PDB_FASTA_PATH = "C:\\Users\\Gregor\\Documents\\Uni Bioinformatik\\9. Semester\\B.A\\Neuer Ordner\\pdb_seqres.txt"
@@ -74,23 +75,35 @@ def load_pdb_fasta(pdb_fasta_path):
 def determine_molecule_info(pdb_id, chain_id, pdb_fasta):
     """
     Bestimmt den Namen & Molekültyp für eine PDB-Kette mit SIFTS, UniProt oder PDB FASTA.
+    Entfernt alle Metadaten wie 'mol:protein', 'mol:na' und 'length:XYZ' aus dem Namen.
     """
     search_key = f"{pdb_id.lower()}_{chain_id.upper()}"
     print(f"🔍 Bestimme Name/Typ für {search_key}")  # Debugging
 
+    # 1️⃣ Falls SIFTS einen UniProt-Match hat, nimm den Namen von UniProt
     if search_key in pdb_to_uniprot:
         uniprot_id = pdb_to_uniprot[search_key]
         if uniprot_id in uniprot_dict:
             print(f"✅ {search_key}: UniProt-Match gefunden: {uniprot_id} → {uniprot_dict[uniprot_id]}")  # Debugging
             return uniprot_dict[uniprot_id], "Protein"
 
+    # 2️⃣ Falls kein UniProt-Match, nutze PDB FASTA
     if search_key in pdb_fasta:
         fasta_info = pdb_fasta[search_key]["info"]
         sequence = pdb_fasta[search_key]["sequence"]
-        molecule_type = "Protein" if "mol:protein" in fasta_info else "Nucleic Acid"
-        print(f"✅ {search_key}: PDB FASTA Fallback → {fasta_info}")  # Debugging
-        return fasta_info.split("length:")[-1].strip(), molecule_type
 
+        # **Entferne 'mol:protein', 'mol:na', 'length:XYZ' und extra Leerzeichen**
+        cleaned_info = re.sub(r"mol:\w+\s*", "", fasta_info)  # Entfernt 'mol:protein' oder 'mol:na'
+        cleaned_info = re.sub(r"length:\d+\s*", "", cleaned_info)  # Entfernt 'length:XYZ'
+        cleaned_info = cleaned_info.strip()  # Entfernt überflüssige Leerzeichen
+
+        # Bestimme den Molekültyp (Protein oder Nukleinsäure)
+        molecule_type = "Protein" if "mol:protein" in fasta_info else "Nucleic Acid"
+
+        print(f"✅ {search_key}: PDB FASTA Fallback → {cleaned_info}")  # Debugging
+        return cleaned_info, molecule_type
+
+    # 3️⃣ Falls nichts gefunden → "Unknown"
     print(f"⚠ {search_key}: KEINE Zuordnung gefunden")  # Debugging
     return "Unknown", "Unknown"
 

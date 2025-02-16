@@ -24,7 +24,7 @@ def main(csv_path):
         for result in results:
             print(f"\n📄 Datei: {result['file_path']}")
             print(f"  🔗 Kettenpaar: {result['chain_a']} - {result['chain_b']}")
-            print(f"  ⚛ Cα/Cβ mit Abstand <15 Å: {result['ca_cb_count']}")
+            print(f"  ⚛ Cα/CNN mit Abstand <15 Å: {result['ca_nn_count']}")
             print(f"  🔍 Atome mit Abstand <5 Å: {result['all_atoms_close_count']}")
 
     except Exception as e:

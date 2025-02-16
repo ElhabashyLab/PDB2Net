@@ -4,29 +4,37 @@ import pandas as pd
 
 def create_cytoscape_network(results):
     """
-    Erstellt ein Netzwerk in Cytoscape basierend auf den Daten in `results`.
+    Creates a network in Cytoscape based on interaction data.
+
+    Args:
+        results (list): A list of dictionaries containing interaction data, each with:
+            - "file_path": The path to the PDB file.
+            - "chain_a": Unique identifier for the first chain.
+            - "chain_b": Unique identifier for the second chain.
+            - "ca_nn_count": Number of Cα/Cβ contacts within 15 Å.
+            - "all_atoms_close_count": Number of all-atom contacts within 5 Å.
     """
 
-    # 🔹 1. Überprüfen, ob Cytoscape läuft
+    # 🔹 Step 1: Check if Cytoscape is running
     try:
         status = p4c.cytoscape_ping()
-        print("🌐 Verbindung zu Cytoscape erfolgreich! Cytoscape ist online.")
+        print("🌐 Successfully connected to Cytoscape!")
     except Exception as e:
-        print(f"❌ Cytoscape scheint nicht zu laufen! Bitte starte Cytoscape und versuche es erneut. Fehler: {e}")
+        print(f"❌ Cytoscape is not running! Please start Cytoscape and try again. Error: {e}")
         return
 
-    # 🔹 2. Falls Netzwerke existieren, löschen
+    # 🔹 Step 2: Delete existing networks (if any)
     try:
         existing_networks = p4c.get_network_list()
         if existing_networks:
-            print(f"🗑️ Lösche {len(existing_networks)} vorhandene Netzwerke...")
+            print(f"🗑️ Deleting {len(existing_networks)} existing networks...")
             for net in existing_networks:
                 p4c.delete_network(net)
-            time.sleep(1)  # Warte kurz, damit Cytoscape Zeit hat
+            time.sleep(1)  # Allow Cytoscape time to process
     except Exception as e:
-        print(f"⚠️ Warnung: Konnte alte Netzwerke nicht löschen: {e}")
+        print(f"⚠️ Warning: Could not delete existing networks: {e}")
 
-    # 🔹 3. Knoten (Nodes) und Kanten (Edges) aus `results` extrahieren
+    # 🔹 Step 3: Extract unique nodes and edges
     unique_nodes = set()
     edges = []
 
@@ -46,17 +54,17 @@ def create_cytoscape_network(results):
             "all_atoms_close_count": all_atoms
         })
 
-    # 🔹 4. DataFrames für Cytoscape vorbereiten
+    # 🔹 Step 4: Convert nodes and edges into DataFrames
     nodes_df = pd.DataFrame({"id": list(unique_nodes), "label": list(unique_nodes)})
     edges_df = pd.DataFrame(edges)
 
-    # 🔹 5. Netzwerk in Cytoscape erstellen
-    print("📡 Erstelle ein neues Netzwerk in Cytoscape...")
+    # 🔹 Step 5: Create the network in Cytoscape
+    print("📡 Creating a new network in Cytoscape...")
     network_suid = p4c.create_network_from_data_frames(nodes_df, edges_df, title="Protein Interaction Network")
 
-    # 🔹 6. Layout anwenden & Netzwerk anzeigen
-    print("🎨 Wende Layout an...")
-    time.sleep(1)  # Warte kurz, um sicherzustellen, dass das Netzwerk geladen ist
+    # 🔹 Step 6: Apply a layout and display the network
+    print("🎨 Applying layout...")
+    time.sleep(1)  # Ensure the network is fully loaded before applying layout
     p4c.layout_network(layout_name="circular")
 
-    print("✅ Netzwerk wurde erfolgreich in Cytoscape erstellt!")
+    print("✅ Network successfully created in Cytoscape!")

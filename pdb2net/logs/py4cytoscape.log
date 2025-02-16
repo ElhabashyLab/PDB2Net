@@ -448,3 +448,953 @@
 2025-02-16 19:28:08,229 [DEBUG] py4...: ǀReturning 'commands_post': {}
 2025-02-16 19:28:08,230 [DEBUG] py4...: Returning 'layout_network': {}
 2025-02-16 19:28:08,230 [DEBUG] py4...: --------------------
+2025-02-16 23:26:19,541 [DEBUG] py4...: Calling cytoscape_ping()
+2025-02-16 23:26:19,542 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:19,543 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:19,543 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-02-16 23:26:19,636 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-02-16 23:26:19,637 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-02-16 23:26:19,648 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-02-16 23:26:19,649 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-02-16 23:26:19,649 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-02-16 23:26:19,650 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-02-16 23:26:19,650 [DEBUG] py4...: --------------------
+2025-02-16 23:26:19,650 [DEBUG] py4...: Calling get_network_list()
+2025-02-16 23:26:19,651 [DEBUG] py4...: ǀCalling cyrest_get('networks.names', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:19,651 [DEBUG] py4...: ǀHTTP GET(http://127.0.0.1:1234/v1/networks.names)
+2025-02-16 23:26:19,672 [DEBUG] py4...: ǀOK[200], content: [{"name":"Protein Interaction Network","SUID":308}]
+2025-02-16 23:26:19,673 [DEBUG] py4...: ǀReturning 'cyrest_get': [{'name': 'Protein Interaction Network', 'SUID': 308}]
+2025-02-16 23:26:19,674 [DEBUG] py4...: Returning 'get_network_list': ['Protein Interaction Network']
+2025-02-16 23:26:19,674 [DEBUG] py4...: --------------------
+2025-02-16 23:26:19,675 [DEBUG] py4...: Calling delete_network('Protein Interaction Network')
+2025-02-16 23:26:19,675 [DEBUG] py4...: ǀCalling get_network_suid('Protein Interaction Network', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:19,675 [DEBUG] py4...: ǀǀCalling get_network_list(base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:19,676 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks.names', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:19,676 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks.names)
+2025-02-16 23:26:19,684 [DEBUG] py4...: ǀǀǀOK[200], content: [{"name":"Protein Interaction Network","SUID":308}]
+2025-02-16 23:26:19,685 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': [{'name': 'Protein Interaction Network', 'SUID': 308}]
+2025-02-16 23:26:19,685 [DEBUG] py4...: ǀǀReturning 'get_network_list': ['Protein Interaction Network']
+2025-02-16 23:26:19,686 [DEBUG] py4...: ǀǀCalling commands_post('network get attribute network="Protein Interaction Network" namespace="default" columnList="SUID"', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:19,686 [DEBUG] py4...: ǀǀHTTP POST(http://127.0.0.1:1234/v1/commands/network/get%20attribute), json: {'network': 'Protein Interaction Network', 'namespace': 'default', 'columnList': 'SUID'}
+2025-02-16 23:26:19,718 [DEBUG] py4...: ǀǀOK[200], content: {
+ "data": [ {
+  "SUID": 308
+}
+],
+ "errors":[]
+}
+2025-02-16 23:26:19,719 [DEBUG] py4...: ǀǀReturning 'commands_post': [{'SUID': 308}]
+2025-02-16 23:26:19,719 [DEBUG] py4...: ǀReturning 'get_network_suid': 308
+2025-02-16 23:26:19,720 [DEBUG] py4...: ǀCalling cyrest_delete('networks/308', base_url='http://127.0.0.1:1234/v1', require_json=False)
+2025-02-16 23:26:19,720 [DEBUG] py4...: ǀHTTP DELETE(http://127.0.0.1:1234/v1/networks/308)
+2025-02-16 23:26:19,855 [DEBUG] py4...: ǀOK[200], content: 
+2025-02-16 23:26:19,856 [DEBUG] py4...: ǀReturning 'cyrest_delete': ''
+2025-02-16 23:26:19,857 [DEBUG] py4...: Returning 'delete_network': ''
+2025-02-16 23:26:19,857 [DEBUG] py4...: --------------------
+2025-02-16 23:26:20,883 [DEBUG] py4...: Calling create_network_from_data_frames(        id   label
+0   11GS:A  11GS:A
+1   154L:B  154L:B
+2   11BA:B  11BA:B
+3   9JR2:A  9JR2:A
+4   124D:A  124D:A
+5   124D:B  124D:B
+6   9JR2:P  9JR2:P
+7   1TUP:C  1TUP:C
+8   11GS:B  11GS:B
+9   154L:A  154L:A
+10  1TUP:A  1TUP:A
+11  1TUP:E  1TUP:E
+12  9JR2:R  9JR2:R
+13  11BA:A  11BA:A
+14  9JR2:G  9JR2:G
+15  1TUP:F  1TUP:F
+16  9JR2:S  9JR2:S
+17  1TUP:B  1TUP:B
+18  9JR2:B  9JR2:B,     source  target  ca_nn_count  all_atoms_close_count
+0   9JR2:A  9JR2:B         3637                    461
+1   9JR2:A  9JR2:S         1662                    254
+2   9JR2:A  9JR2:R         2206                    301
+3   9JR2:B  9JR2:G         5505                    843
+4   9JR2:B  9JR2:S         1269                    159
+5   9JR2:B  9JR2:R          974                     40
+6   9JR2:P  9JR2:R         5376                   1063
+7   11BA:A  11BA:B         5438                   1384
+8   11GS:A  11GS:B         4143                    936
+9   154L:A  154L:B         4289                    307
+10  154L:A  154L:B         4289                    307
+11  9JR2:A  9JR2:B         3637                    461
+12  9JR2:A  9JR2:S         1662                    254
+13  9JR2:A  9JR2:R         2206                    301
+14  9JR2:B  9JR2:G         5505                    843
+15  9JR2:B  9JR2:S         1269                    159
+16  9JR2:B  9JR2:R          974                     40
+17  9JR2:P  9JR2:R         5376                   1063
+18  154L:A  154L:B         4289                    307
+19  124D:A  124D:B        37954                   1069
+20  1TUP:E  1TUP:F        56410                   1103
+21  1TUP:E  1TUP:A         1916                    115
+22  1TUP:E  1TUP:B         5408                    252
+23  1TUP:E  1TUP:C         2573                     88
+24  1TUP:F  1TUP:A         1088                     16
+25  1TUP:F  1TUP:B         3993                    153
+26  1TUP:F  1TUP:C         1930                     25
+27  1TUP:A  1TUP:B         2254                    670
+28  1TUP:B  1TUP:C         1483                    117, title='Protein Interaction Network')
+2025-02-16 23:26:20,894 [DEBUG] py4...: ǀCalling cyrest_post('networks', parameters={'title': 'Protein Interaction Network', 'collection': 'My Dataframe Network Collection'}, body={'data': [{'name': 'Protein Interaction Network'}], 'elements': {'nodes': [{'data': {'id': '11GS:A'}}, {'data': {'id': '154L:B'}}, {'data': {'id': '11BA:B'}}, {'data': {'id': '9JR2:A'}}, {'data': {'id': '124D:A'}}, {'data': {'id': '124D:B'}}, {'data': {'id': '9JR2:P'}}, {'data': {'id': '1TUP:C'}}, {'data': {'id': '11GS:B'}}, {'data': {'id': '154L:A'}}, {'data': {'id': '1TUP:A'}}, {'data': {'id': '1TUP:E'}}, {'data': {'id': '9JR2:R'}}, {'data': {'id': '11BA:A'}}, {'data': {'id': '9JR2:G'}}, {'data': {'id': '1TUP:F'}}, {'data': {'id': '9JR2:S'}}, {'data': {'id': '1TUP:B'}}, {'data': {'id': '9JR2:B'}}], 'edges': [{'data': {'name': '9JR2:A (interacts with) 9JR2:B', 'source': '9JR2:A', 'target': '9JR2:B', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:S', 'source': '9JR2:A', 'target': '9JR2:S', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:R', 'source': '9JR2:A', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:G', 'source': '9JR2:B', 'target': '9JR2:G', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:S', 'source': '9JR2:B', 'target': '9JR2:S', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:R', 'source': '9JR2:B', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:P (interacts with) 9JR2:R', 'source': '9JR2:P', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '11BA:A (interacts with) 11BA:B', 'source': '11BA:A', 'target': '11BA:B', 'interaction': 'interacts with'}}, {'data': {'name': '11GS:A (interacts with) 11GS:B', 'source': '11GS:A', 'target': '11GS:B', 'interaction': 'interacts with'}}, {'data': {'name': '154L:A (interacts with) 154L:B', 'source': '154L:A', 'target': '154L:B', 'interaction': 'interacts with'}}, {'data': {'name': '154L:A (interacts with) 154L:B', 'source': '154L:A', 'target': '154L:B', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:B', 'source': '9JR2:A', 'target': '9JR2:B', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:S', 'source': '9JR2:A', 'target': '9JR2:S', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:R', 'source': '9JR2:A', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:G', 'source': '9JR2:B', 'target': '9JR2:G', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:S', 'source': '9JR2:B', 'target': '9JR2:S', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:R', 'source': '9JR2:B', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:P (interacts with) 9JR2:R', 'source': '9JR2:P', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '154L:A (interacts with) 154L:B', 'source': '154L:A', 'target': '154L:B', 'interaction': 'interacts with'}}, {'data': {'name': '124D:A (interacts with) 124D:B', 'source': '124D:A', 'target': '124D:B', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:E (interacts with) 1TUP:F', 'source': '1TUP:E', 'target': '1TUP:F', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:E (interacts with) 1TUP:A', 'source': '1TUP:E', 'target': '1TUP:A', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:E (interacts with) 1TUP:B', 'source': '1TUP:E', 'target': '1TUP:B', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:E (interacts with) 1TUP:C', 'source': '1TUP:E', 'target': '1TUP:C', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:F (interacts with) 1TUP:A', 'source': '1TUP:F', 'target': '1TUP:A', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:F (interacts with) 1TUP:B', 'source': '1TUP:F', 'target': '1TUP:B', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:F (interacts with) 1TUP:C', 'source': '1TUP:F', 'target': '1TUP:C', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:A (interacts with) 1TUP:B', 'source': '1TUP:A', 'target': '1TUP:B', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:B (interacts with) 1TUP:C', 'source': '1TUP:B', 'target': '1TUP:C', 'interaction': 'interacts with'}}]}}, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:20,894 [DEBUG] py4...: ǀHTTP POST(http://127.0.0.1:1234/v1/networks), params: {'title': 'Protein Interaction Network', 'collection': 'My Dataframe Network Collection'}, json: {'data': [{'name': 'Protein Interaction Network'}], 'elements': {'nodes': [{'data': {'id': '11GS:A'}}, {'data': {'id': '154L:B'}}, {'data': {'id': '11BA:B'}}, {'data': {'id': '9JR2:A'}}, {'data': {'id': '124D:A'}}, {'data': {'id': '124D:B'}}, {'data': {'id': '9JR2:P'}}, {'data': {'id': '1TUP:C'}}, {'data': {'id': '11GS:B'}}, {'data': {'id': '154L:A'}}, {'data': {'id': '1TUP:A'}}, {'data': {'id': '1TUP:E'}}, {'data': {'id': '9JR2:R'}}, {'data': {'id': '11BA:A'}}, {'data': {'id': '9JR2:G'}}, {'data': {'id': '1TUP:F'}}, {'data': {'id': '9JR2:S'}}, {'data': {'id': '1TUP:B'}}, {'data': {'id': '9JR2:B'}}], 'edges': [{'data': {'name': '9JR2:A (interacts with) 9JR2:B', 'source': '9JR2:A', 'target': '9JR2:B', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:S', 'source': '9JR2:A', 'target': '9JR2:S', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:R', 'source': '9JR2:A', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:G', 'source': '9JR2:B', 'target': '9JR2:G', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:S', 'source': '9JR2:B', 'target': '9JR2:S', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:R', 'source': '9JR2:B', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:P (interacts with) 9JR2:R', 'source': '9JR2:P', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '11BA:A (interacts with) 11BA:B', 'source': '11BA:A', 'target': '11BA:B', 'interaction': 'interacts with'}}, {'data': {'name': '11GS:A (interacts with) 11GS:B', 'source': '11GS:A', 'target': '11GS:B', 'interaction': 'interacts with'}}, {'data': {'name': '154L:A (interacts with) 154L:B', 'source': '154L:A', 'target': '154L:B', 'interaction': 'interacts with'}}, {'data': {'name': '154L:A (interacts with) 154L:B', 'source': '154L:A', 'target': '154L:B', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:B', 'source': '9JR2:A', 'target': '9JR2:B', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:S', 'source': '9JR2:A', 'target': '9JR2:S', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:R', 'source': '9JR2:A', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:G', 'source': '9JR2:B', 'target': '9JR2:G', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:S', 'source': '9JR2:B', 'target': '9JR2:S', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:R', 'source': '9JR2:B', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:P (interacts with) 9JR2:R', 'source': '9JR2:P', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '154L:A (interacts with) 154L:B', 'source': '154L:A', 'target': '154L:B', 'interaction': 'interacts with'}}, {'data': {'name': '124D:A (interacts with) 124D:B', 'source': '124D:A', 'target': '124D:B', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:E (interacts with) 1TUP:F', 'source': '1TUP:E', 'target': '1TUP:F', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:E (interacts with) 1TUP:A', 'source': '1TUP:E', 'target': '1TUP:A', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:E (interacts with) 1TUP:B', 'source': '1TUP:E', 'target': '1TUP:B', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:E (interacts with) 1TUP:C', 'source': '1TUP:E', 'target': '1TUP:C', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:F (interacts with) 1TUP:A', 'source': '1TUP:F', 'target': '1TUP:A', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:F (interacts with) 1TUP:B', 'source': '1TUP:F', 'target': '1TUP:B', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:F (interacts with) 1TUP:C', 'source': '1TUP:F', 'target': '1TUP:C', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:A (interacts with) 1TUP:B', 'source': '1TUP:A', 'target': '1TUP:B', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:B (interacts with) 1TUP:C', 'source': '1TUP:B', 'target': '1TUP:C', 'interaction': 'interacts with'}}]}}
+2025-02-16 23:26:21,058 [DEBUG] py4...: ǀOK[200], content: {"networkSUID":669}
+2025-02-16 23:26:21,059 [DEBUG] py4...: ǀReturning 'cyrest_post': {'networkSUID': 669}
+2025-02-16 23:26:21,060 [DEBUG] py4...: ǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,060 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,061 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,071 [DEBUG] py4...: ǀǀOK[200], content: [669]
+2025-02-16 23:26:21,072 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,072 [DEBUG] py4...: ǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,073 [DEBUG] py4...: ǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,074 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,074 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,083 [DEBUG] py4...: ǀǀOK[200], content: [669]
+2025-02-16 23:26:21,084 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,085 [DEBUG] py4...: ǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,085 [DEBUG] py4...: ǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,086 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,087 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,098 [DEBUG] py4...: ǀǀOK[200], content: [669]
+2025-02-16 23:26:21,098 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,099 [DEBUG] py4...: ǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,099 [DEBUG] py4...: ǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,100 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,101 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,109 [DEBUG] py4...: ǀǀOK[200], content: [669]
+2025-02-16 23:26:21,110 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,111 [DEBUG] py4...: ǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,111 [DEBUG] py4...: ǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,112 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,112 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,126 [DEBUG] py4...: ǀǀOK[200], content: [669]
+2025-02-16 23:26:21,127 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,128 [DEBUG] py4...: ǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,128 [DEBUG] py4...: ǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,129 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,129 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,138 [DEBUG] py4...: ǀǀOK[200], content: [669]
+2025-02-16 23:26:21,139 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,139 [DEBUG] py4...: ǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,139 [DEBUG] py4...: ǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,140 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,141 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,147 [DEBUG] py4...: ǀǀOK[200], content: [669]
+2025-02-16 23:26:21,148 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,148 [DEBUG] py4...: ǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,149 [DEBUG] py4...: ǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,149 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,149 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,156 [DEBUG] py4...: ǀǀOK[200], content: [669]
+2025-02-16 23:26:21,157 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,158 [DEBUG] py4...: ǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,158 [DEBUG] py4...: ǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,159 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,159 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,165 [DEBUG] py4...: ǀǀOK[200], content: [669]
+2025-02-16 23:26:21,166 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,166 [DEBUG] py4...: ǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,166 [DEBUG] py4...: ǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,167 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,167 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,174 [DEBUG] py4...: ǀǀOK[200], content: [669]
+2025-02-16 23:26:21,175 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,176 [DEBUG] py4...: ǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,180 [DEBUG] py4...: ǀCalling load_table_data(        id   label
+0   11GS:A  11GS:A
+1   154L:B  154L:B
+2   11BA:B  11BA:B
+3   9JR2:A  9JR2:A
+4   124D:A  124D:A
+5   124D:B  124D:B
+6   9JR2:P  9JR2:P
+7   1TUP:C  1TUP:C
+8   11GS:B  11GS:B
+9   154L:A  154L:A
+10  1TUP:A  1TUP:A
+11  1TUP:E  1TUP:E
+12  9JR2:R  9JR2:R
+13  11BA:A  11BA:A
+14  9JR2:G  9JR2:G
+15  1TUP:F  1TUP:F
+16  9JR2:S  9JR2:S
+17  1TUP:B  1TUP:B
+18  9JR2:B  9JR2:B, data_key_column='id', table_key_column='id', network=669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,181 [DEBUG] py4...: ǀǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,181 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,181 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,189 [DEBUG] py4...: ǀǀǀOK[200], content: [669]
+2025-02-16 23:26:21,191 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,191 [DEBUG] py4...: ǀǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,192 [DEBUG] py4...: ǀǀCalling get_table_columns(table='node', namespace='default', columns='id', network=669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,192 [DEBUG] py4...: ǀǀǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,192 [DEBUG] py4...: ǀǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,193 [DEBUG] py4...: ǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,199 [DEBUG] py4...: ǀǀǀǀOK[200], content: [669]
+2025-02-16 23:26:21,200 [DEBUG] py4...: ǀǀǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,200 [DEBUG] py4...: ǀǀǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,200 [DEBUG] py4...: ǀǀǀCalling get_table_column_types('node', namespace='default', network=669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,201 [DEBUG] py4...: ǀǀǀǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,201 [DEBUG] py4...: ǀǀǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,202 [DEBUG] py4...: ǀǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,209 [DEBUG] py4...: ǀǀǀǀǀOK[200], content: [669]
+2025-02-16 23:26:21,210 [DEBUG] py4...: ǀǀǀǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,210 [DEBUG] py4...: ǀǀǀǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,210 [DEBUG] py4...: ǀǀǀǀCalling cyrest_get('networks/669/tables/defaultnode/columns', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,211 [DEBUG] py4...: ǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/669/tables/defaultnode/columns)
+2025-02-16 23:26:21,219 [DEBUG] py4...: ǀǀǀǀOK[200], content: [{"name":"SUID","type":"Long","immutable":true,"primaryKey":true},{"name":"shared name","type":"String","immutable":true,"primaryKey":false},{"name":"name","type":"String","immutable":true,"primaryKey":false},{"name":"selected","type":"Boolean","immutable":true,"primaryKey":false},{"name":"id","type":"String","immutable":false,"primaryKey":false}]
+2025-02-16 23:26:21,220 [DEBUG] py4...: ǀǀǀǀReturning 'cyrest_get': [{'name': 'SUID', 'type': 'Long', 'immutable': True, 'primaryKey': True}, {'name': 'shared name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'selected', 'type': 'Boolean', 'immutable': True, 'primaryKey': False}, {'name': 'id', 'type': 'String', 'immutable': False, 'primaryKey': False}]
+2025-02-16 23:26:21,220 [DEBUG] py4...: ǀǀǀReturning 'get_table_column_types': {'SUID': 'Long', 'shared name': 'String', 'name': 'String', 'selected': 'Boolean', 'id': 'String'}
+2025-02-16 23:26:21,221 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks/669/tables/defaultnode/columns/SUID', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,221 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/669/tables/defaultnode/columns/SUID)
+2025-02-16 23:26:21,234 [DEBUG] py4...: ǀǀǀOK[200], content: {"name":"SUID","values":[696,703,706,709,712,715,718,721,724,727,730,733,736,739,742,745,748,751,754]}
+2025-02-16 23:26:21,234 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': {'name': 'SUID', 'values': [696, 703, 706, 709, 712, 715, 718, 721, 724, 727, 730, 733, 736, 739, 742, 745, 748, 751, 754]}
+2025-02-16 23:26:21,235 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks/669/tables/defaultnode/columns/id', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,236 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/669/tables/defaultnode/columns/id)
+2025-02-16 23:26:21,243 [DEBUG] py4...: ǀǀǀOK[200], content: {"name":"id","values":["11GS:A","154L:B","11BA:B","9JR2:A","124D:A","124D:B","9JR2:P","1TUP:C","11GS:B","154L:A","1TUP:A","1TUP:E","9JR2:R","11BA:A","9JR2:G","1TUP:F","9JR2:S","1TUP:B","9JR2:B"]}
+2025-02-16 23:26:21,243 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': {'name': 'id', 'values': ['11GS:A', '154L:B', '11BA:B', '9JR2:A', '124D:A', '124D:B', '9JR2:P', '1TUP:C', '11GS:B', '154L:A', '1TUP:A', '1TUP:E', '9JR2:R', '11BA:A', '9JR2:G', '1TUP:F', '9JR2:S', '1TUP:B', '9JR2:B']}
+2025-02-16 23:26:21,246 [DEBUG] py4...: ǀǀReturning 'get_table_columns':          id
+696  11GS:A
+703  154L:B
+706  11BA:B
+709  9JR2:A
+712  124D:A
+715  124D:B
+718  9JR2:P
+721  1TUP:C
+724  11GS:B
+727  154L:A
+730  1TUP:A
+733  1TUP:E
+736  9JR2:R
+739  11BA:A
+742  9JR2:G
+745  1TUP:F
+748  9JR2:S
+751  1TUP:B
+754  9JR2:B
+2025-02-16 23:26:21,252 [DEBUG] py4...: ǀǀCalling get_table_column_names('node', 'default', 669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,253 [DEBUG] py4...: ǀǀǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,253 [DEBUG] py4...: ǀǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,254 [DEBUG] py4...: ǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,260 [DEBUG] py4...: ǀǀǀǀOK[200], content: [669]
+2025-02-16 23:26:21,261 [DEBUG] py4...: ǀǀǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,261 [DEBUG] py4...: ǀǀǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,262 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks/669/tables/defaultnode/columns', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,262 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/669/tables/defaultnode/columns)
+2025-02-16 23:26:21,268 [DEBUG] py4...: ǀǀǀOK[200], content: [{"name":"SUID","type":"Long","immutable":true,"primaryKey":true},{"name":"shared name","type":"String","immutable":true,"primaryKey":false},{"name":"name","type":"String","immutable":true,"primaryKey":false},{"name":"selected","type":"Boolean","immutable":true,"primaryKey":false},{"name":"id","type":"String","immutable":false,"primaryKey":false}]
+2025-02-16 23:26:21,269 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': [{'name': 'SUID', 'type': 'Long', 'immutable': True, 'primaryKey': True}, {'name': 'shared name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'selected', 'type': 'Boolean', 'immutable': True, 'primaryKey': False}, {'name': 'id', 'type': 'String', 'immutable': False, 'primaryKey': False}]
+2025-02-16 23:26:21,269 [DEBUG] py4...: ǀǀReturning 'get_table_column_names': ['SUID', 'shared name', 'name', 'selected', 'id']
+2025-02-16 23:26:21,270 [DEBUG] py4...: ǀǀCalling cyrest_put('networks/669/tables/defaultnode', body={'key': 'id', 'dataKey': 'id', 'data': [{'id': '11GS:A', 'label': '11GS:A'}, {'id': '154L:B', 'label': '154L:B'}, {'id': '11BA:B', 'label': '11BA:B'}, {'id': '9JR2:A', 'label': '9JR2:A'}, {'id': '124D:A', 'label': '124D:A'}, {'id': '124D:B', 'label': '124D:B'}, {'id': '9JR2:P', 'label': '9JR2:P'}, {'id': '1TUP:C', 'label': '1TUP:C'}, {'id': '11GS:B', 'label': '11GS:B'}, {'id': '154L:A', 'label': '154L:A'}, {'id': '1TUP:A', 'label': '1TUP:A'}, {'id': '1TUP:E', 'label': '1TUP:E'}, {'id': '9JR2:R', 'label': '9JR2:R'}, {'id': '11BA:A', 'label': '11BA:A'}, {'id': '9JR2:G', 'label': '9JR2:G'}, {'id': '1TUP:F', 'label': '1TUP:F'}, {'id': '9JR2:S', 'label': '9JR2:S'}, {'id': '1TUP:B', 'label': '1TUP:B'}, {'id': '9JR2:B', 'label': '9JR2:B'}]}, require_json=False, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,270 [DEBUG] py4...: ǀǀHTTP PUT(http://127.0.0.1:1234/v1/networks/669/tables/defaultnode), json: {'key': 'id', 'dataKey': 'id', 'data': [{'id': '11GS:A', 'label': '11GS:A'}, {'id': '154L:B', 'label': '154L:B'}, {'id': '11BA:B', 'label': '11BA:B'}, {'id': '9JR2:A', 'label': '9JR2:A'}, {'id': '124D:A', 'label': '124D:A'}, {'id': '124D:B', 'label': '124D:B'}, {'id': '9JR2:P', 'label': '9JR2:P'}, {'id': '1TUP:C', 'label': '1TUP:C'}, {'id': '11GS:B', 'label': '11GS:B'}, {'id': '154L:A', 'label': '154L:A'}, {'id': '1TUP:A', 'label': '1TUP:A'}, {'id': '1TUP:E', 'label': '1TUP:E'}, {'id': '9JR2:R', 'label': '9JR2:R'}, {'id': '11BA:A', 'label': '11BA:A'}, {'id': '9JR2:G', 'label': '9JR2:G'}, {'id': '1TUP:F', 'label': '1TUP:F'}, {'id': '9JR2:S', 'label': '9JR2:S'}, {'id': '1TUP:B', 'label': '1TUP:B'}, {'id': '9JR2:B', 'label': '9JR2:B'}]}
+2025-02-16 23:26:21,287 [DEBUG] py4...: ǀǀOK[200], content: 
+2025-02-16 23:26:21,288 [DEBUG] py4...: ǀǀReturning 'cyrest_put': ''
+2025-02-16 23:26:21,288 [DEBUG] py4...: ǀReturning 'load_table_data': 'Success: Data loaded in defaultnode table'
+2025-02-16 23:26:21,292 [DEBUG] py4...: ǀCalling get_table_columns('edge', ['name'], 'default', 669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,293 [DEBUG] py4...: ǀǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,293 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,294 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,304 [DEBUG] py4...: ǀǀǀOK[200], content: [669]
+2025-02-16 23:26:21,305 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,305 [DEBUG] py4...: ǀǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,306 [DEBUG] py4...: ǀǀCalling get_table_column_types('edge', namespace='default', network=669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,307 [DEBUG] py4...: ǀǀǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,307 [DEBUG] py4...: ǀǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,308 [DEBUG] py4...: ǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,317 [DEBUG] py4...: ǀǀǀǀOK[200], content: [669]
+2025-02-16 23:26:21,318 [DEBUG] py4...: ǀǀǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,318 [DEBUG] py4...: ǀǀǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,319 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks/669/tables/defaultedge/columns', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,319 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/669/tables/defaultedge/columns)
+2025-02-16 23:26:21,328 [DEBUG] py4...: ǀǀǀOK[200], content: [{"name":"SUID","type":"Long","immutable":true,"primaryKey":true},{"name":"shared name","type":"String","immutable":true,"primaryKey":false},{"name":"shared interaction","type":"String","immutable":true,"primaryKey":false},{"name":"name","type":"String","immutable":true,"primaryKey":false},{"name":"selected","type":"Boolean","immutable":true,"primaryKey":false},{"name":"interaction","type":"String","immutable":true,"primaryKey":false},{"name":"source","type":"String","immutable":false,"primaryKey":false},{"name":"target","type":"String","immutable":false,"primaryKey":false}]
+2025-02-16 23:26:21,329 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': [{'name': 'SUID', 'type': 'Long', 'immutable': True, 'primaryKey': True}, {'name': 'shared name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'shared interaction', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'selected', 'type': 'Boolean', 'immutable': True, 'primaryKey': False}, {'name': 'interaction', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'source', 'type': 'String', 'immutable': False, 'primaryKey': False}, {'name': 'target', 'type': 'String', 'immutable': False, 'primaryKey': False}]
+2025-02-16 23:26:21,329 [DEBUG] py4...: ǀǀReturning 'get_table_column_types': {'SUID': 'Long', 'shared name': 'String', 'shared interaction': 'String', 'name': 'String', 'selected': 'Boolean', 'interaction': 'String', 'source': 'String', 'target': 'String'}
+2025-02-16 23:26:21,330 [DEBUG] py4...: ǀǀCalling cyrest_get('networks/669/tables/defaultedge/columns/SUID', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,330 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/669/tables/defaultedge/columns/SUID)
+2025-02-16 23:26:21,338 [DEBUG] py4...: ǀǀOK[200], content: {"name":"SUID","values":[769,772,775,778,781,784,787,790,793,796,799,802,805,808,811,814,817,820,823,826,829,832,835,838,841,844,847,757,766]}
+2025-02-16 23:26:21,338 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'name': 'SUID', 'values': [769, 772, 775, 778, 781, 784, 787, 790, 793, 796, 799, 802, 805, 808, 811, 814, 817, 820, 823, 826, 829, 832, 835, 838, 841, 844, 847, 757, 766]}
+2025-02-16 23:26:21,339 [DEBUG] py4...: ǀǀCalling cyrest_get('networks/669/tables/defaultedge/columns/name', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,340 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/669/tables/defaultedge/columns/name)
+2025-02-16 23:26:21,347 [DEBUG] py4...: ǀǀOK[200], content: {"name":"name","values":["9JR2:A (interacts with) 9JR2:R","9JR2:B (interacts with) 9JR2:G","9JR2:B (interacts with) 9JR2:S","9JR2:B (interacts with) 9JR2:R","9JR2:P (interacts with) 9JR2:R","11BA:A (interacts with) 11BA:B","11GS:A (interacts with) 11GS:B","154L:A (interacts with) 154L:B","154L:A (interacts with) 154L:B","9JR2:A (interacts with) 9JR2:B","9JR2:A (interacts with) 9JR2:S","9JR2:A (interacts with) 9JR2:R","9JR2:B (interacts with) 9JR2:G","9JR2:B (interacts with) 9JR2:S","9JR2:B (interacts with) 9JR2:R","9JR2:P (interacts with) 9JR2:R","154L:A (interacts with) 154L:B","124D:A (interacts with) 124D:B","1TUP:E (interacts with) 1TUP:F","1TUP:E (interacts with) 1TUP:A","1TUP:E (interacts with) 1TUP:B","1TUP:E (interacts with) 1TUP:C","1TUP:F (interacts with) 1TUP:A","1TUP:F (interacts with) 1TUP:B","1TUP:F (interacts with) 1TUP:C","1TUP:A (interacts with) 1TUP:B","1TUP:B (interacts with) 1TUP:C","9JR2:A (interacts with) 9JR2:B","9JR2:A (interacts with) 9JR2:S"]}
+2025-02-16 23:26:21,348 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'name': 'name', 'values': ['9JR2:A (interacts with) 9JR2:R', '9JR2:B (interacts with) 9JR2:G', '9JR2:B (interacts with) 9JR2:S', '9JR2:B (interacts with) 9JR2:R', '9JR2:P (interacts with) 9JR2:R', '11BA:A (interacts with) 11BA:B', '11GS:A (interacts with) 11GS:B', '154L:A (interacts with) 154L:B', '154L:A (interacts with) 154L:B', '9JR2:A (interacts with) 9JR2:B', '9JR2:A (interacts with) 9JR2:S', '9JR2:A (interacts with) 9JR2:R', '9JR2:B (interacts with) 9JR2:G', '9JR2:B (interacts with) 9JR2:S', '9JR2:B (interacts with) 9JR2:R', '9JR2:P (interacts with) 9JR2:R', '154L:A (interacts with) 154L:B', '124D:A (interacts with) 124D:B', '1TUP:E (interacts with) 1TUP:F', '1TUP:E (interacts with) 1TUP:A', '1TUP:E (interacts with) 1TUP:B', '1TUP:E (interacts with) 1TUP:C', '1TUP:F (interacts with) 1TUP:A', '1TUP:F (interacts with) 1TUP:B', '1TUP:F (interacts with) 1TUP:C', '1TUP:A (interacts with) 1TUP:B', '1TUP:B (interacts with) 1TUP:C', '9JR2:A (interacts with) 9JR2:B', '9JR2:A (interacts with) 9JR2:S']}
+2025-02-16 23:26:21,352 [DEBUG] py4...: ǀReturning 'get_table_columns':                                name
+769  9JR2:A (interacts with) 9JR2:R
+772  9JR2:B (interacts with) 9JR2:G
+775  9JR2:B (interacts with) 9JR2:S
+778  9JR2:B (interacts with) 9JR2:R
+781  9JR2:P (interacts with) 9JR2:R
+784  11BA:A (interacts with) 11BA:B
+787  11GS:A (interacts with) 11GS:B
+790  154L:A (interacts with) 154L:B
+793  154L:A (interacts with) 154L:B
+796  9JR2:A (interacts with) 9JR2:B
+799  9JR2:A (interacts with) 9JR2:S
+802  9JR2:A (interacts with) 9JR2:R
+805  9JR2:B (interacts with) 9JR2:G
+808  9JR2:B (interacts with) 9JR2:S
+811  9JR2:B (interacts with) 9JR2:R
+814  9JR2:P (interacts with) 9JR2:R
+817  154L:A (interacts with) 154L:B
+820  124D:A (interacts with) 124D:B
+823  1TUP:E (interacts with) 1TUP:F
+826  1TUP:E (interacts with) 1TUP:A
+829  1TUP:E (interacts with) 1TUP:B
+832  1TUP:E (interacts with) 1TUP:C
+835  1TUP:F (interacts with) 1TUP:A
+838  1TUP:F (interacts with) 1TUP:B
+841  1TUP:F (interacts with) 1TUP:C
+844  1TUP:A (interacts with) 1TUP:B
+847  1TUP:B (interacts with) 1TUP:C
+757  9JR2:A (interacts with) 9JR2:B
+766  9JR2:A (interacts with) 9JR2:S
+2025-02-16 23:26:21,362 [DEBUG] py4...: ǀCalling load_table_data(    source  target  ...                            name  data.key.column
+0   9JR2:A  9JR2:B  ...  9JR2:A (interacts with) 9JR2:B              796
+1   9JR2:A  9JR2:S  ...  9JR2:A (interacts with) 9JR2:S              799
+2   9JR2:A  9JR2:R  ...  9JR2:A (interacts with) 9JR2:R              769
+3   9JR2:B  9JR2:G  ...  9JR2:B (interacts with) 9JR2:G              772
+4   9JR2:B  9JR2:S  ...  9JR2:B (interacts with) 9JR2:S              775
+5   9JR2:B  9JR2:R  ...  9JR2:B (interacts with) 9JR2:R              778
+6   9JR2:P  9JR2:R  ...  9JR2:P (interacts with) 9JR2:R              781
+7   11BA:A  11BA:B  ...  11BA:A (interacts with) 11BA:B              784
+8   11GS:A  11GS:B  ...  11GS:A (interacts with) 11GS:B              787
+9   154L:A  154L:B  ...  154L:A (interacts with) 154L:B              790
+10  154L:A  154L:B  ...  154L:A (interacts with) 154L:B              793
+11  9JR2:A  9JR2:B  ...  9JR2:A (interacts with) 9JR2:B              757
+12  9JR2:A  9JR2:S  ...  9JR2:A (interacts with) 9JR2:S              766
+13  9JR2:A  9JR2:R  ...  9JR2:A (interacts with) 9JR2:R              802
+14  9JR2:B  9JR2:G  ...  9JR2:B (interacts with) 9JR2:G              805
+15  9JR2:B  9JR2:S  ...  9JR2:B (interacts with) 9JR2:S              808
+16  9JR2:B  9JR2:R  ...  9JR2:B (interacts with) 9JR2:R              811
+17  9JR2:P  9JR2:R  ...  9JR2:P (interacts with) 9JR2:R              814
+18  154L:A  154L:B  ...  154L:A (interacts with) 154L:B              817
+19  124D:A  124D:B  ...  124D:A (interacts with) 124D:B              820
+20  1TUP:E  1TUP:F  ...  1TUP:E (interacts with) 1TUP:F              823
+21  1TUP:E  1TUP:A  ...  1TUP:E (interacts with) 1TUP:A              826
+22  1TUP:E  1TUP:B  ...  1TUP:E (interacts with) 1TUP:B              829
+23  1TUP:E  1TUP:C  ...  1TUP:E (interacts with) 1TUP:C              832
+24  1TUP:F  1TUP:A  ...  1TUP:F (interacts with) 1TUP:A              835
+25  1TUP:F  1TUP:B  ...  1TUP:F (interacts with) 1TUP:B              838
+26  1TUP:F  1TUP:C  ...  1TUP:F (interacts with) 1TUP:C              841
+27  1TUP:A  1TUP:B  ...  1TUP:A (interacts with) 1TUP:B              844
+28  1TUP:B  1TUP:C  ...  1TUP:B (interacts with) 1TUP:C              847
+
+[29 rows x 7 columns], data_key_column='data.key.column', table='edge', table_key_column='SUID', network=669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,363 [DEBUG] py4...: ǀǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,363 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,363 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,370 [DEBUG] py4...: ǀǀǀOK[200], content: [669]
+2025-02-16 23:26:21,371 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,371 [DEBUG] py4...: ǀǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,371 [DEBUG] py4...: ǀǀCalling get_table_columns(table='edge', namespace='default', columns='SUID', network=669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,372 [DEBUG] py4...: ǀǀǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,372 [DEBUG] py4...: ǀǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,372 [DEBUG] py4...: ǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,379 [DEBUG] py4...: ǀǀǀǀOK[200], content: [669]
+2025-02-16 23:26:21,380 [DEBUG] py4...: ǀǀǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,380 [DEBUG] py4...: ǀǀǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,381 [DEBUG] py4...: ǀǀǀCalling get_table_column_types('edge', namespace='default', network=669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,381 [DEBUG] py4...: ǀǀǀǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,381 [DEBUG] py4...: ǀǀǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,382 [DEBUG] py4...: ǀǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,388 [DEBUG] py4...: ǀǀǀǀǀOK[200], content: [669]
+2025-02-16 23:26:21,389 [DEBUG] py4...: ǀǀǀǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,389 [DEBUG] py4...: ǀǀǀǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,390 [DEBUG] py4...: ǀǀǀǀCalling cyrest_get('networks/669/tables/defaultedge/columns', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,390 [DEBUG] py4...: ǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/669/tables/defaultedge/columns)
+2025-02-16 23:26:21,404 [DEBUG] py4...: ǀǀǀǀOK[200], content: [{"name":"SUID","type":"Long","immutable":true,"primaryKey":true},{"name":"shared name","type":"String","immutable":true,"primaryKey":false},{"name":"shared interaction","type":"String","immutable":true,"primaryKey":false},{"name":"name","type":"String","immutable":true,"primaryKey":false},{"name":"selected","type":"Boolean","immutable":true,"primaryKey":false},{"name":"interaction","type":"String","immutable":true,"primaryKey":false},{"name":"source","type":"String","immutable":false,"primaryKey":false},{"name":"target","type":"String","immutable":false,"primaryKey":false}]
+2025-02-16 23:26:21,405 [DEBUG] py4...: ǀǀǀǀReturning 'cyrest_get': [{'name': 'SUID', 'type': 'Long', 'immutable': True, 'primaryKey': True}, {'name': 'shared name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'shared interaction', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'selected', 'type': 'Boolean', 'immutable': True, 'primaryKey': False}, {'name': 'interaction', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'source', 'type': 'String', 'immutable': False, 'primaryKey': False}, {'name': 'target', 'type': 'String', 'immutable': False, 'primaryKey': False}]
+2025-02-16 23:26:21,405 [DEBUG] py4...: ǀǀǀReturning 'get_table_column_types': {'SUID': 'Long', 'shared name': 'String', 'shared interaction': 'String', 'name': 'String', 'selected': 'Boolean', 'interaction': 'String', 'source': 'String', 'target': 'String'}
+2025-02-16 23:26:21,405 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks/669/tables/defaultedge/columns/SUID', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,406 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/669/tables/defaultedge/columns/SUID)
+2025-02-16 23:26:21,413 [DEBUG] py4...: ǀǀǀOK[200], content: {"name":"SUID","values":[769,772,775,778,781,784,787,790,793,796,799,802,805,808,811,814,817,820,823,826,829,832,835,838,841,844,847,757,766]}
+2025-02-16 23:26:21,413 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': {'name': 'SUID', 'values': [769, 772, 775, 778, 781, 784, 787, 790, 793, 796, 799, 802, 805, 808, 811, 814, 817, 820, 823, 826, 829, 832, 835, 838, 841, 844, 847, 757, 766]}
+2025-02-16 23:26:21,414 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks/669/tables/defaultedge/columns/SUID', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,415 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/669/tables/defaultedge/columns/SUID)
+2025-02-16 23:26:21,422 [DEBUG] py4...: ǀǀǀOK[200], content: {"name":"SUID","values":[769,772,775,778,781,784,787,790,793,796,799,802,805,808,811,814,817,820,823,826,829,832,835,838,841,844,847,757,766]}
+2025-02-16 23:26:21,422 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': {'name': 'SUID', 'values': [769, 772, 775, 778, 781, 784, 787, 790, 793, 796, 799, 802, 805, 808, 811, 814, 817, 820, 823, 826, 829, 832, 835, 838, 841, 844, 847, 757, 766]}
+2025-02-16 23:26:21,426 [DEBUG] py4...: ǀǀReturning 'get_table_columns':      SUID
+769   769
+772   772
+775   775
+778   778
+781   781
+784   784
+787   787
+790   790
+793   793
+796   796
+799   799
+802   802
+805   805
+808   808
+811   811
+814   814
+817   817
+820   820
+823   823
+826   826
+829   829
+832   832
+835   835
+838   838
+841   841
+844   844
+847   847
+757   757
+766   766
+2025-02-16 23:26:21,431 [DEBUG] py4...: ǀǀCalling get_table_column_names('edge', 'default', 669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,431 [DEBUG] py4...: ǀǀǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,431 [DEBUG] py4...: ǀǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,432 [DEBUG] py4...: ǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,439 [DEBUG] py4...: ǀǀǀǀOK[200], content: [669]
+2025-02-16 23:26:21,440 [DEBUG] py4...: ǀǀǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,440 [DEBUG] py4...: ǀǀǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,441 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks/669/tables/defaultedge/columns', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,441 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/669/tables/defaultedge/columns)
+2025-02-16 23:26:21,448 [DEBUG] py4...: ǀǀǀOK[200], content: [{"name":"SUID","type":"Long","immutable":true,"primaryKey":true},{"name":"shared name","type":"String","immutable":true,"primaryKey":false},{"name":"shared interaction","type":"String","immutable":true,"primaryKey":false},{"name":"name","type":"String","immutable":true,"primaryKey":false},{"name":"selected","type":"Boolean","immutable":true,"primaryKey":false},{"name":"interaction","type":"String","immutable":true,"primaryKey":false},{"name":"source","type":"String","immutable":false,"primaryKey":false},{"name":"target","type":"String","immutable":false,"primaryKey":false}]
+2025-02-16 23:26:21,449 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': [{'name': 'SUID', 'type': 'Long', 'immutable': True, 'primaryKey': True}, {'name': 'shared name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'shared interaction', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'selected', 'type': 'Boolean', 'immutable': True, 'primaryKey': False}, {'name': 'interaction', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'source', 'type': 'String', 'immutable': False, 'primaryKey': False}, {'name': 'target', 'type': 'String', 'immutable': False, 'primaryKey': False}]
+2025-02-16 23:26:21,450 [DEBUG] py4...: ǀǀReturning 'get_table_column_names': ['SUID', 'shared name', 'shared interaction', 'name', 'selected', 'interaction', 'source', 'target']
+2025-02-16 23:26:21,450 [DEBUG] py4...: ǀǀCalling cyrest_post('networks/669/tables/defaultedge/columns', body={'name': 'ca_nn_count', 'type': 'Integer'}, require_json=False, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,451 [DEBUG] py4...: ǀǀHTTP POST(http://127.0.0.1:1234/v1/networks/669/tables/defaultedge/columns), json: {'name': 'ca_nn_count', 'type': 'Integer'}
+2025-02-16 23:26:21,462 [DEBUG] py4...: ǀǀCreated[201], content: 
+2025-02-16 23:26:21,463 [DEBUG] py4...: ǀǀReturning 'cyrest_post': ''
+2025-02-16 23:26:21,463 [DEBUG] py4...: ǀǀCalling cyrest_post('networks/669/tables/defaultedge/columns', body={'name': 'all_atoms_close_count', 'type': 'Integer'}, require_json=False, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,464 [DEBUG] py4...: ǀǀHTTP POST(http://127.0.0.1:1234/v1/networks/669/tables/defaultedge/columns), json: {'name': 'all_atoms_close_count', 'type': 'Integer'}
+2025-02-16 23:26:21,478 [DEBUG] py4...: ǀǀCreated[201], content: 
+2025-02-16 23:26:21,479 [DEBUG] py4...: ǀǀReturning 'cyrest_post': ''
+2025-02-16 23:26:21,479 [DEBUG] py4...: ǀǀCalling cyrest_post('networks/669/tables/defaultedge/columns', body={'name': 'data.key.column', 'type': 'Integer'}, require_json=False, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,480 [DEBUG] py4...: ǀǀHTTP POST(http://127.0.0.1:1234/v1/networks/669/tables/defaultedge/columns), json: {'name': 'data.key.column', 'type': 'Integer'}
+2025-02-16 23:26:21,493 [DEBUG] py4...: ǀǀCreated[201], content: 
+2025-02-16 23:26:21,494 [DEBUG] py4...: ǀǀReturning 'cyrest_post': ''
+2025-02-16 23:26:21,494 [DEBUG] py4...: ǀǀCalling cyrest_put('networks/669/tables/defaultedge', body={'key': 'SUID', 'dataKey': 'data.key.column', 'data': [{'source': '9JR2:A', 'target': '9JR2:B', 'ca_nn_count': 3637, 'all_atoms_close_count': 461, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:B', 'data.key.column': 796}, {'source': '9JR2:A', 'target': '9JR2:S', 'ca_nn_count': 1662, 'all_atoms_close_count': 254, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:S', 'data.key.column': 799}, {'source': '9JR2:A', 'target': '9JR2:R', 'ca_nn_count': 2206, 'all_atoms_close_count': 301, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:R', 'data.key.column': 769}, {'source': '9JR2:B', 'target': '9JR2:G', 'ca_nn_count': 5505, 'all_atoms_close_count': 843, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:G', 'data.key.column': 772}, {'source': '9JR2:B', 'target': '9JR2:S', 'ca_nn_count': 1269, 'all_atoms_close_count': 159, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:S', 'data.key.column': 775}, {'source': '9JR2:B', 'target': '9JR2:R', 'ca_nn_count': 974, 'all_atoms_close_count': 40, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:R', 'data.key.column': 778}, {'source': '9JR2:P', 'target': '9JR2:R', 'ca_nn_count': 5376, 'all_atoms_close_count': 1063, 'interaction': 'interacts with', 'name': '9JR2:P (interacts with) 9JR2:R', 'data.key.column': 781}, {'source': '11BA:A', 'target': '11BA:B', 'ca_nn_count': 5438, 'all_atoms_close_count': 1384, 'interaction': 'interacts with', 'name': '11BA:A (interacts with) 11BA:B', 'data.key.column': 784}, {'source': '11GS:A', 'target': '11GS:B', 'ca_nn_count': 4143, 'all_atoms_close_count': 936, 'interaction': 'interacts with', 'name': '11GS:A (interacts with) 11GS:B', 'data.key.column': 787}, {'source': '154L:A', 'target': '154L:B', 'ca_nn_count': 4289, 'all_atoms_close_count': 307, 'interaction': 'interacts with', 'name': '154L:A (interacts with) 154L:B', 'data.key.column': 790}, {'source': '154L:A', 'target': '154L:B', 'ca_nn_count': 4289, 'all_atoms_close_count': 307, 'interaction': 'interacts with', 'name': '154L:A (interacts with) 154L:B', 'data.key.column': 793}, {'source': '9JR2:A', 'target': '9JR2:B', 'ca_nn_count': 3637, 'all_atoms_close_count': 461, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:B', 'data.key.column': 757}, {'source': '9JR2:A', 'target': '9JR2:S', 'ca_nn_count': 1662, 'all_atoms_close_count': 254, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:S', 'data.key.column': 766}, {'source': '9JR2:A', 'target': '9JR2:R', 'ca_nn_count': 2206, 'all_atoms_close_count': 301, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:R', 'data.key.column': 802}, {'source': '9JR2:B', 'target': '9JR2:G', 'ca_nn_count': 5505, 'all_atoms_close_count': 843, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:G', 'data.key.column': 805}, {'source': '9JR2:B', 'target': '9JR2:S', 'ca_nn_count': 1269, 'all_atoms_close_count': 159, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:S', 'data.key.column': 808}, {'source': '9JR2:B', 'target': '9JR2:R', 'ca_nn_count': 974, 'all_atoms_close_count': 40, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:R', 'data.key.column': 811}, {'source': '9JR2:P', 'target': '9JR2:R', 'ca_nn_count': 5376, 'all_atoms_close_count': 1063, 'interaction': 'interacts with', 'name': '9JR2:P (interacts with) 9JR2:R', 'data.key.column': 814}, {'source': '154L:A', 'target': '154L:B', 'ca_nn_count': 4289, 'all_atoms_close_count': 307, 'interaction': 'interacts with', 'name': '154L:A (interacts with) 154L:B', 'data.key.column': 817}, {'source': '124D:A', 'target': '124D:B', 'ca_nn_count': 37954, 'all_atoms_close_count': 1069, 'interaction': 'interacts with', 'name': '124D:A (interacts with) 124D:B', 'data.key.column': 820}, {'source': '1TUP:E', 'target': '1TUP:F', 'ca_nn_count': 56410, 'all_atoms_close_count': 1103, 'interaction': 'interacts with', 'name': '1TUP:E (interacts with) 1TUP:F', 'data.key.column': 823}, {'source': '1TUP:E', 'target': '1TUP:A', 'ca_nn_count': 1916, 'all_atoms_close_count': 115, 'interaction': 'interacts with', 'name': '1TUP:E (interacts with) 1TUP:A', 'data.key.column': 826}, {'source': '1TUP:E', 'target': '1TUP:B', 'ca_nn_count': 5408, 'all_atoms_close_count': 252, 'interaction': 'interacts with', 'name': '1TUP:E (interacts with) 1TUP:B', 'data.key.column': 829}, {'source': '1TUP:E', 'target': '1TUP:C', 'ca_nn_count': 2573, 'all_atoms_close_count': 88, 'interaction': 'interacts with', 'name': '1TUP:E (interacts with) 1TUP:C', 'data.key.column': 832}, {'source': '1TUP:F', 'target': '1TUP:A', 'ca_nn_count': 1088, 'all_atoms_close_count': 16, 'interaction': 'interacts with', 'name': '1TUP:F (interacts with) 1TUP:A', 'data.key.column': 835}, {'source': '1TUP:F', 'target': '1TUP:B', 'ca_nn_count': 3993, 'all_atoms_close_count': 153, 'interaction': 'interacts with', 'name': '1TUP:F (interacts with) 1TUP:B', 'data.key.column': 838}, {'source': '1TUP:F', 'target': '1TUP:C', 'ca_nn_count': 1930, 'all_atoms_close_count': 25, 'interaction': 'interacts with', 'name': '1TUP:F (interacts with) 1TUP:C', 'data.key.column': 841}, {'source': '1TUP:A', 'target': '1TUP:B', 'ca_nn_count': 2254, 'all_atoms_close_count': 670, 'interaction': 'interacts with', 'name': '1TUP:A (interacts with) 1TUP:B', 'data.key.column': 844}, {'source': '1TUP:B', 'target': '1TUP:C', 'ca_nn_count': 1483, 'all_atoms_close_count': 117, 'interaction': 'interacts with', 'name': '1TUP:B (interacts with) 1TUP:C', 'data.key.column': 847}]}, require_json=False, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,495 [DEBUG] py4...: ǀǀHTTP PUT(http://127.0.0.1:1234/v1/networks/669/tables/defaultedge), json: {'key': 'SUID', 'dataKey': 'data.key.column', 'data': [{'source': '9JR2:A', 'target': '9JR2:B', 'ca_nn_count': 3637, 'all_atoms_close_count': 461, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:B', 'data.key.column': 796}, {'source': '9JR2:A', 'target': '9JR2:S', 'ca_nn_count': 1662, 'all_atoms_close_count': 254, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:S', 'data.key.column': 799}, {'source': '9JR2:A', 'target': '9JR2:R', 'ca_nn_count': 2206, 'all_atoms_close_count': 301, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:R', 'data.key.column': 769}, {'source': '9JR2:B', 'target': '9JR2:G', 'ca_nn_count': 5505, 'all_atoms_close_count': 843, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:G', 'data.key.column': 772}, {'source': '9JR2:B', 'target': '9JR2:S', 'ca_nn_count': 1269, 'all_atoms_close_count': 159, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:S', 'data.key.column': 775}, {'source': '9JR2:B', 'target': '9JR2:R', 'ca_nn_count': 974, 'all_atoms_close_count': 40, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:R', 'data.key.column': 778}, {'source': '9JR2:P', 'target': '9JR2:R', 'ca_nn_count': 5376, 'all_atoms_close_count': 1063, 'interaction': 'interacts with', 'name': '9JR2:P (interacts with) 9JR2:R', 'data.key.column': 781}, {'source': '11BA:A', 'target': '11BA:B', 'ca_nn_count': 5438, 'all_atoms_close_count': 1384, 'interaction': 'interacts with', 'name': '11BA:A (interacts with) 11BA:B', 'data.key.column': 784}, {'source': '11GS:A', 'target': '11GS:B', 'ca_nn_count': 4143, 'all_atoms_close_count': 936, 'interaction': 'interacts with', 'name': '11GS:A (interacts with) 11GS:B', 'data.key.column': 787}, {'source': '154L:A', 'target': '154L:B', 'ca_nn_count': 4289, 'all_atoms_close_count': 307, 'interaction': 'interacts with', 'name': '154L:A (interacts with) 154L:B', 'data.key.column': 790}, {'source': '154L:A', 'target': '154L:B', 'ca_nn_count': 4289, 'all_atoms_close_count': 307, 'interaction': 'interacts with', 'name': '154L:A (interacts with) 154L:B', 'data.key.column': 793}, {'source': '9JR2:A', 'target': '9JR2:B', 'ca_nn_count': 3637, 'all_atoms_close_count': 461, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:B', 'data.key.column': 757}, {'source': '9JR2:A', 'target': '9JR2:S', 'ca_nn_count': 1662, 'all_atoms_close_count': 254, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:S', 'data.key.column': 766}, {'source': '9JR2:A', 'target': '9JR2:R', 'ca_nn_count': 2206, 'all_atoms_close_count': 301, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:R', 'data.key.column': 802}, {'source': '9JR2:B', 'target': '9JR2:G', 'ca_nn_count': 5505, 'all_atoms_close_count': 843, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:G', 'data.key.column': 805}, {'source': '9JR2:B', 'target': '9JR2:S', 'ca_nn_count': 1269, 'all_atoms_close_count': 159, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:S', 'data.key.column': 808}, {'source': '9JR2:B', 'target': '9JR2:R', 'ca_nn_count': 974, 'all_atoms_close_count': 40, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:R', 'data.key.column': 811}, {'source': '9JR2:P', 'target': '9JR2:R', 'ca_nn_count': 5376, 'all_atoms_close_count': 1063, 'interaction': 'interacts with', 'name': '9JR2:P (interacts with) 9JR2:R', 'data.key.column': 814}, {'source': '154L:A', 'target': '154L:B', 'ca_nn_count': 4289, 'all_atoms_close_count': 307, 'interaction': 'interacts with', 'name': '154L:A (interacts with) 154L:B', 'data.key.column': 817}, {'source': '124D:A', 'target': '124D:B', 'ca_nn_count': 37954, 'all_atoms_close_count': 1069, 'interaction': 'interacts with', 'name': '124D:A (interacts with) 124D:B', 'data.key.column': 820}, {'source': '1TUP:E', 'target': '1TUP:F', 'ca_nn_count': 56410, 'all_atoms_close_count': 1103, 'interaction': 'interacts with', 'name': '1TUP:E (interacts with) 1TUP:F', 'data.key.column': 823}, {'source': '1TUP:E', 'target': '1TUP:A', 'ca_nn_count': 1916, 'all_atoms_close_count': 115, 'interaction': 'interacts with', 'name': '1TUP:E (interacts with) 1TUP:A', 'data.key.column': 826}, {'source': '1TUP:E', 'target': '1TUP:B', 'ca_nn_count': 5408, 'all_atoms_close_count': 252, 'interaction': 'interacts with', 'name': '1TUP:E (interacts with) 1TUP:B', 'data.key.column': 829}, {'source': '1TUP:E', 'target': '1TUP:C', 'ca_nn_count': 2573, 'all_atoms_close_count': 88, 'interaction': 'interacts with', 'name': '1TUP:E (interacts with) 1TUP:C', 'data.key.column': 832}, {'source': '1TUP:F', 'target': '1TUP:A', 'ca_nn_count': 1088, 'all_atoms_close_count': 16, 'interaction': 'interacts with', 'name': '1TUP:F (interacts with) 1TUP:A', 'data.key.column': 835}, {'source': '1TUP:F', 'target': '1TUP:B', 'ca_nn_count': 3993, 'all_atoms_close_count': 153, 'interaction': 'interacts with', 'name': '1TUP:F (interacts with) 1TUP:B', 'data.key.column': 838}, {'source': '1TUP:F', 'target': '1TUP:C', 'ca_nn_count': 1930, 'all_atoms_close_count': 25, 'interaction': 'interacts with', 'name': '1TUP:F (interacts with) 1TUP:C', 'data.key.column': 841}, {'source': '1TUP:A', 'target': '1TUP:B', 'ca_nn_count': 2254, 'all_atoms_close_count': 670, 'interaction': 'interacts with', 'name': '1TUP:A (interacts with) 1TUP:B', 'data.key.column': 844}, {'source': '1TUP:B', 'target': '1TUP:C', 'ca_nn_count': 1483, 'all_atoms_close_count': 117, 'interaction': 'interacts with', 'name': '1TUP:B (interacts with) 1TUP:C', 'data.key.column': 847}]}
+2025-02-16 23:26:21,506 [DEBUG] py4...: ǀǀOK[200], content: 
+2025-02-16 23:26:21,506 [DEBUG] py4...: ǀǀReturning 'cyrest_put': ''
+2025-02-16 23:26:21,507 [DEBUG] py4...: ǀReturning 'load_table_data': 'Success: Data loaded in defaultedge table'
+2025-02-16 23:26:21,507 [DEBUG] py4...: ǀCalling commands_post('vizmap apply styles="default"', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,508 [DEBUG] py4...: ǀHTTP POST(http://127.0.0.1:1234/v1/commands/vizmap/apply), json: {'styles': 'default'}
+2025-02-16 23:26:21,547 [DEBUG] py4...: ǀOK[200], content: {
+ "data": {"views":[
+  921
+]},
+ "errors":[]
+}
+2025-02-16 23:26:21,548 [DEBUG] py4...: ǀReturning 'commands_post': {'views': [921]}
+2025-02-16 23:26:21,548 [DEBUG] py4...: ǀCalling layout_network(network=669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,549 [DEBUG] py4...: ǀǀCalling get_network_suid(669, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,550 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,551 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:26:21,560 [DEBUG] py4...: ǀǀǀOK[200], content: [669]
+2025-02-16 23:26:21,561 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': [669]
+2025-02-16 23:26:21,561 [DEBUG] py4...: ǀǀReturning 'get_network_suid': 669
+2025-02-16 23:26:21,562 [DEBUG] py4...: ǀǀCalling commands_post('layout apply preferred networkSelected="SUID:669"', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:21,562 [DEBUG] py4...: ǀǀHTTP POST(http://127.0.0.1:1234/v1/commands/layout/apply%20preferred), json: {'networkSelected': 'SUID:669'}
+2025-02-16 23:26:21,594 [DEBUG] py4...: ǀǀOK[200], content: {
+ "data": {},
+ "errors":[]
+}
+2025-02-16 23:26:21,594 [DEBUG] py4...: ǀǀReturning 'commands_post': {}
+2025-02-16 23:26:21,595 [DEBUG] py4...: ǀReturning 'layout_network': {}
+2025-02-16 23:26:21,596 [DEBUG] py4...: Returning 'create_network_from_data_frames': 669
+2025-02-16 23:26:21,596 [DEBUG] py4...: --------------------
+2025-02-16 23:26:22,597 [DEBUG] py4...: Calling layout_network(layout_name='circular')
+2025-02-16 23:26:22,597 [DEBUG] py4...: ǀCalling get_network_suid(None, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:22,598 [DEBUG] py4...: ǀǀCalling commands_post('network get attribute network="current" namespace="default" columnList="SUID"', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:22,599 [DEBUG] py4...: ǀǀHTTP POST(http://127.0.0.1:1234/v1/commands/network/get%20attribute), json: {'network': 'current', 'namespace': 'default', 'columnList': 'SUID'}
+2025-02-16 23:26:22,613 [DEBUG] py4...: ǀǀOK[200], content: {
+ "data": [ {
+  "SUID": 669
+}
+],
+ "errors":[]
+}
+2025-02-16 23:26:22,614 [DEBUG] py4...: ǀǀReturning 'commands_post': [{'SUID': 669}]
+2025-02-16 23:26:22,615 [DEBUG] py4...: ǀReturning 'get_network_suid': 669
+2025-02-16 23:26:22,615 [DEBUG] py4...: ǀCalling commands_post('layout circular network="SUID:669"', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:26:22,616 [DEBUG] py4...: ǀHTTP POST(http://127.0.0.1:1234/v1/commands/layout/circular), json: {'network': 'SUID:669'}
+2025-02-16 23:26:22,628 [DEBUG] py4...: ǀOK[200], content: {
+ "data": {},
+ "errors":[]
+}
+2025-02-16 23:26:22,628 [DEBUG] py4...: ǀReturning 'commands_post': {}
+2025-02-16 23:26:22,629 [DEBUG] py4...: Returning 'layout_network': {}
+2025-02-16 23:26:22,629 [DEBUG] py4...: --------------------
+2025-02-16 23:29:20,983 [DEBUG] py4...: Calling cytoscape_ping()
+2025-02-16 23:29:20,984 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:20,985 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:20,985 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-02-16 23:29:21,001 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-02-16 23:29:21,002 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-02-16 23:29:21,016 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-02-16 23:29:21,017 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-02-16 23:29:21,017 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-02-16 23:29:21,018 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-02-16 23:29:21,019 [DEBUG] py4...: --------------------
+2025-02-16 23:29:21,019 [DEBUG] py4...: Calling get_network_list()
+2025-02-16 23:29:21,020 [DEBUG] py4...: ǀCalling cyrest_get('networks.names', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:21,021 [DEBUG] py4...: ǀHTTP GET(http://127.0.0.1:1234/v1/networks.names)
+2025-02-16 23:29:21,030 [DEBUG] py4...: ǀOK[200], content: [{"name":"Protein Interaction Network","SUID":669}]
+2025-02-16 23:29:21,031 [DEBUG] py4...: ǀReturning 'cyrest_get': [{'name': 'Protein Interaction Network', 'SUID': 669}]
+2025-02-16 23:29:21,031 [DEBUG] py4...: Returning 'get_network_list': ['Protein Interaction Network']
+2025-02-16 23:29:21,032 [DEBUG] py4...: --------------------
+2025-02-16 23:29:21,033 [DEBUG] py4...: Calling delete_network('Protein Interaction Network')
+2025-02-16 23:29:21,033 [DEBUG] py4...: ǀCalling get_network_suid('Protein Interaction Network', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:21,033 [DEBUG] py4...: ǀǀCalling get_network_list(base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:21,034 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks.names', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:21,034 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks.names)
+2025-02-16 23:29:21,045 [DEBUG] py4...: ǀǀǀOK[200], content: [{"name":"Protein Interaction Network","SUID":669}]
+2025-02-16 23:29:21,046 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': [{'name': 'Protein Interaction Network', 'SUID': 669}]
+2025-02-16 23:29:21,047 [DEBUG] py4...: ǀǀReturning 'get_network_list': ['Protein Interaction Network']
+2025-02-16 23:29:21,047 [DEBUG] py4...: ǀǀCalling commands_post('network get attribute network="Protein Interaction Network" namespace="default" columnList="SUID"', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:21,048 [DEBUG] py4...: ǀǀHTTP POST(http://127.0.0.1:1234/v1/commands/network/get%20attribute), json: {'network': 'Protein Interaction Network', 'namespace': 'default', 'columnList': 'SUID'}
+2025-02-16 23:29:21,061 [DEBUG] py4...: ǀǀOK[200], content: {
+ "data": [ {
+  "SUID": 669
+}
+],
+ "errors":[]
+}
+2025-02-16 23:29:21,062 [DEBUG] py4...: ǀǀReturning 'commands_post': [{'SUID': 669}]
+2025-02-16 23:29:21,062 [DEBUG] py4...: ǀReturning 'get_network_suid': 669
+2025-02-16 23:29:21,063 [DEBUG] py4...: ǀCalling cyrest_delete('networks/669', base_url='http://127.0.0.1:1234/v1', require_json=False)
+2025-02-16 23:29:21,063 [DEBUG] py4...: ǀHTTP DELETE(http://127.0.0.1:1234/v1/networks/669)
+2025-02-16 23:29:21,192 [DEBUG] py4...: ǀOK[200], content: 
+2025-02-16 23:29:21,192 [DEBUG] py4...: ǀReturning 'cyrest_delete': ''
+2025-02-16 23:29:21,193 [DEBUG] py4...: Returning 'delete_network': ''
+2025-02-16 23:29:21,193 [DEBUG] py4...: --------------------
+2025-02-16 23:29:22,203 [DEBUG] py4...: Calling create_network_from_data_frames(        id   label
+0   11BA:A  11BA:A
+1   124D:A  124D:A
+2   1TUP:A  1TUP:A
+3   1TUP:E  1TUP:E
+4   9JR2:S  9JR2:S
+5   1TUP:C  1TUP:C
+6   11BA:B  11BA:B
+7   1TUP:F  1TUP:F
+8   9JR2:R  9JR2:R
+9   9JR2:B  9JR2:B
+10  9JR2:G  9JR2:G
+11  1TUP:B  1TUP:B
+12  154L:A  154L:A
+13  154L:B  154L:B
+14  11GS:B  11GS:B
+15  9JR2:A  9JR2:A
+16  9JR2:P  9JR2:P
+17  124D:B  124D:B
+18  11GS:A  11GS:A,     source  target  ca_nn_count  all_atoms_close_count
+0   9JR2:A  9JR2:B         3637                    461
+1   9JR2:A  9JR2:S         1662                    254
+2   9JR2:A  9JR2:R         2206                    301
+3   9JR2:B  9JR2:G         5505                    843
+4   9JR2:B  9JR2:S         1269                    159
+5   9JR2:B  9JR2:R          974                     40
+6   9JR2:P  9JR2:R         5376                   1063
+7   11BA:A  11BA:B         5438                   1384
+8   11GS:A  11GS:B         4143                    936
+9   154L:A  154L:B         4289                    307
+10  154L:A  154L:B         4289                    307
+11  9JR2:A  9JR2:B         3637                    461
+12  9JR2:A  9JR2:S         1662                    254
+13  9JR2:A  9JR2:R         2206                    301
+14  9JR2:B  9JR2:G         5505                    843
+15  9JR2:B  9JR2:S         1269                    159
+16  9JR2:B  9JR2:R          974                     40
+17  9JR2:P  9JR2:R         5376                   1063
+18  154L:A  154L:B         4289                    307
+19  124D:A  124D:B        37954                   1069
+20  1TUP:E  1TUP:F        56410                   1103
+21  1TUP:E  1TUP:A         1916                    115
+22  1TUP:E  1TUP:B         5408                    252
+23  1TUP:E  1TUP:C         2573                     88
+24  1TUP:F  1TUP:A         1088                     16
+25  1TUP:F  1TUP:B         3993                    153
+26  1TUP:F  1TUP:C         1930                     25
+27  1TUP:A  1TUP:B         2254                    670
+28  1TUP:B  1TUP:C         1483                    117, title='Protein Interaction Network')
+2025-02-16 23:29:22,205 [DEBUG] py4...: ǀCalling cyrest_post('networks', parameters={'title': 'Protein Interaction Network', 'collection': 'My Dataframe Network Collection'}, body={'data': [{'name': 'Protein Interaction Network'}], 'elements': {'nodes': [{'data': {'id': '11BA:A'}}, {'data': {'id': '124D:A'}}, {'data': {'id': '1TUP:A'}}, {'data': {'id': '1TUP:E'}}, {'data': {'id': '9JR2:S'}}, {'data': {'id': '1TUP:C'}}, {'data': {'id': '11BA:B'}}, {'data': {'id': '1TUP:F'}}, {'data': {'id': '9JR2:R'}}, {'data': {'id': '9JR2:B'}}, {'data': {'id': '9JR2:G'}}, {'data': {'id': '1TUP:B'}}, {'data': {'id': '154L:A'}}, {'data': {'id': '154L:B'}}, {'data': {'id': '11GS:B'}}, {'data': {'id': '9JR2:A'}}, {'data': {'id': '9JR2:P'}}, {'data': {'id': '124D:B'}}, {'data': {'id': '11GS:A'}}], 'edges': [{'data': {'name': '9JR2:A (interacts with) 9JR2:B', 'source': '9JR2:A', 'target': '9JR2:B', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:S', 'source': '9JR2:A', 'target': '9JR2:S', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:R', 'source': '9JR2:A', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:G', 'source': '9JR2:B', 'target': '9JR2:G', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:S', 'source': '9JR2:B', 'target': '9JR2:S', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:R', 'source': '9JR2:B', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:P (interacts with) 9JR2:R', 'source': '9JR2:P', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '11BA:A (interacts with) 11BA:B', 'source': '11BA:A', 'target': '11BA:B', 'interaction': 'interacts with'}}, {'data': {'name': '11GS:A (interacts with) 11GS:B', 'source': '11GS:A', 'target': '11GS:B', 'interaction': 'interacts with'}}, {'data': {'name': '154L:A (interacts with) 154L:B', 'source': '154L:A', 'target': '154L:B', 'interaction': 'interacts with'}}, {'data': {'name': '154L:A (interacts with) 154L:B', 'source': '154L:A', 'target': '154L:B', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:B', 'source': '9JR2:A', 'target': '9JR2:B', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:S', 'source': '9JR2:A', 'target': '9JR2:S', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:R', 'source': '9JR2:A', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:G', 'source': '9JR2:B', 'target': '9JR2:G', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:S', 'source': '9JR2:B', 'target': '9JR2:S', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:R', 'source': '9JR2:B', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:P (interacts with) 9JR2:R', 'source': '9JR2:P', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '154L:A (interacts with) 154L:B', 'source': '154L:A', 'target': '154L:B', 'interaction': 'interacts with'}}, {'data': {'name': '124D:A (interacts with) 124D:B', 'source': '124D:A', 'target': '124D:B', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:E (interacts with) 1TUP:F', 'source': '1TUP:E', 'target': '1TUP:F', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:E (interacts with) 1TUP:A', 'source': '1TUP:E', 'target': '1TUP:A', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:E (interacts with) 1TUP:B', 'source': '1TUP:E', 'target': '1TUP:B', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:E (interacts with) 1TUP:C', 'source': '1TUP:E', 'target': '1TUP:C', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:F (interacts with) 1TUP:A', 'source': '1TUP:F', 'target': '1TUP:A', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:F (interacts with) 1TUP:B', 'source': '1TUP:F', 'target': '1TUP:B', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:F (interacts with) 1TUP:C', 'source': '1TUP:F', 'target': '1TUP:C', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:A (interacts with) 1TUP:B', 'source': '1TUP:A', 'target': '1TUP:B', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:B (interacts with) 1TUP:C', 'source': '1TUP:B', 'target': '1TUP:C', 'interaction': 'interacts with'}}]}}, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,205 [DEBUG] py4...: ǀHTTP POST(http://127.0.0.1:1234/v1/networks), params: {'title': 'Protein Interaction Network', 'collection': 'My Dataframe Network Collection'}, json: {'data': [{'name': 'Protein Interaction Network'}], 'elements': {'nodes': [{'data': {'id': '11BA:A'}}, {'data': {'id': '124D:A'}}, {'data': {'id': '1TUP:A'}}, {'data': {'id': '1TUP:E'}}, {'data': {'id': '9JR2:S'}}, {'data': {'id': '1TUP:C'}}, {'data': {'id': '11BA:B'}}, {'data': {'id': '1TUP:F'}}, {'data': {'id': '9JR2:R'}}, {'data': {'id': '9JR2:B'}}, {'data': {'id': '9JR2:G'}}, {'data': {'id': '1TUP:B'}}, {'data': {'id': '154L:A'}}, {'data': {'id': '154L:B'}}, {'data': {'id': '11GS:B'}}, {'data': {'id': '9JR2:A'}}, {'data': {'id': '9JR2:P'}}, {'data': {'id': '124D:B'}}, {'data': {'id': '11GS:A'}}], 'edges': [{'data': {'name': '9JR2:A (interacts with) 9JR2:B', 'source': '9JR2:A', 'target': '9JR2:B', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:S', 'source': '9JR2:A', 'target': '9JR2:S', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:R', 'source': '9JR2:A', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:G', 'source': '9JR2:B', 'target': '9JR2:G', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:S', 'source': '9JR2:B', 'target': '9JR2:S', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:R', 'source': '9JR2:B', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:P (interacts with) 9JR2:R', 'source': '9JR2:P', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '11BA:A (interacts with) 11BA:B', 'source': '11BA:A', 'target': '11BA:B', 'interaction': 'interacts with'}}, {'data': {'name': '11GS:A (interacts with) 11GS:B', 'source': '11GS:A', 'target': '11GS:B', 'interaction': 'interacts with'}}, {'data': {'name': '154L:A (interacts with) 154L:B', 'source': '154L:A', 'target': '154L:B', 'interaction': 'interacts with'}}, {'data': {'name': '154L:A (interacts with) 154L:B', 'source': '154L:A', 'target': '154L:B', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:B', 'source': '9JR2:A', 'target': '9JR2:B', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:S', 'source': '9JR2:A', 'target': '9JR2:S', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:A (interacts with) 9JR2:R', 'source': '9JR2:A', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:G', 'source': '9JR2:B', 'target': '9JR2:G', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:S', 'source': '9JR2:B', 'target': '9JR2:S', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:B (interacts with) 9JR2:R', 'source': '9JR2:B', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '9JR2:P (interacts with) 9JR2:R', 'source': '9JR2:P', 'target': '9JR2:R', 'interaction': 'interacts with'}}, {'data': {'name': '154L:A (interacts with) 154L:B', 'source': '154L:A', 'target': '154L:B', 'interaction': 'interacts with'}}, {'data': {'name': '124D:A (interacts with) 124D:B', 'source': '124D:A', 'target': '124D:B', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:E (interacts with) 1TUP:F', 'source': '1TUP:E', 'target': '1TUP:F', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:E (interacts with) 1TUP:A', 'source': '1TUP:E', 'target': '1TUP:A', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:E (interacts with) 1TUP:B', 'source': '1TUP:E', 'target': '1TUP:B', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:E (interacts with) 1TUP:C', 'source': '1TUP:E', 'target': '1TUP:C', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:F (interacts with) 1TUP:A', 'source': '1TUP:F', 'target': '1TUP:A', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:F (interacts with) 1TUP:B', 'source': '1TUP:F', 'target': '1TUP:B', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:F (interacts with) 1TUP:C', 'source': '1TUP:F', 'target': '1TUP:C', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:A (interacts with) 1TUP:B', 'source': '1TUP:A', 'target': '1TUP:B', 'interaction': 'interacts with'}}, {'data': {'name': '1TUP:B (interacts with) 1TUP:C', 'source': '1TUP:B', 'target': '1TUP:C', 'interaction': 'interacts with'}}]}}
+2025-02-16 23:29:22,293 [DEBUG] py4...: ǀOK[200], content: {"networkSUID":1030}
+2025-02-16 23:29:22,293 [DEBUG] py4...: ǀReturning 'cyrest_post': {'networkSUID': 1030}
+2025-02-16 23:29:22,294 [DEBUG] py4...: ǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,294 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,295 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,303 [DEBUG] py4...: ǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,304 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,305 [DEBUG] py4...: ǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,305 [DEBUG] py4...: ǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,306 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,306 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,314 [DEBUG] py4...: ǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,315 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,316 [DEBUG] py4...: ǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,316 [DEBUG] py4...: ǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,317 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,317 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,327 [DEBUG] py4...: ǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,328 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,328 [DEBUG] py4...: ǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,329 [DEBUG] py4...: ǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,329 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,329 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,338 [DEBUG] py4...: ǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,338 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,339 [DEBUG] py4...: ǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,339 [DEBUG] py4...: ǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,339 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,340 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,347 [DEBUG] py4...: ǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,347 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,348 [DEBUG] py4...: ǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,348 [DEBUG] py4...: ǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,348 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,349 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,356 [DEBUG] py4...: ǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,357 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,357 [DEBUG] py4...: ǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,358 [DEBUG] py4...: ǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,358 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,358 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,365 [DEBUG] py4...: ǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,366 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,366 [DEBUG] py4...: ǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,367 [DEBUG] py4...: ǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,367 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,367 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,375 [DEBUG] py4...: ǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,376 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,377 [DEBUG] py4...: ǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,377 [DEBUG] py4...: ǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,378 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,378 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,388 [DEBUG] py4...: ǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,388 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,389 [DEBUG] py4...: ǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,389 [DEBUG] py4...: ǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,390 [DEBUG] py4...: ǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,390 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,397 [DEBUG] py4...: ǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,397 [DEBUG] py4...: ǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,398 [DEBUG] py4...: ǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,402 [DEBUG] py4...: ǀCalling load_table_data(        id   label
+0   11BA:A  11BA:A
+1   124D:A  124D:A
+2   1TUP:A  1TUP:A
+3   1TUP:E  1TUP:E
+4   9JR2:S  9JR2:S
+5   1TUP:C  1TUP:C
+6   11BA:B  11BA:B
+7   1TUP:F  1TUP:F
+8   9JR2:R  9JR2:R
+9   9JR2:B  9JR2:B
+10  9JR2:G  9JR2:G
+11  1TUP:B  1TUP:B
+12  154L:A  154L:A
+13  154L:B  154L:B
+14  11GS:B  11GS:B
+15  9JR2:A  9JR2:A
+16  9JR2:P  9JR2:P
+17  124D:B  124D:B
+18  11GS:A  11GS:A, data_key_column='id', table_key_column='id', network=1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,402 [DEBUG] py4...: ǀǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,403 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,403 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,411 [DEBUG] py4...: ǀǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,412 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,412 [DEBUG] py4...: ǀǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,412 [DEBUG] py4...: ǀǀCalling get_table_columns(table='node', namespace='default', columns='id', network=1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,413 [DEBUG] py4...: ǀǀǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,413 [DEBUG] py4...: ǀǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,413 [DEBUG] py4...: ǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,420 [DEBUG] py4...: ǀǀǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,421 [DEBUG] py4...: ǀǀǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,422 [DEBUG] py4...: ǀǀǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,422 [DEBUG] py4...: ǀǀǀCalling get_table_column_types('node', namespace='default', network=1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,423 [DEBUG] py4...: ǀǀǀǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,424 [DEBUG] py4...: ǀǀǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,425 [DEBUG] py4...: ǀǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,432 [DEBUG] py4...: ǀǀǀǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,433 [DEBUG] py4...: ǀǀǀǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,434 [DEBUG] py4...: ǀǀǀǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,434 [DEBUG] py4...: ǀǀǀǀCalling cyrest_get('networks/1030/tables/defaultnode/columns', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,434 [DEBUG] py4...: ǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/1030/tables/defaultnode/columns)
+2025-02-16 23:29:22,441 [DEBUG] py4...: ǀǀǀǀOK[200], content: [{"name":"SUID","type":"Long","immutable":true,"primaryKey":true},{"name":"shared name","type":"String","immutable":true,"primaryKey":false},{"name":"name","type":"String","immutable":true,"primaryKey":false},{"name":"selected","type":"Boolean","immutable":true,"primaryKey":false},{"name":"id","type":"String","immutable":false,"primaryKey":false}]
+2025-02-16 23:29:22,442 [DEBUG] py4...: ǀǀǀǀReturning 'cyrest_get': [{'name': 'SUID', 'type': 'Long', 'immutable': True, 'primaryKey': True}, {'name': 'shared name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'selected', 'type': 'Boolean', 'immutable': True, 'primaryKey': False}, {'name': 'id', 'type': 'String', 'immutable': False, 'primaryKey': False}]
+2025-02-16 23:29:22,442 [DEBUG] py4...: ǀǀǀReturning 'get_table_column_types': {'SUID': 'Long', 'shared name': 'String', 'name': 'String', 'selected': 'Boolean', 'id': 'String'}
+2025-02-16 23:29:22,443 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks/1030/tables/defaultnode/columns/SUID', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,443 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/1030/tables/defaultnode/columns/SUID)
+2025-02-16 23:29:22,450 [DEBUG] py4...: ǀǀǀOK[200], content: {"name":"SUID","values":[1057,1064,1067,1070,1073,1076,1079,1082,1085,1088,1091,1094,1097,1100,1103,1106,1109,1112,1115]}
+2025-02-16 23:29:22,450 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': {'name': 'SUID', 'values': [1057, 1064, 1067, 1070, 1073, 1076, 1079, 1082, 1085, 1088, 1091, 1094, 1097, 1100, 1103, 1106, 1109, 1112, 1115]}
+2025-02-16 23:29:22,451 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks/1030/tables/defaultnode/columns/id', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,452 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/1030/tables/defaultnode/columns/id)
+2025-02-16 23:29:22,459 [DEBUG] py4...: ǀǀǀOK[200], content: {"name":"id","values":["11BA:A","124D:A","1TUP:A","1TUP:E","9JR2:S","1TUP:C","11BA:B","1TUP:F","9JR2:R","9JR2:B","9JR2:G","1TUP:B","154L:A","154L:B","11GS:B","9JR2:A","9JR2:P","124D:B","11GS:A"]}
+2025-02-16 23:29:22,460 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': {'name': 'id', 'values': ['11BA:A', '124D:A', '1TUP:A', '1TUP:E', '9JR2:S', '1TUP:C', '11BA:B', '1TUP:F', '9JR2:R', '9JR2:B', '9JR2:G', '1TUP:B', '154L:A', '154L:B', '11GS:B', '9JR2:A', '9JR2:P', '124D:B', '11GS:A']}
+2025-02-16 23:29:22,463 [DEBUG] py4...: ǀǀReturning 'get_table_columns':           id
+1057  11BA:A
+1064  124D:A
+1067  1TUP:A
+1070  1TUP:E
+1073  9JR2:S
+1076  1TUP:C
+1079  11BA:B
+1082  1TUP:F
+1085  9JR2:R
+1088  9JR2:B
+1091  9JR2:G
+1094  1TUP:B
+1097  154L:A
+1100  154L:B
+1103  11GS:B
+1106  9JR2:A
+1109  9JR2:P
+1112  124D:B
+1115  11GS:A
+2025-02-16 23:29:22,465 [DEBUG] py4...: ǀǀCalling get_table_column_names('node', 'default', 1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,465 [DEBUG] py4...: ǀǀǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,466 [DEBUG] py4...: ǀǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,466 [DEBUG] py4...: ǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,473 [DEBUG] py4...: ǀǀǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,474 [DEBUG] py4...: ǀǀǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,474 [DEBUG] py4...: ǀǀǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,474 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks/1030/tables/defaultnode/columns', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,475 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/1030/tables/defaultnode/columns)
+2025-02-16 23:29:22,481 [DEBUG] py4...: ǀǀǀOK[200], content: [{"name":"SUID","type":"Long","immutable":true,"primaryKey":true},{"name":"shared name","type":"String","immutable":true,"primaryKey":false},{"name":"name","type":"String","immutable":true,"primaryKey":false},{"name":"selected","type":"Boolean","immutable":true,"primaryKey":false},{"name":"id","type":"String","immutable":false,"primaryKey":false}]
+2025-02-16 23:29:22,482 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': [{'name': 'SUID', 'type': 'Long', 'immutable': True, 'primaryKey': True}, {'name': 'shared name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'selected', 'type': 'Boolean', 'immutable': True, 'primaryKey': False}, {'name': 'id', 'type': 'String', 'immutable': False, 'primaryKey': False}]
+2025-02-16 23:29:22,482 [DEBUG] py4...: ǀǀReturning 'get_table_column_names': ['SUID', 'shared name', 'name', 'selected', 'id']
+2025-02-16 23:29:22,482 [DEBUG] py4...: ǀǀCalling cyrest_put('networks/1030/tables/defaultnode', body={'key': 'id', 'dataKey': 'id', 'data': [{'id': '11BA:A', 'label': '11BA:A'}, {'id': '124D:A', 'label': '124D:A'}, {'id': '1TUP:A', 'label': '1TUP:A'}, {'id': '1TUP:E', 'label': '1TUP:E'}, {'id': '9JR2:S', 'label': '9JR2:S'}, {'id': '1TUP:C', 'label': '1TUP:C'}, {'id': '11BA:B', 'label': '11BA:B'}, {'id': '1TUP:F', 'label': '1TUP:F'}, {'id': '9JR2:R', 'label': '9JR2:R'}, {'id': '9JR2:B', 'label': '9JR2:B'}, {'id': '9JR2:G', 'label': '9JR2:G'}, {'id': '1TUP:B', 'label': '1TUP:B'}, {'id': '154L:A', 'label': '154L:A'}, {'id': '154L:B', 'label': '154L:B'}, {'id': '11GS:B', 'label': '11GS:B'}, {'id': '9JR2:A', 'label': '9JR2:A'}, {'id': '9JR2:P', 'label': '9JR2:P'}, {'id': '124D:B', 'label': '124D:B'}, {'id': '11GS:A', 'label': '11GS:A'}]}, require_json=False, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,483 [DEBUG] py4...: ǀǀHTTP PUT(http://127.0.0.1:1234/v1/networks/1030/tables/defaultnode), json: {'key': 'id', 'dataKey': 'id', 'data': [{'id': '11BA:A', 'label': '11BA:A'}, {'id': '124D:A', 'label': '124D:A'}, {'id': '1TUP:A', 'label': '1TUP:A'}, {'id': '1TUP:E', 'label': '1TUP:E'}, {'id': '9JR2:S', 'label': '9JR2:S'}, {'id': '1TUP:C', 'label': '1TUP:C'}, {'id': '11BA:B', 'label': '11BA:B'}, {'id': '1TUP:F', 'label': '1TUP:F'}, {'id': '9JR2:R', 'label': '9JR2:R'}, {'id': '9JR2:B', 'label': '9JR2:B'}, {'id': '9JR2:G', 'label': '9JR2:G'}, {'id': '1TUP:B', 'label': '1TUP:B'}, {'id': '154L:A', 'label': '154L:A'}, {'id': '154L:B', 'label': '154L:B'}, {'id': '11GS:B', 'label': '11GS:B'}, {'id': '9JR2:A', 'label': '9JR2:A'}, {'id': '9JR2:P', 'label': '9JR2:P'}, {'id': '124D:B', 'label': '124D:B'}, {'id': '11GS:A', 'label': '11GS:A'}]}
+2025-02-16 23:29:22,494 [DEBUG] py4...: ǀǀOK[200], content: 
+2025-02-16 23:29:22,495 [DEBUG] py4...: ǀǀReturning 'cyrest_put': ''
+2025-02-16 23:29:22,495 [DEBUG] py4...: ǀReturning 'load_table_data': 'Success: Data loaded in defaultnode table'
+2025-02-16 23:29:22,497 [DEBUG] py4...: ǀCalling get_table_columns('edge', ['name'], 'default', 1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,497 [DEBUG] py4...: ǀǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,498 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,498 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,506 [DEBUG] py4...: ǀǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,507 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,507 [DEBUG] py4...: ǀǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,508 [DEBUG] py4...: ǀǀCalling get_table_column_types('edge', namespace='default', network=1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,508 [DEBUG] py4...: ǀǀǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,508 [DEBUG] py4...: ǀǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,509 [DEBUG] py4...: ǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,516 [DEBUG] py4...: ǀǀǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,517 [DEBUG] py4...: ǀǀǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,517 [DEBUG] py4...: ǀǀǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,517 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks/1030/tables/defaultedge/columns', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,518 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/1030/tables/defaultedge/columns)
+2025-02-16 23:29:22,525 [DEBUG] py4...: ǀǀǀOK[200], content: [{"name":"SUID","type":"Long","immutable":true,"primaryKey":true},{"name":"shared name","type":"String","immutable":true,"primaryKey":false},{"name":"shared interaction","type":"String","immutable":true,"primaryKey":false},{"name":"name","type":"String","immutable":true,"primaryKey":false},{"name":"selected","type":"Boolean","immutable":true,"primaryKey":false},{"name":"interaction","type":"String","immutable":true,"primaryKey":false},{"name":"source","type":"String","immutable":false,"primaryKey":false},{"name":"target","type":"String","immutable":false,"primaryKey":false}]
+2025-02-16 23:29:22,526 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': [{'name': 'SUID', 'type': 'Long', 'immutable': True, 'primaryKey': True}, {'name': 'shared name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'shared interaction', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'selected', 'type': 'Boolean', 'immutable': True, 'primaryKey': False}, {'name': 'interaction', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'source', 'type': 'String', 'immutable': False, 'primaryKey': False}, {'name': 'target', 'type': 'String', 'immutable': False, 'primaryKey': False}]
+2025-02-16 23:29:22,526 [DEBUG] py4...: ǀǀReturning 'get_table_column_types': {'SUID': 'Long', 'shared name': 'String', 'shared interaction': 'String', 'name': 'String', 'selected': 'Boolean', 'interaction': 'String', 'source': 'String', 'target': 'String'}
+2025-02-16 23:29:22,527 [DEBUG] py4...: ǀǀCalling cyrest_get('networks/1030/tables/defaultedge/columns/SUID', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,527 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/1030/tables/defaultedge/columns/SUID)
+2025-02-16 23:29:22,535 [DEBUG] py4...: ǀǀOK[200], content: {"name":"SUID","values":[1118,1127,1130,1133,1136,1139,1142,1145,1148,1151,1154,1157,1160,1163,1166,1169,1172,1175,1178,1181,1184,1187,1190,1193,1196,1199,1202,1205,1208]}
+2025-02-16 23:29:22,535 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'name': 'SUID', 'values': [1118, 1127, 1130, 1133, 1136, 1139, 1142, 1145, 1148, 1151, 1154, 1157, 1160, 1163, 1166, 1169, 1172, 1175, 1178, 1181, 1184, 1187, 1190, 1193, 1196, 1199, 1202, 1205, 1208]}
+2025-02-16 23:29:22,536 [DEBUG] py4...: ǀǀCalling cyrest_get('networks/1030/tables/defaultedge/columns/name', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,536 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/1030/tables/defaultedge/columns/name)
+2025-02-16 23:29:22,544 [DEBUG] py4...: ǀǀOK[200], content: {"name":"name","values":["9JR2:A (interacts with) 9JR2:B","9JR2:A (interacts with) 9JR2:S","9JR2:A (interacts with) 9JR2:R","9JR2:B (interacts with) 9JR2:G","9JR2:B (interacts with) 9JR2:S","9JR2:B (interacts with) 9JR2:R","9JR2:P (interacts with) 9JR2:R","11BA:A (interacts with) 11BA:B","11GS:A (interacts with) 11GS:B","154L:A (interacts with) 154L:B","154L:A (interacts with) 154L:B","9JR2:A (interacts with) 9JR2:B","9JR2:A (interacts with) 9JR2:S","9JR2:A (interacts with) 9JR2:R","9JR2:B (interacts with) 9JR2:G","9JR2:B (interacts with) 9JR2:S","9JR2:B (interacts with) 9JR2:R","9JR2:P (interacts with) 9JR2:R","154L:A (interacts with) 154L:B","124D:A (interacts with) 124D:B","1TUP:E (interacts with) 1TUP:F","1TUP:E (interacts with) 1TUP:A","1TUP:E (interacts with) 1TUP:B","1TUP:E (interacts with) 1TUP:C","1TUP:F (interacts with) 1TUP:A","1TUP:F (interacts with) 1TUP:B","1TUP:F (interacts with) 1TUP:C","1TUP:A (interacts with) 1TUP:B","1TUP:B (interacts with) 1TUP:C"]}
+2025-02-16 23:29:22,545 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'name': 'name', 'values': ['9JR2:A (interacts with) 9JR2:B', '9JR2:A (interacts with) 9JR2:S', '9JR2:A (interacts with) 9JR2:R', '9JR2:B (interacts with) 9JR2:G', '9JR2:B (interacts with) 9JR2:S', '9JR2:B (interacts with) 9JR2:R', '9JR2:P (interacts with) 9JR2:R', '11BA:A (interacts with) 11BA:B', '11GS:A (interacts with) 11GS:B', '154L:A (interacts with) 154L:B', '154L:A (interacts with) 154L:B', '9JR2:A (interacts with) 9JR2:B', '9JR2:A (interacts with) 9JR2:S', '9JR2:A (interacts with) 9JR2:R', '9JR2:B (interacts with) 9JR2:G', '9JR2:B (interacts with) 9JR2:S', '9JR2:B (interacts with) 9JR2:R', '9JR2:P (interacts with) 9JR2:R', '154L:A (interacts with) 154L:B', '124D:A (interacts with) 124D:B', '1TUP:E (interacts with) 1TUP:F', '1TUP:E (interacts with) 1TUP:A', '1TUP:E (interacts with) 1TUP:B', '1TUP:E (interacts with) 1TUP:C', '1TUP:F (interacts with) 1TUP:A', '1TUP:F (interacts with) 1TUP:B', '1TUP:F (interacts with) 1TUP:C', '1TUP:A (interacts with) 1TUP:B', '1TUP:B (interacts with) 1TUP:C']}
+2025-02-16 23:29:22,548 [DEBUG] py4...: ǀReturning 'get_table_columns':                                 name
+1118  9JR2:A (interacts with) 9JR2:B
+1127  9JR2:A (interacts with) 9JR2:S
+1130  9JR2:A (interacts with) 9JR2:R
+1133  9JR2:B (interacts with) 9JR2:G
+1136  9JR2:B (interacts with) 9JR2:S
+1139  9JR2:B (interacts with) 9JR2:R
+1142  9JR2:P (interacts with) 9JR2:R
+1145  11BA:A (interacts with) 11BA:B
+1148  11GS:A (interacts with) 11GS:B
+1151  154L:A (interacts with) 154L:B
+1154  154L:A (interacts with) 154L:B
+1157  9JR2:A (interacts with) 9JR2:B
+1160  9JR2:A (interacts with) 9JR2:S
+1163  9JR2:A (interacts with) 9JR2:R
+1166  9JR2:B (interacts with) 9JR2:G
+1169  9JR2:B (interacts with) 9JR2:S
+1172  9JR2:B (interacts with) 9JR2:R
+1175  9JR2:P (interacts with) 9JR2:R
+1178  154L:A (interacts with) 154L:B
+1181  124D:A (interacts with) 124D:B
+1184  1TUP:E (interacts with) 1TUP:F
+1187  1TUP:E (interacts with) 1TUP:A
+1190  1TUP:E (interacts with) 1TUP:B
+1193  1TUP:E (interacts with) 1TUP:C
+1196  1TUP:F (interacts with) 1TUP:A
+1199  1TUP:F (interacts with) 1TUP:B
+1202  1TUP:F (interacts with) 1TUP:C
+1205  1TUP:A (interacts with) 1TUP:B
+1208  1TUP:B (interacts with) 1TUP:C
+2025-02-16 23:29:22,558 [DEBUG] py4...: ǀCalling load_table_data(    source  target  ...                            name  data.key.column
+0   9JR2:A  9JR2:B  ...  9JR2:A (interacts with) 9JR2:B             1118
+1   9JR2:A  9JR2:S  ...  9JR2:A (interacts with) 9JR2:S             1127
+2   9JR2:A  9JR2:R  ...  9JR2:A (interacts with) 9JR2:R             1130
+3   9JR2:B  9JR2:G  ...  9JR2:B (interacts with) 9JR2:G             1133
+4   9JR2:B  9JR2:S  ...  9JR2:B (interacts with) 9JR2:S             1136
+5   9JR2:B  9JR2:R  ...  9JR2:B (interacts with) 9JR2:R             1139
+6   9JR2:P  9JR2:R  ...  9JR2:P (interacts with) 9JR2:R             1142
+7   11BA:A  11BA:B  ...  11BA:A (interacts with) 11BA:B             1145
+8   11GS:A  11GS:B  ...  11GS:A (interacts with) 11GS:B             1148
+9   154L:A  154L:B  ...  154L:A (interacts with) 154L:B             1151
+10  154L:A  154L:B  ...  154L:A (interacts with) 154L:B             1154
+11  9JR2:A  9JR2:B  ...  9JR2:A (interacts with) 9JR2:B             1157
+12  9JR2:A  9JR2:S  ...  9JR2:A (interacts with) 9JR2:S             1160
+13  9JR2:A  9JR2:R  ...  9JR2:A (interacts with) 9JR2:R             1163
+14  9JR2:B  9JR2:G  ...  9JR2:B (interacts with) 9JR2:G             1166
+15  9JR2:B  9JR2:S  ...  9JR2:B (interacts with) 9JR2:S             1169
+16  9JR2:B  9JR2:R  ...  9JR2:B (interacts with) 9JR2:R             1172
+17  9JR2:P  9JR2:R  ...  9JR2:P (interacts with) 9JR2:R             1175
+18  154L:A  154L:B  ...  154L:A (interacts with) 154L:B             1178
+19  124D:A  124D:B  ...  124D:A (interacts with) 124D:B             1181
+20  1TUP:E  1TUP:F  ...  1TUP:E (interacts with) 1TUP:F             1184
+21  1TUP:E  1TUP:A  ...  1TUP:E (interacts with) 1TUP:A             1187
+22  1TUP:E  1TUP:B  ...  1TUP:E (interacts with) 1TUP:B             1190
+23  1TUP:E  1TUP:C  ...  1TUP:E (interacts with) 1TUP:C             1193
+24  1TUP:F  1TUP:A  ...  1TUP:F (interacts with) 1TUP:A             1196
+25  1TUP:F  1TUP:B  ...  1TUP:F (interacts with) 1TUP:B             1199
+26  1TUP:F  1TUP:C  ...  1TUP:F (interacts with) 1TUP:C             1202
+27  1TUP:A  1TUP:B  ...  1TUP:A (interacts with) 1TUP:B             1205
+28  1TUP:B  1TUP:C  ...  1TUP:B (interacts with) 1TUP:C             1208
+
+[29 rows x 7 columns], data_key_column='data.key.column', table='edge', table_key_column='SUID', network=1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,559 [DEBUG] py4...: ǀǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,559 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,560 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,566 [DEBUG] py4...: ǀǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,567 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,567 [DEBUG] py4...: ǀǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,568 [DEBUG] py4...: ǀǀCalling get_table_columns(table='edge', namespace='default', columns='SUID', network=1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,568 [DEBUG] py4...: ǀǀǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,568 [DEBUG] py4...: ǀǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,569 [DEBUG] py4...: ǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,575 [DEBUG] py4...: ǀǀǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,576 [DEBUG] py4...: ǀǀǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,576 [DEBUG] py4...: ǀǀǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,576 [DEBUG] py4...: ǀǀǀCalling get_table_column_types('edge', namespace='default', network=1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,577 [DEBUG] py4...: ǀǀǀǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,577 [DEBUG] py4...: ǀǀǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,578 [DEBUG] py4...: ǀǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,585 [DEBUG] py4...: ǀǀǀǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,586 [DEBUG] py4...: ǀǀǀǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,586 [DEBUG] py4...: ǀǀǀǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,587 [DEBUG] py4...: ǀǀǀǀCalling cyrest_get('networks/1030/tables/defaultedge/columns', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,587 [DEBUG] py4...: ǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/1030/tables/defaultedge/columns)
+2025-02-16 23:29:22,594 [DEBUG] py4...: ǀǀǀǀOK[200], content: [{"name":"SUID","type":"Long","immutable":true,"primaryKey":true},{"name":"shared name","type":"String","immutable":true,"primaryKey":false},{"name":"shared interaction","type":"String","immutable":true,"primaryKey":false},{"name":"name","type":"String","immutable":true,"primaryKey":false},{"name":"selected","type":"Boolean","immutable":true,"primaryKey":false},{"name":"interaction","type":"String","immutable":true,"primaryKey":false},{"name":"source","type":"String","immutable":false,"primaryKey":false},{"name":"target","type":"String","immutable":false,"primaryKey":false}]
+2025-02-16 23:29:22,594 [DEBUG] py4...: ǀǀǀǀReturning 'cyrest_get': [{'name': 'SUID', 'type': 'Long', 'immutable': True, 'primaryKey': True}, {'name': 'shared name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'shared interaction', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'selected', 'type': 'Boolean', 'immutable': True, 'primaryKey': False}, {'name': 'interaction', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'source', 'type': 'String', 'immutable': False, 'primaryKey': False}, {'name': 'target', 'type': 'String', 'immutable': False, 'primaryKey': False}]
+2025-02-16 23:29:22,595 [DEBUG] py4...: ǀǀǀReturning 'get_table_column_types': {'SUID': 'Long', 'shared name': 'String', 'shared interaction': 'String', 'name': 'String', 'selected': 'Boolean', 'interaction': 'String', 'source': 'String', 'target': 'String'}
+2025-02-16 23:29:22,595 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks/1030/tables/defaultedge/columns/SUID', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,596 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/1030/tables/defaultedge/columns/SUID)
+2025-02-16 23:29:22,602 [DEBUG] py4...: ǀǀǀOK[200], content: {"name":"SUID","values":[1118,1127,1130,1133,1136,1139,1142,1145,1148,1151,1154,1157,1160,1163,1166,1169,1172,1175,1178,1181,1184,1187,1190,1193,1196,1199,1202,1205,1208]}
+2025-02-16 23:29:22,603 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': {'name': 'SUID', 'values': [1118, 1127, 1130, 1133, 1136, 1139, 1142, 1145, 1148, 1151, 1154, 1157, 1160, 1163, 1166, 1169, 1172, 1175, 1178, 1181, 1184, 1187, 1190, 1193, 1196, 1199, 1202, 1205, 1208]}
+2025-02-16 23:29:22,604 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks/1030/tables/defaultedge/columns/SUID', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,604 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/1030/tables/defaultedge/columns/SUID)
+2025-02-16 23:29:22,612 [DEBUG] py4...: ǀǀǀOK[200], content: {"name":"SUID","values":[1118,1127,1130,1133,1136,1139,1142,1145,1148,1151,1154,1157,1160,1163,1166,1169,1172,1175,1178,1181,1184,1187,1190,1193,1196,1199,1202,1205,1208]}
+2025-02-16 23:29:22,612 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': {'name': 'SUID', 'values': [1118, 1127, 1130, 1133, 1136, 1139, 1142, 1145, 1148, 1151, 1154, 1157, 1160, 1163, 1166, 1169, 1172, 1175, 1178, 1181, 1184, 1187, 1190, 1193, 1196, 1199, 1202, 1205, 1208]}
+2025-02-16 23:29:22,615 [DEBUG] py4...: ǀǀReturning 'get_table_columns':       SUID
+1118  1118
+1127  1127
+1130  1130
+1133  1133
+1136  1136
+1139  1139
+1142  1142
+1145  1145
+1148  1148
+1151  1151
+1154  1154
+1157  1157
+1160  1160
+1163  1163
+1166  1166
+1169  1169
+1172  1172
+1175  1175
+1178  1178
+1181  1181
+1184  1184
+1187  1187
+1190  1190
+1193  1193
+1196  1196
+1199  1199
+1202  1202
+1205  1205
+1208  1208
+2025-02-16 23:29:22,619 [DEBUG] py4...: ǀǀCalling get_table_column_names('edge', 'default', 1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,619 [DEBUG] py4...: ǀǀǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,619 [DEBUG] py4...: ǀǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,620 [DEBUG] py4...: ǀǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,627 [DEBUG] py4...: ǀǀǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,628 [DEBUG] py4...: ǀǀǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,629 [DEBUG] py4...: ǀǀǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,629 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks/1030/tables/defaultedge/columns', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,630 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks/1030/tables/defaultedge/columns)
+2025-02-16 23:29:22,637 [DEBUG] py4...: ǀǀǀOK[200], content: [{"name":"SUID","type":"Long","immutable":true,"primaryKey":true},{"name":"shared name","type":"String","immutable":true,"primaryKey":false},{"name":"shared interaction","type":"String","immutable":true,"primaryKey":false},{"name":"name","type":"String","immutable":true,"primaryKey":false},{"name":"selected","type":"Boolean","immutable":true,"primaryKey":false},{"name":"interaction","type":"String","immutable":true,"primaryKey":false},{"name":"source","type":"String","immutable":false,"primaryKey":false},{"name":"target","type":"String","immutable":false,"primaryKey":false}]
+2025-02-16 23:29:22,638 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': [{'name': 'SUID', 'type': 'Long', 'immutable': True, 'primaryKey': True}, {'name': 'shared name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'shared interaction', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'name', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'selected', 'type': 'Boolean', 'immutable': True, 'primaryKey': False}, {'name': 'interaction', 'type': 'String', 'immutable': True, 'primaryKey': False}, {'name': 'source', 'type': 'String', 'immutable': False, 'primaryKey': False}, {'name': 'target', 'type': 'String', 'immutable': False, 'primaryKey': False}]
+2025-02-16 23:29:22,638 [DEBUG] py4...: ǀǀReturning 'get_table_column_names': ['SUID', 'shared name', 'shared interaction', 'name', 'selected', 'interaction', 'source', 'target']
+2025-02-16 23:29:22,639 [DEBUG] py4...: ǀǀCalling cyrest_post('networks/1030/tables/defaultedge/columns', body={'name': 'ca_nn_count', 'type': 'Integer'}, require_json=False, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,639 [DEBUG] py4...: ǀǀHTTP POST(http://127.0.0.1:1234/v1/networks/1030/tables/defaultedge/columns), json: {'name': 'ca_nn_count', 'type': 'Integer'}
+2025-02-16 23:29:22,649 [DEBUG] py4...: ǀǀCreated[201], content: 
+2025-02-16 23:29:22,649 [DEBUG] py4...: ǀǀReturning 'cyrest_post': ''
+2025-02-16 23:29:22,650 [DEBUG] py4...: ǀǀCalling cyrest_post('networks/1030/tables/defaultedge/columns', body={'name': 'all_atoms_close_count', 'type': 'Integer'}, require_json=False, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,650 [DEBUG] py4...: ǀǀHTTP POST(http://127.0.0.1:1234/v1/networks/1030/tables/defaultedge/columns), json: {'name': 'all_atoms_close_count', 'type': 'Integer'}
+2025-02-16 23:29:22,661 [DEBUG] py4...: ǀǀCreated[201], content: 
+2025-02-16 23:29:22,661 [DEBUG] py4...: ǀǀReturning 'cyrest_post': ''
+2025-02-16 23:29:22,662 [DEBUG] py4...: ǀǀCalling cyrest_post('networks/1030/tables/defaultedge/columns', body={'name': 'data.key.column', 'type': 'Integer'}, require_json=False, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,662 [DEBUG] py4...: ǀǀHTTP POST(http://127.0.0.1:1234/v1/networks/1030/tables/defaultedge/columns), json: {'name': 'data.key.column', 'type': 'Integer'}
+2025-02-16 23:29:22,675 [DEBUG] py4...: ǀǀCreated[201], content: 
+2025-02-16 23:29:22,676 [DEBUG] py4...: ǀǀReturning 'cyrest_post': ''
+2025-02-16 23:29:22,676 [DEBUG] py4...: ǀǀCalling cyrest_put('networks/1030/tables/defaultedge', body={'key': 'SUID', 'dataKey': 'data.key.column', 'data': [{'source': '9JR2:A', 'target': '9JR2:B', 'ca_nn_count': 3637, 'all_atoms_close_count': 461, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:B', 'data.key.column': 1118}, {'source': '9JR2:A', 'target': '9JR2:S', 'ca_nn_count': 1662, 'all_atoms_close_count': 254, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:S', 'data.key.column': 1127}, {'source': '9JR2:A', 'target': '9JR2:R', 'ca_nn_count': 2206, 'all_atoms_close_count': 301, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:R', 'data.key.column': 1130}, {'source': '9JR2:B', 'target': '9JR2:G', 'ca_nn_count': 5505, 'all_atoms_close_count': 843, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:G', 'data.key.column': 1133}, {'source': '9JR2:B', 'target': '9JR2:S', 'ca_nn_count': 1269, 'all_atoms_close_count': 159, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:S', 'data.key.column': 1136}, {'source': '9JR2:B', 'target': '9JR2:R', 'ca_nn_count': 974, 'all_atoms_close_count': 40, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:R', 'data.key.column': 1139}, {'source': '9JR2:P', 'target': '9JR2:R', 'ca_nn_count': 5376, 'all_atoms_close_count': 1063, 'interaction': 'interacts with', 'name': '9JR2:P (interacts with) 9JR2:R', 'data.key.column': 1142}, {'source': '11BA:A', 'target': '11BA:B', 'ca_nn_count': 5438, 'all_atoms_close_count': 1384, 'interaction': 'interacts with', 'name': '11BA:A (interacts with) 11BA:B', 'data.key.column': 1145}, {'source': '11GS:A', 'target': '11GS:B', 'ca_nn_count': 4143, 'all_atoms_close_count': 936, 'interaction': 'interacts with', 'name': '11GS:A (interacts with) 11GS:B', 'data.key.column': 1148}, {'source': '154L:A', 'target': '154L:B', 'ca_nn_count': 4289, 'all_atoms_close_count': 307, 'interaction': 'interacts with', 'name': '154L:A (interacts with) 154L:B', 'data.key.column': 1151}, {'source': '154L:A', 'target': '154L:B', 'ca_nn_count': 4289, 'all_atoms_close_count': 307, 'interaction': 'interacts with', 'name': '154L:A (interacts with) 154L:B', 'data.key.column': 1154}, {'source': '9JR2:A', 'target': '9JR2:B', 'ca_nn_count': 3637, 'all_atoms_close_count': 461, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:B', 'data.key.column': 1157}, {'source': '9JR2:A', 'target': '9JR2:S', 'ca_nn_count': 1662, 'all_atoms_close_count': 254, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:S', 'data.key.column': 1160}, {'source': '9JR2:A', 'target': '9JR2:R', 'ca_nn_count': 2206, 'all_atoms_close_count': 301, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:R', 'data.key.column': 1163}, {'source': '9JR2:B', 'target': '9JR2:G', 'ca_nn_count': 5505, 'all_atoms_close_count': 843, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:G', 'data.key.column': 1166}, {'source': '9JR2:B', 'target': '9JR2:S', 'ca_nn_count': 1269, 'all_atoms_close_count': 159, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:S', 'data.key.column': 1169}, {'source': '9JR2:B', 'target': '9JR2:R', 'ca_nn_count': 974, 'all_atoms_close_count': 40, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:R', 'data.key.column': 1172}, {'source': '9JR2:P', 'target': '9JR2:R', 'ca_nn_count': 5376, 'all_atoms_close_count': 1063, 'interaction': 'interacts with', 'name': '9JR2:P (interacts with) 9JR2:R', 'data.key.column': 1175}, {'source': '154L:A', 'target': '154L:B', 'ca_nn_count': 4289, 'all_atoms_close_count': 307, 'interaction': 'interacts with', 'name': '154L:A (interacts with) 154L:B', 'data.key.column': 1178}, {'source': '124D:A', 'target': '124D:B', 'ca_nn_count': 37954, 'all_atoms_close_count': 1069, 'interaction': 'interacts with', 'name': '124D:A (interacts with) 124D:B', 'data.key.column': 1181}, {'source': '1TUP:E', 'target': '1TUP:F', 'ca_nn_count': 56410, 'all_atoms_close_count': 1103, 'interaction': 'interacts with', 'name': '1TUP:E (interacts with) 1TUP:F', 'data.key.column': 1184}, {'source': '1TUP:E', 'target': '1TUP:A', 'ca_nn_count': 1916, 'all_atoms_close_count': 115, 'interaction': 'interacts with', 'name': '1TUP:E (interacts with) 1TUP:A', 'data.key.column': 1187}, {'source': '1TUP:E', 'target': '1TUP:B', 'ca_nn_count': 5408, 'all_atoms_close_count': 252, 'interaction': 'interacts with', 'name': '1TUP:E (interacts with) 1TUP:B', 'data.key.column': 1190}, {'source': '1TUP:E', 'target': '1TUP:C', 'ca_nn_count': 2573, 'all_atoms_close_count': 88, 'interaction': 'interacts with', 'name': '1TUP:E (interacts with) 1TUP:C', 'data.key.column': 1193}, {'source': '1TUP:F', 'target': '1TUP:A', 'ca_nn_count': 1088, 'all_atoms_close_count': 16, 'interaction': 'interacts with', 'name': '1TUP:F (interacts with) 1TUP:A', 'data.key.column': 1196}, {'source': '1TUP:F', 'target': '1TUP:B', 'ca_nn_count': 3993, 'all_atoms_close_count': 153, 'interaction': 'interacts with', 'name': '1TUP:F (interacts with) 1TUP:B', 'data.key.column': 1199}, {'source': '1TUP:F', 'target': '1TUP:C', 'ca_nn_count': 1930, 'all_atoms_close_count': 25, 'interaction': 'interacts with', 'name': '1TUP:F (interacts with) 1TUP:C', 'data.key.column': 1202}, {'source': '1TUP:A', 'target': '1TUP:B', 'ca_nn_count': 2254, 'all_atoms_close_count': 670, 'interaction': 'interacts with', 'name': '1TUP:A (interacts with) 1TUP:B', 'data.key.column': 1205}, {'source': '1TUP:B', 'target': '1TUP:C', 'ca_nn_count': 1483, 'all_atoms_close_count': 117, 'interaction': 'interacts with', 'name': '1TUP:B (interacts with) 1TUP:C', 'data.key.column': 1208}]}, require_json=False, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,677 [DEBUG] py4...: ǀǀHTTP PUT(http://127.0.0.1:1234/v1/networks/1030/tables/defaultedge), json: {'key': 'SUID', 'dataKey': 'data.key.column', 'data': [{'source': '9JR2:A', 'target': '9JR2:B', 'ca_nn_count': 3637, 'all_atoms_close_count': 461, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:B', 'data.key.column': 1118}, {'source': '9JR2:A', 'target': '9JR2:S', 'ca_nn_count': 1662, 'all_atoms_close_count': 254, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:S', 'data.key.column': 1127}, {'source': '9JR2:A', 'target': '9JR2:R', 'ca_nn_count': 2206, 'all_atoms_close_count': 301, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:R', 'data.key.column': 1130}, {'source': '9JR2:B', 'target': '9JR2:G', 'ca_nn_count': 5505, 'all_atoms_close_count': 843, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:G', 'data.key.column': 1133}, {'source': '9JR2:B', 'target': '9JR2:S', 'ca_nn_count': 1269, 'all_atoms_close_count': 159, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:S', 'data.key.column': 1136}, {'source': '9JR2:B', 'target': '9JR2:R', 'ca_nn_count': 974, 'all_atoms_close_count': 40, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:R', 'data.key.column': 1139}, {'source': '9JR2:P', 'target': '9JR2:R', 'ca_nn_count': 5376, 'all_atoms_close_count': 1063, 'interaction': 'interacts with', 'name': '9JR2:P (interacts with) 9JR2:R', 'data.key.column': 1142}, {'source': '11BA:A', 'target': '11BA:B', 'ca_nn_count': 5438, 'all_atoms_close_count': 1384, 'interaction': 'interacts with', 'name': '11BA:A (interacts with) 11BA:B', 'data.key.column': 1145}, {'source': '11GS:A', 'target': '11GS:B', 'ca_nn_count': 4143, 'all_atoms_close_count': 936, 'interaction': 'interacts with', 'name': '11GS:A (interacts with) 11GS:B', 'data.key.column': 1148}, {'source': '154L:A', 'target': '154L:B', 'ca_nn_count': 4289, 'all_atoms_close_count': 307, 'interaction': 'interacts with', 'name': '154L:A (interacts with) 154L:B', 'data.key.column': 1151}, {'source': '154L:A', 'target': '154L:B', 'ca_nn_count': 4289, 'all_atoms_close_count': 307, 'interaction': 'interacts with', 'name': '154L:A (interacts with) 154L:B', 'data.key.column': 1154}, {'source': '9JR2:A', 'target': '9JR2:B', 'ca_nn_count': 3637, 'all_atoms_close_count': 461, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:B', 'data.key.column': 1157}, {'source': '9JR2:A', 'target': '9JR2:S', 'ca_nn_count': 1662, 'all_atoms_close_count': 254, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:S', 'data.key.column': 1160}, {'source': '9JR2:A', 'target': '9JR2:R', 'ca_nn_count': 2206, 'all_atoms_close_count': 301, 'interaction': 'interacts with', 'name': '9JR2:A (interacts with) 9JR2:R', 'data.key.column': 1163}, {'source': '9JR2:B', 'target': '9JR2:G', 'ca_nn_count': 5505, 'all_atoms_close_count': 843, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:G', 'data.key.column': 1166}, {'source': '9JR2:B', 'target': '9JR2:S', 'ca_nn_count': 1269, 'all_atoms_close_count': 159, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:S', 'data.key.column': 1169}, {'source': '9JR2:B', 'target': '9JR2:R', 'ca_nn_count': 974, 'all_atoms_close_count': 40, 'interaction': 'interacts with', 'name': '9JR2:B (interacts with) 9JR2:R', 'data.key.column': 1172}, {'source': '9JR2:P', 'target': '9JR2:R', 'ca_nn_count': 5376, 'all_atoms_close_count': 1063, 'interaction': 'interacts with', 'name': '9JR2:P (interacts with) 9JR2:R', 'data.key.column': 1175}, {'source': '154L:A', 'target': '154L:B', 'ca_nn_count': 4289, 'all_atoms_close_count': 307, 'interaction': 'interacts with', 'name': '154L:A (interacts with) 154L:B', 'data.key.column': 1178}, {'source': '124D:A', 'target': '124D:B', 'ca_nn_count': 37954, 'all_atoms_close_count': 1069, 'interaction': 'interacts with', 'name': '124D:A (interacts with) 124D:B', 'data.key.column': 1181}, {'source': '1TUP:E', 'target': '1TUP:F', 'ca_nn_count': 56410, 'all_atoms_close_count': 1103, 'interaction': 'interacts with', 'name': '1TUP:E (interacts with) 1TUP:F', 'data.key.column': 1184}, {'source': '1TUP:E', 'target': '1TUP:A', 'ca_nn_count': 1916, 'all_atoms_close_count': 115, 'interaction': 'interacts with', 'name': '1TUP:E (interacts with) 1TUP:A', 'data.key.column': 1187}, {'source': '1TUP:E', 'target': '1TUP:B', 'ca_nn_count': 5408, 'all_atoms_close_count': 252, 'interaction': 'interacts with', 'name': '1TUP:E (interacts with) 1TUP:B', 'data.key.column': 1190}, {'source': '1TUP:E', 'target': '1TUP:C', 'ca_nn_count': 2573, 'all_atoms_close_count': 88, 'interaction': 'interacts with', 'name': '1TUP:E (interacts with) 1TUP:C', 'data.key.column': 1193}, {'source': '1TUP:F', 'target': '1TUP:A', 'ca_nn_count': 1088, 'all_atoms_close_count': 16, 'interaction': 'interacts with', 'name': '1TUP:F (interacts with) 1TUP:A', 'data.key.column': 1196}, {'source': '1TUP:F', 'target': '1TUP:B', 'ca_nn_count': 3993, 'all_atoms_close_count': 153, 'interaction': 'interacts with', 'name': '1TUP:F (interacts with) 1TUP:B', 'data.key.column': 1199}, {'source': '1TUP:F', 'target': '1TUP:C', 'ca_nn_count': 1930, 'all_atoms_close_count': 25, 'interaction': 'interacts with', 'name': '1TUP:F (interacts with) 1TUP:C', 'data.key.column': 1202}, {'source': '1TUP:A', 'target': '1TUP:B', 'ca_nn_count': 2254, 'all_atoms_close_count': 670, 'interaction': 'interacts with', 'name': '1TUP:A (interacts with) 1TUP:B', 'data.key.column': 1205}, {'source': '1TUP:B', 'target': '1TUP:C', 'ca_nn_count': 1483, 'all_atoms_close_count': 117, 'interaction': 'interacts with', 'name': '1TUP:B (interacts with) 1TUP:C', 'data.key.column': 1208}]}
+2025-02-16 23:29:22,688 [DEBUG] py4...: ǀǀOK[200], content: 
+2025-02-16 23:29:22,689 [DEBUG] py4...: ǀǀReturning 'cyrest_put': ''
+2025-02-16 23:29:22,689 [DEBUG] py4...: ǀReturning 'load_table_data': 'Success: Data loaded in defaultedge table'
+2025-02-16 23:29:22,690 [DEBUG] py4...: ǀCalling commands_post('vizmap apply styles="default"', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,690 [DEBUG] py4...: ǀHTTP POST(http://127.0.0.1:1234/v1/commands/vizmap/apply), json: {'styles': 'default'}
+2025-02-16 23:29:22,733 [DEBUG] py4...: ǀOK[200], content: {
+ "data": {"views":[
+  1282
+]},
+ "errors":[]
+}
+2025-02-16 23:29:22,734 [DEBUG] py4...: ǀReturning 'commands_post': {'views': [1282]}
+2025-02-16 23:29:22,735 [DEBUG] py4...: ǀCalling layout_network(network=1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,735 [DEBUG] py4...: ǀǀCalling get_network_suid(1030, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,735 [DEBUG] py4...: ǀǀǀCalling cyrest_get('networks', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,736 [DEBUG] py4...: ǀǀǀHTTP GET(http://127.0.0.1:1234/v1/networks)
+2025-02-16 23:29:22,743 [DEBUG] py4...: ǀǀǀOK[200], content: [1030]
+2025-02-16 23:29:22,744 [DEBUG] py4...: ǀǀǀReturning 'cyrest_get': [1030]
+2025-02-16 23:29:22,745 [DEBUG] py4...: ǀǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:22,745 [DEBUG] py4...: ǀǀCalling commands_post('layout apply preferred networkSelected="SUID:1030"', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:22,745 [DEBUG] py4...: ǀǀHTTP POST(http://127.0.0.1:1234/v1/commands/layout/apply%20preferred), json: {'networkSelected': 'SUID:1030'}
+2025-02-16 23:29:22,766 [DEBUG] py4...: ǀǀOK[200], content: {
+ "data": {},
+ "errors":[]
+}
+2025-02-16 23:29:22,766 [DEBUG] py4...: ǀǀReturning 'commands_post': {}
+2025-02-16 23:29:22,767 [DEBUG] py4...: ǀReturning 'layout_network': {}
+2025-02-16 23:29:22,767 [DEBUG] py4...: Returning 'create_network_from_data_frames': 1030
+2025-02-16 23:29:22,767 [DEBUG] py4...: --------------------
+2025-02-16 23:29:23,770 [DEBUG] py4...: Calling layout_network(layout_name='circular')
+2025-02-16 23:29:23,770 [DEBUG] py4...: ǀCalling get_network_suid(None, base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:23,770 [DEBUG] py4...: ǀǀCalling commands_post('network get attribute network="current" namespace="default" columnList="SUID"', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:23,770 [DEBUG] py4...: ǀǀHTTP POST(http://127.0.0.1:1234/v1/commands/network/get%20attribute), json: {'network': 'current', 'namespace': 'default', 'columnList': 'SUID'}
+2025-02-16 23:29:23,779 [DEBUG] py4...: ǀǀOK[200], content: {
+ "data": [ {
+  "SUID": 1030
+}
+],
+ "errors":[]
+}
+2025-02-16 23:29:23,780 [DEBUG] py4...: ǀǀReturning 'commands_post': [{'SUID': 1030}]
+2025-02-16 23:29:23,780 [DEBUG] py4...: ǀReturning 'get_network_suid': 1030
+2025-02-16 23:29:23,781 [DEBUG] py4...: ǀCalling commands_post('layout circular network="SUID:1030"', base_url='http://127.0.0.1:1234/v1')
+2025-02-16 23:29:23,781 [DEBUG] py4...: ǀHTTP POST(http://127.0.0.1:1234/v1/commands/layout/circular), json: {'network': 'SUID:1030'}
+2025-02-16 23:29:23,791 [DEBUG] py4...: ǀOK[200], content: {
+ "data": {},
+ "errors":[]
+}
+2025-02-16 23:29:23,792 [DEBUG] py4...: ǀReturning 'commands_post': {}
+2025-02-16 23:29:23,792 [DEBUG] py4...: Returning 'layout_network': {}
+2025-02-16 23:29:23,792 [DEBUG] py4...: --------------------

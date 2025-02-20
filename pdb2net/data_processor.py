@@ -1,3 +1,5 @@
+from config_loader import config
+
 def process_structure(structure_data):
     """
     Processes a parsed PDB or mmCIF structure and extracts relevant atom and residue information.

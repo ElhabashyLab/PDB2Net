@@ -2,6 +2,7 @@ import os
 import csv
 import re
 from Bio import PDB
+from config_loader import config
 
 # Define allowed file extensions
 ALLOWED_EXTENSIONS = {'.pdb', '.cif', '.mmcif'}

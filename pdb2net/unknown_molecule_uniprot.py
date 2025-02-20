@@ -2,11 +2,12 @@ import os
 import csv
 from Bio import SeqIO
 import re
+from config_loader import config
 
-# 🔹 Global paths for required data files
-PDB_FASTA_PATH = "C:\\Users\\Gregor\\Documents\\Uni Bioinformatik\\9. Semester\\B.A\\Neuer Ordner\\pdb_seqres.txt"
-UNIPROT_FASTA_PATH = "C:\\Users\\Gregor\\Documents\\Uni Bioinformatik\\9. Semester\\B.A\\Neuer Ordner\\uniprot_sprot.fasta"
-SIFTS_TSV_PATH = "C:\\Users\\Gregor\\Documents\\Uni Bioinformatik\\9. Semester\\B.A\\SIFTS\\pdb_chain_uniprot.tsv"
+# 🔹 Pfade aus Config laden
+PDB_FASTA_PATH = config["pdb_fasta_path"]
+UNIPROT_FASTA_PATH = config["uniprot_fasta_path"]
+SIFTS_TSV_PATH = config["sifts_tsv_path"]
 
 # 🔹 Dictionaries for fast lookup
 pdb_to_uniprot = {}  # Maps PDB-chain → UniProt ID

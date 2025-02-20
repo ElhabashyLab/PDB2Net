@@ -1,70 +1,62 @@
 import py4cytoscape as p4c
 import time
+import os
 import pandas as pd
+from config_loader import config
 
-def create_cytoscape_network(results):
+def create_cytoscape_network(results, network_title="Protein_Interaction_Network", run_output_path="."):
     """
     Creates a network in Cytoscape based on interaction data.
 
     Args:
-        results (list): A list of dictionaries containing interaction data, each with:
-            - "file_path": The path to the PDB file.
-            - "chain_a": Unique identifier for the first chain.
-            - "chain_b": Unique identifier for the second chain.
-            - "ca_nn_count": Number of Cα/Cβ contacts within 15 Å.
-            - "all_atoms_close_count": Number of all-atom contacts within 5 Å.
+        results (list): List of dictionaries containing interaction data.
+        network_title (str): Name of the network (usually PDB-ID or "Combined_Network").
+        run_output_path (str): The output directory for the current run.
     """
 
-    # 🔹 Step 1: Check if Cytoscape is running
+    # 🔹 Check if Cytoscape is running
     try:
-        status = p4c.cytoscape_ping()
-        print("🌐 Successfully connected to Cytoscape!")
+        p4c.cytoscape_ping()
+        print(f"🌐 Connected to Cytoscape! Creating network: {network_title}")
     except Exception as e:
-        print(f"❌ Cytoscape is not running! Please start Cytoscape and try again. Error: {e}")
+        print(f"❌ Cytoscape is not running! Start Cytoscape and try again. Error: {e}")
         return
 
-    # 🔹 Step 2: Delete existing networks (if any)
-    try:
-        existing_networks = p4c.get_network_list()
-        if existing_networks:
-            print(f"🗑️ Deleting {len(existing_networks)} existing networks...")
-            for net in existing_networks:
-                p4c.delete_network(net)
-            time.sleep(1)  # Allow Cytoscape time to process
-    except Exception as e:
-        print(f"⚠️ Warning: Could not delete existing networks: {e}")
+    # 🔹 Delete excess networks (keep only the last N)
+    existing_networks = p4c.get_network_list()
+    while len(existing_networks) > config["keep_last_n_networks"]:
+        oldest_network = existing_networks.pop(0)  # Remove oldest network
+        p4c.delete_network(oldest_network)
 
-    # 🔹 Step 3: Extract unique nodes and edges
+    # 🔹 Prepare nodes & edges DataFrame
     unique_nodes = set()
     edges = []
 
     for entry in results:
         chain_a = entry["chain_a"]
         chain_b = entry["chain_b"]
-        ca_nn = entry["ca_nn_count"]
-        all_atoms = entry["all_atoms_close_count"]
-
         unique_nodes.add(chain_a)
         unique_nodes.add(chain_b)
 
         edges.append({
             "source": chain_a,
             "target": chain_b,
-            "ca_nn_count": ca_nn,
-            "all_atoms_close_count": all_atoms
+            "ca_nn_count": entry["ca_nn_count"],
+            "all_atoms_close_count": entry["all_atoms_close_count"]
         })
 
-    # 🔹 Step 4: Convert nodes and edges into DataFrames
     nodes_df = pd.DataFrame({"id": list(unique_nodes), "label": list(unique_nodes)})
     edges_df = pd.DataFrame(edges)
 
-    # 🔹 Step 5: Create the network in Cytoscape
-    print("📡 Creating a new network in Cytoscape...")
-    network_suid = p4c.create_network_from_data_frames(nodes_df, edges_df, title="Protein Interaction Network")
+    # 🔹 Create the network in Cytoscape
+    network_suid = p4c.create_network_from_data_frames(nodes_df, edges_df, title=network_title)
 
-    # 🔹 Step 6: Apply a layout and display the network
-    print("🎨 Applying layout...")
-    time.sleep(1)  # Ensure the network is fully loaded before applying layout
+    # 🔹 Apply layout
     p4c.layout_network(layout_name="circular")
 
-    print("✅ Network successfully created in Cytoscape!")
+    # 🔹 Save the network to a specific PDB subfolder inside the run output path
+    pdb_output_path = os.path.join(run_output_path, network_title)
+    os.makedirs(pdb_output_path, exist_ok=True)
+    network_file = os.path.join(pdb_output_path, f"{network_title}.cyjs")
+    p4c.export_network(network_file, type="cyjs")
+    print(f"✅ Network saved to: {network_file}")

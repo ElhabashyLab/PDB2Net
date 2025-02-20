@@ -1,5 +1,6 @@
 from scipy.spatial import cKDTree
 import numpy as np
+from config_loader import config
 
 def get_nearest_heavy_atom(residue, ca_coord):
     """

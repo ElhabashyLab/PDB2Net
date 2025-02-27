@@ -3,6 +3,7 @@ from data_processor import process_structure
 from unknown_molecule_uniprot import process_molecule_info
 from distances import calculate_distances_with_ckdtree
 from cytoscape import create_cytoscape_network
+from protein_network import create_protein_network
 from config_loader import config
 from datetime import datetime
 import os
@@ -10,17 +11,19 @@ import py4cytoscape as p4c
 import subprocess
 import time
 
-CYTOSCAPE_PATH = config["cytoscape_path"]  # Aus Config laden
+# Optional: Import für detaillierten Interaktions-Export
+from detailed_results_exporter import export_detailed_interactions
 
-# Prüfen, ob Cytoscape läuft
+CYTOSCAPE_PATH = config["cytoscape_path"]
+
+# Prüfen, ob Cytoscape läuft, falls nicht -> starten
 try:
     p4c.cytoscape_ping()
     print("🌐 Cytoscape läuft bereits!")
 except:
     print("⚙️ Cytoscape wird gestartet...")
     subprocess.Popen(CYTOSCAPE_PATH)
-    time.sleep(30)  # Wartezeit, bis Cytoscape vollständig gestartet ist
-    # Prüfen, ob Cytoscape nun läuft
+    time.sleep(30)
     try:
         p4c.cytoscape_ping()
         print("✅ Cytoscape erfolgreich gestartet!")
@@ -30,10 +33,10 @@ except:
 
 def main(csv_path):
     """
-    Main function: Loads PDB structures, computes distances, and visualizes networks.
+    Hauptfunktion: Liest PDB-Strukturen ein, berechnet Distanzen und visualisiert Netzwerke.
     """
 
-    # 🔹 Create a unique run output folder with timestamp
+    # 🔹 Einzigartiges Output-Verzeichnis für den Lauf erstellen
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     run_output_path = os.path.join(config["output_path"], timestamp)
     os.makedirs(run_output_path, exist_ok=True)
@@ -49,22 +52,32 @@ def main(csv_path):
     print("\n📏 Computing atomic distances...")
     results = calculate_distances_with_ckdtree(combined_data)
 
-    # Decide if creating separate networks or one combined network
+    # 🔹 Falls aktiviert: Detailierte Interaktionsdateien für jedes PDB exportieren
+    if config.get("export_detailed_interactions", False):
+        print("\n📄 Exporting detailed interaction data for each PDB file...")
+        for structure_data in combined_data:
+            pdb_id = structure_data["pdb_id"]
+            pdb_interactions = [res for res in results if res["chain_a"].startswith(pdb_id)]
+            export_detailed_interactions(structure_data, pdb_interactions, run_output_path)
+
+    # 🔹 Entscheiden, ob separate Netzwerke oder ein kombiniertes Netzwerk erstellt wird
     if config["create_separate_networks"]:
         print("\n🌐 Creating separate networks for each PDB file...")
         results_by_pdb = {}
         for entry in results:
-            pdb_id = entry["chain_a"].split(":")[0]  # Extract PDB-ID
-            if pdb_id not in results_by_pdb:
-                results_by_pdb[pdb_id] = []
-            results_by_pdb[pdb_id].append(entry)
+            pdb_id = entry["chain_a"].split(":")[0]
+            results_by_pdb.setdefault(pdb_id, []).append(entry)
 
         for pdb_id, pdb_results in results_by_pdb.items():
             create_cytoscape_network(pdb_results, network_title=pdb_id, run_output_path=run_output_path)
-
     else:
         print("\n🌐 Creating a single combined network...")
         create_cytoscape_network(results, network_title="Combined_Network", run_output_path=run_output_path)
+
+    # 🔹 Erstellen des Protein-Netzwerks, falls aktiviert
+    if config["protein_network"]["enabled"]:
+        print("\n🌐 Creating Protein-level network...")
+        create_protein_network(results, combined_data, run_output_path=run_output_path)
 
 if __name__ == "__main__":
     csv_path = "C:\\Users\\Gregor\\Documents\\Uni Bioinformatik\\9. Semester\\B.A\\PDBFiles\\PathsCSV.csv"

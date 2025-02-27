@@ -5,5 +5,10 @@
     "output_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/Networks",
     "create_separate_networks": false,
     "keep_last_n_networks": 5,
-    "cytoscape_path": "C:/Program Files/Cytoscape_v3.10.3/Cytoscape.exe"
+    "cytoscape_path": "C:/Program Files/Cytoscape_v3.10.3/Cytoscape.exe",
+    "protein_network": {
+        "enabled": true,
+        "create_separate_networks": false
+    },
+    "export_detailed_interactions": true
 }

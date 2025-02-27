@@ -100,73 +100,45 @@ def load_pdb_fasta(pdb_fasta_path):
     return pdb_sequences
 
 def determine_molecule_info(pdb_id, chain_id, pdb_fasta):
-    """
-    Determines the molecule name and type for a given PDB chain.
-
-    Args:
-        pdb_id (str): PDB ID in lowercase.
-        chain_id (str): Chain ID in uppercase.
-        pdb_fasta (dict): Dictionary with PDB FASTA data.
-
-    Returns:
-        tuple: (Molecule name, Molecule type)
-    """
     search_key = f"{pdb_id.lower()}_{chain_id.upper()}"
-    print(f"🔍 Determining name/type for {search_key}")  # Debugging
+    print(f"🔍 Determining name/type for {search_key}")
 
-    # Check SIFTS mapping for a UniProt ID
     if search_key in pdb_to_uniprot:
         uniprot_id = pdb_to_uniprot[search_key]
         if uniprot_id in uniprot_dict:
-            print(f"✅ {search_key}: UniProt match found: {uniprot_id} → {uniprot_dict[uniprot_id]}")
-            return uniprot_dict[uniprot_id], "Protein"
+            protein_name = uniprot_dict[uniprot_id]
+            print(f"✅ {search_key}: UniProt match found: {uniprot_id} → {protein_name}")
+            return protein_name, "Protein", uniprot_id  # 🔹 UniProt-ID mit zurückgeben
 
-    # If no UniProt match, fallback to PDB FASTA
     if search_key in pdb_fasta:
         fasta_info = pdb_fasta[search_key]["info"]
         sequence = pdb_fasta[search_key]["sequence"]
-
-        # **Remove metadata like 'mol:protein', 'mol:na', 'length:XYZ'**
-        cleaned_info = re.sub(r"mol:\w+\s*", "", fasta_info)  # Remove 'mol:protein' or 'mol:na'
-        cleaned_info = re.sub(r"length:\d+\s*", "", cleaned_info)  # Remove 'length:XYZ'
-        cleaned_info = cleaned_info.strip()  # Trim whitespace
-
-        # Determine molecule type (Protein or Nucleic Acid)
+        cleaned_info = re.sub(r"mol:\w+\s*", "", fasta_info)
+        cleaned_info = re.sub(r"length:\d+\s*", "", cleaned_info)
+        cleaned_info = cleaned_info.strip()
         molecule_type = "Protein" if "mol:protein" in fasta_info else "Nucleic Acid"
-
         print(f"✅ {search_key}: PDB FASTA fallback → {cleaned_info}")
-        return cleaned_info, molecule_type
+        return cleaned_info, molecule_type, None  # 🔹 Keine UniProt-ID gefunden
 
-    # If no match found, return "Unknown"
-    print(f"⚠ {search_key}: NO match found")  # Debugging
-    return "Unknown", "Unknown"
+    print(f"⚠ {search_key}: NO match found")
+    return "Unknown", "Unknown", None
+
 
 def process_molecule_info(combined_data):
-    """
-    Processes molecular information for each chain in the dataset.
-
-    Args:
-        combined_data (list): List of dictionaries containing parsed PDB structures.
-
-    Updates:
-        Each chain in combined_data with:
-            - molecule_name
-            - molecule_type
-    """
     print("\n🔍 Determining molecule names and types for PDB chains...")
-
-    # Load PDB FASTA as fallback data
     pdb_fasta = load_pdb_fasta(PDB_FASTA_PATH)
 
     for structure_data in combined_data:
-        pdb_id = structure_data["pdb_id"].lower()  # ✅ Always use extracted PDB ID
+        pdb_id = structure_data["pdb_id"].lower()
         for chain in structure_data["atom_data"]:
             chain_id = chain["chain_id"].upper()
-            name, mol_type = determine_molecule_info(pdb_id, chain_id, pdb_fasta)
+            name, mol_type, uniprot_id = determine_molecule_info(pdb_id, chain_id, pdb_fasta)
             chain["molecule_name"] = name
             chain["molecule_type"] = mol_type
+            chain["uniprot_id"] = uniprot_id  # 🔹 UniProt-ID in der Chain speichern
 
-            print(f"✅ {pdb_id}_{chain_id}: {name} ({mol_type})")
+            print(f"✅ {pdb_id}_{chain_id}: {name} ({mol_type}) UniProt-ID: {uniprot_id}")
+
 
 # 🔹 Initialization function to preload mappings
 def initialize():

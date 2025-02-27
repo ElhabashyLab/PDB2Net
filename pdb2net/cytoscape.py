@@ -39,14 +39,24 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         unique_nodes.add(chain_b)
 
         edges.append({
-            "source": chain_a,
-            "target": chain_b,
+            "chain_a": chain_a,
+            "chain_b": chain_b,
             "ca_nn_count": entry["ca_nn_count"],
             "all_atoms_close_count": entry["all_atoms_close_count"]
         })
 
     nodes_df = pd.DataFrame({"id": list(unique_nodes), "label": list(unique_nodes)})
     edges_df = pd.DataFrame(edges)
+
+    # 🔹 Wichtig: Prüfe, welche Spalten wirklich existieren!
+    print(edges_df.head())  # Debugging: zeigt die aktuellen Spaltennamen
+
+    # 🔹 Korrekte Umbenennung in source und target für Cytoscape
+    edges_df.rename(columns={"chain_a": "source", "chain_b": "target"}, inplace=True)
+    edges_df["interaction"] = "interacts_with"
+
+    # 🔹 Prüfe die endgültigen Spalten
+    print(edges_df.head())  # Debugging: Prüfe ob Spalten korrekt sind
 
     # 🔹 Create the network in Cytoscape
     network_suid = p4c.create_network_from_data_frames(nodes_df, edges_df, title=network_title)

@@ -142,6 +142,11 @@ def calculate_distances_with_ckdtree(combined_data):
                 tree_atoms_a = cKDTree(extract_all_atoms(chain_a))
                 all_atoms_close_count = get_close_pairs(tree_atoms_a, extract_all_atoms(chain_b), radius=5.0)
 
+                # ❌ Falls keine Interaktion stattgefunden hat, überspringen
+                if ca_nn_count == 0 and all_atoms_close_count == 0:
+                    continue  # 🚫 Keine relevante Interaktion → wird nicht gespeichert
+
+                # ✅ Nur Interaktionen mit mindestens einem Kontakt speichern
                 results.append({
                     "file_path": file_path,
                     "chain_a": chain_a["unique_chain_id"],

@@ -9,19 +9,13 @@ PDB_FASTA_PATH = config["pdb_fasta_path"]
 UNIPROT_FASTA_PATH = config["uniprot_fasta_path"]
 SIFTS_TSV_PATH = config["sifts_tsv_path"]
 
-# 🔹 Dictionaries for fast lookup
+# 🔹 Dictionaries für schnelles Lookup
 pdb_to_uniprot = {}  # Maps PDB-chain → UniProt ID
 uniprot_dict = {}  # Maps UniProt ID → Protein name
 
 def load_sifts_mapping(tsv_path):
     """
     Loads SIFTS mapping from 'pdb_chain_uniprot.tsv' to map PDB chains to UniProt IDs.
-
-    Args:
-        tsv_path (str): Path to the SIFTS TSV file.
-
-    Populates:
-        pdb_to_uniprot (dict): Dictionary mapping PDB chain IDs (pdb_id_chain) to UniProt IDs.
     """
     global pdb_to_uniprot
     print("\n📥 Loading SIFTS PDB-UniProt mapping...")
@@ -29,28 +23,24 @@ def load_sifts_mapping(tsv_path):
     with open(tsv_path, "r") as f:
         reader = csv.reader(f, delimiter="\t")
         for row in reader:
-            if not row or len(row) < 3:  # Skip invalid or empty rows
-                print(f"⚠ Warning: Invalid row in SIFTS: {row}")
-                continue
+            if not row or len(row) < 3:
+                continue  # Überspringe fehlerhafte Zeilen
 
-            try:
-                pdb_id, chain, uniprot_id = row[0].strip().lower(), row[1].strip().upper(), row[2].strip()
-                key = f"{pdb_id}_{chain}"
-                pdb_to_uniprot[key] = uniprot_id
-            except Exception as e:
-                print(f"⚠ Error processing row {row}: {e}")
+            pdb_id, chain, uniprot_id = row[0].strip().lower(), row[1].strip().upper(), row[2].strip()
+            key = f"{pdb_id}_{chain}"
+            pdb_to_uniprot[key] = uniprot_id
 
     print(f"✅ {len(pdb_to_uniprot)} PDB chains successfully mapped to UniProt IDs.")
 
+    # Debugging: Zeige nur die ersten 10 Einträge
+    for i, (key, value) in enumerate(pdb_to_uniprot.items()):
+        if i >= 10:
+            break
+        print(f"🔍 Mapping Check {i+1}: {key} → {value}")
+
 def load_uniprot_fasta(fasta_path):
     """
-    Loads UniProt SwissProt FASTA file and extracts UniProt ID → Protein name mappings.
-
-    Args:
-        fasta_path (str): Path to the UniProt FASTA file.
-
-    Populates:
-        uniprot_dict (dict): Dictionary mapping UniProt IDs to protein names.
+    Loads UniProt FASTA and extracts UniProt ID → Protein name mappings.
     """
     global uniprot_dict
     print("\n📥 Loading UniProt FASTA data...")
@@ -66,9 +56,6 @@ def load_pdb_fasta(pdb_fasta_path):
     """
     Loads PDB FASTA file and stores it as a dictionary.
 
-    Args:
-        pdb_fasta_path (str): Path to the PDB FASTA file.
-
     Returns:
         dict: Dictionary mapping pdb_id_chain → {info, sequence}.
     """
@@ -77,11 +64,9 @@ def load_pdb_fasta(pdb_fasta_path):
         current_key, current_seq = None, []
         for line in f:
             if line.startswith(">"):
-                # Store previous entry before processing the new one
                 if current_key and current_seq:
                     pdb_sequences[current_key]["sequence"] = "".join(current_seq)
 
-                # Extract PDB ID and chain
                 parts = line.split()
                 fasta_header = parts[0][1:]
                 if "_" in fasta_header:
@@ -93,39 +78,37 @@ def load_pdb_fasta(pdb_fasta_path):
             else:
                 current_seq.append(line.strip())
 
-        # Store the last sequence
         if current_key and current_seq:
             pdb_sequences[current_key]["sequence"] = "".join(current_seq)
 
     return pdb_sequences
 
 def determine_molecule_info(pdb_id, chain_id, pdb_fasta):
+    """
+    Determines the molecule name, type, and UniProt ID for a given PDB chain.
+    """
     search_key = f"{pdb_id.lower()}_{chain_id.upper()}"
-    print(f"🔍 Determining name/type for {search_key}")
+    uniprot_id = pdb_to_uniprot.get(search_key)
 
-    if search_key in pdb_to_uniprot:
-        uniprot_id = pdb_to_uniprot[search_key]
-        if uniprot_id in uniprot_dict:
-            protein_name = uniprot_dict[uniprot_id]
-            print(f"✅ {search_key}: UniProt match found: {uniprot_id} → {protein_name}")
-            return protein_name, "Protein", uniprot_id  # 🔹 UniProt-ID mit zurückgeben
+    if uniprot_id:
+        protein_name = uniprot_dict.get(uniprot_id, "Unknown Protein")
+        return protein_name, "Protein", uniprot_id
 
     if search_key in pdb_fasta:
         fasta_info = pdb_fasta[search_key]["info"]
         sequence = pdb_fasta[search_key]["sequence"]
         cleaned_info = re.sub(r"mol:\w+\s*", "", fasta_info)
-        cleaned_info = re.sub(r"length:\d+\s*", "", cleaned_info)
-        cleaned_info = cleaned_info.strip()
+        cleaned_info = re.sub(r"length:\d+\s*", "", cleaned_info).strip()
         molecule_type = "Protein" if "mol:protein" in fasta_info else "Nucleic Acid"
-        print(f"✅ {search_key}: PDB FASTA fallback → {cleaned_info}")
-        return cleaned_info, molecule_type, None  # 🔹 Keine UniProt-ID gefunden
+        return cleaned_info, molecule_type, None
 
-    print(f"⚠ {search_key}: NO match found")
     return "Unknown", "Unknown", None
 
-
 def process_molecule_info(combined_data):
-    print("\n🔍 Determining molecule names and types for PDB chains...")
+    """
+    Assigns molecule names and types to chains.
+    """
+    print("\n🔍 Assigning molecule names and types...")
     pdb_fasta = load_pdb_fasta(PDB_FASTA_PATH)
 
     for structure_data in combined_data:
@@ -133,20 +116,20 @@ def process_molecule_info(combined_data):
         for chain in structure_data["atom_data"]:
             chain_id = chain["chain_id"].upper()
             name, mol_type, uniprot_id = determine_molecule_info(pdb_id, chain_id, pdb_fasta)
+
             chain["molecule_name"] = name
             chain["molecule_type"] = mol_type
-            chain["uniprot_id"] = uniprot_id  # 🔹 UniProt-ID in der Chain speichern
+            chain["uniprot_id"] = uniprot_id
 
-            print(f"✅ {pdb_id}_{chain_id}: {name} ({mol_type}) UniProt-ID: {uniprot_id}")
+    # Debugging: Zeige maximal 10 Ketten
+    print("\n📌 UniProt Assignments (max. 10 examples):")
+    for i, structure_data in enumerate(combined_data):
+        if i >= 10:
+            break
+        pdb_id = structure_data["pdb_id"]
+        for chain in structure_data["atom_data"]:
+            print(f"  🔹 {pdb_id}_{chain['chain_id']}: {chain['molecule_name']} ({chain['molecule_type']}) UniProt-ID: {chain['uniprot_id']}")
 
-
-# 🔹 Initialization function to preload mappings
-def initialize():
-    """
-    Loads SIFTS, UniProt FASTA, and PDB FASTA for fast lookups.
-    """
-    load_sifts_mapping(SIFTS_TSV_PATH)
-    load_uniprot_fasta(UNIPROT_FASTA_PATH)
-
-# 🔹 Run initialization on module import
-initialize()
+# Lade die Daten bei Modulimport
+load_sifts_mapping(SIFTS_TSV_PATH)
+load_uniprot_fasta(UNIPROT_FASTA_PATH)

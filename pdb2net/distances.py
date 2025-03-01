@@ -44,7 +44,7 @@ def extract_ca_nn(chain):
         for ca_atom in residue["atoms"]
         if ca_atom["atom_name"] == "CA"
     ]
-    return np.array(ca_nn).reshape(-1, 3) if ca_nn else np.array([])  # Ensure (N,3) shape
+    return np.array(ca_nn).reshape(-1, 3) if ca_nn else np.array([])
 
 def extract_all_atoms(chain):
     """
@@ -103,69 +103,52 @@ def calculate_distances_with_ckdtree(combined_data):
                 if i >= j:
                     continue  # Avoid redundant calculations
 
+                # Verhindere Selbst-Interaktion
+                if chain_a["chain_id"] == chain_b["chain_id"]:
+                    continue
+
                 print(f"\n🔍 Computing distances: {chain_a['unique_chain_id']} ↔ {chain_b['unique_chain_id']}")
 
-                # Determine if at least one of the chains is a protein
-                protein_interaction = (
-                    chain_a["molecule_type"] == "Protein" or chain_b["molecule_type"] == "Protein"
-                )
+                # Prüfe Molekültyp
+                molecule_type_a = chain_a.get("molecule_type", "Unknown")
+                molecule_type_b = chain_b.get("molecule_type", "Unknown")
 
-                if protein_interaction:
-                    # Protein-Protein or Protein-Nucleic Acid interactions: Use Cα + nearest heavy atom
-                    ca_nn_a = extract_ca_nn(chain_a) if chain_a["molecule_type"] == "Protein" else extract_all_atoms(chain_a)
-                    ca_nn_b = extract_ca_nn(chain_b) if chain_b["molecule_type"] == "Protein" else extract_all_atoms(chain_b)
+                if molecule_type_a == "Unknown" or molecule_type_b == "Unknown":
+                    print(f"⚠ WARNING: Unknown molecule type for {chain_a['chain_id']} or {chain_b['chain_id']}")
+                    continue
 
-                    ca_nn_a_flat = np.array([coord for coord in ca_nn_a]) if protein_interaction else ca_nn_a
-                    ca_nn_b_flat = np.array([coord for coord in ca_nn_b]) if protein_interaction else ca_nn_b
+                # Klassifiziere Interaktionstyp
+                if molecule_type_a == "Protein" and molecule_type_b == "Protein":
+                    interaction_type = "Protein-Protein"
+                elif (molecule_type_a == "Protein" and molecule_type_b == "Nucleic Acid") or \
+                     (molecule_type_a == "Nucleic Acid" and molecule_type_b == "Protein"):
+                    interaction_type = "Protein-Nucleic Acid"
+                elif molecule_type_a == "Nucleic Acid" and molecule_type_b == "Nucleic Acid":
+                    interaction_type = "Nucleic Acid-Nucleic Acid"
                 else:
-                    # Only nucleic acids: Use all atoms
-                    ca_nn_a_flat = extract_all_atoms(chain_a)
-                    ca_nn_b_flat = extract_all_atoms(chain_b)
+                    interaction_type = "Unknown"
 
-                # Debugging: Print array shapes
-                print(f"  ✅ Shape of {chain_a['chain_id']} (A): {ca_nn_a_flat.shape}")
-                print(f"  ✅ Shape of {chain_b['chain_id']} (B): {ca_nn_b_flat.shape}")
+                # Berechnung der Distanzen
+                ca_nn_a = extract_ca_nn(chain_a) if molecule_type_a == "Protein" else extract_all_atoms(chain_a)
+                ca_nn_b = extract_ca_nn(chain_b) if molecule_type_b == "Protein" else extract_all_atoms(chain_b)
 
-                # Validate array shapes before proceeding
-                if ca_nn_a_flat.ndim != 2 or ca_nn_a_flat.shape[1] != 3:
-                    print(f"❌ Error: Invalid shape for {chain_a['chain_id']}: {ca_nn_a_flat.shape}")
-                    continue
-                if ca_nn_b_flat.ndim != 2 or ca_nn_b_flat.shape[1] != 3:
-                    print(f"❌ Error: Invalid shape for {chain_b['chain_id']}: {ca_nn_b_flat.shape}")
+                if ca_nn_a.size == 0 or ca_nn_b.size == 0:
+                    print(f"⚠ WARNING: Keine Atome für {chain_a['chain_id']} oder {chain_b['chain_id']}")
                     continue
 
-                # Step 1: Compute distances using cKDTree (radius 15 Å)
-                tree_a = cKDTree(ca_nn_a_flat)
-                ca_nn_count = get_close_pairs(tree_a, ca_nn_b_flat, radius=15.0)
+                tree_a = cKDTree(ca_nn_a)
+                ca_nn_count = get_close_pairs(tree_a, ca_nn_b, radius=15.0)
 
-                if ca_nn_count < 10:
-                    print(f"❌ Fewer than 10 Cα/NN pairs found within <15 Å. Skipping.")
-                    continue
+                tree_atoms_a = cKDTree(extract_all_atoms(chain_a))
+                all_atoms_close_count = get_close_pairs(tree_atoms_a, extract_all_atoms(chain_b), radius=5.0)
 
-                # Step 2: Compute all-atom contacts using cKDTree (radius 5 Å)
-                all_atoms_a = extract_all_atoms(chain_a)
-                all_atoms_b = extract_all_atoms(chain_b)
-
-                if all_atoms_a.size == 0 or all_atoms_b.size == 0:
-                    print(f"⚠ WARNING: Empty atom list for {chain_a['chain_id']} or {chain_b['chain_id']}")
-                    continue
-
-                tree_atoms_a = cKDTree(all_atoms_a)
-                all_atoms_close_count = get_close_pairs(tree_atoms_a, all_atoms_b, radius=5.0)
-
-                if all_atoms_close_count < 10:
-                    print(f"❌ Fewer than 10 atom pairs found within <5 Å. Skipping.")
-                    continue
-
-                # Store results
                 results.append({
                     "file_path": file_path,
                     "chain_a": chain_a["unique_chain_id"],
                     "chain_b": chain_b["unique_chain_id"],
                     "ca_nn_count": ca_nn_count,
                     "all_atoms_close_count": all_atoms_close_count,
+                    "interaction_type": interaction_type
                 })
-
-                print(f"✅ Distances computed: {ca_nn_count} Cα/NN pairs, {all_atoms_close_count} atom pairs <5 Å")
 
     return results

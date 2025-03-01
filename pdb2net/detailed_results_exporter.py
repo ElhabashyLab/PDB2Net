@@ -3,21 +3,13 @@ import pandas as pd
 import numpy as np
 from scipy.spatial import cKDTree
 
-
 def export_detailed_interactions(structure_data, interactions, run_output_path):
     """
     Exports detailed interaction results, including residues and atoms involved, to a CSV file.
-
-    Args:
-        structure_data (dict): Parsed PDB structure data from combined_data.
-        interactions (list): List of interactions from results.
-        run_output_path (str): Output path for saving detailed interaction files.
     """
-
     pdb_id = structure_data["pdb_id"]
     atom_data = structure_data["atom_data"]
 
-    # Create a lookup for residues and atoms by chain
     residues_atoms_lookup = {}
     for chain in atom_data:
         chain_id = chain["chain_id"]
@@ -32,9 +24,7 @@ def export_detailed_interactions(structure_data, interactions, run_output_path):
                     "coordinates": atom["coordinates"]
                 })
 
-    # Prepare detailed interaction data
     detailed_interactions = []
-
     for interaction in interactions:
         chain_a_id = interaction["chain_a"].split(":")[1]
         chain_b_id = interaction["chain_b"].split(":")[1]
@@ -42,12 +32,25 @@ def export_detailed_interactions(structure_data, interactions, run_output_path):
         atoms_a = residues_atoms_lookup.get(chain_a_id, [])
         atoms_b = residues_atoms_lookup.get(chain_b_id, [])
 
-        # Create KDTree for efficient distance search
+        if not atoms_a or not atoms_b:
+            continue
+
+        chain_a_data = next((ch for ch in atom_data if ch["chain_id"] == chain_a_id), None)
+        chain_b_data = next((ch for ch in atom_data if ch["chain_id"] == chain_b_id), None)
+
+        if not chain_a_data or not chain_b_data:
+            continue
+
+        uniprot_a = chain_a_data.get("uniprot_id", "UNKNOWN")
+        uniprot_b = chain_b_data.get("uniprot_id", "UNKNOWN")
+
+        interaction_type = interaction["interaction_type"]
+
         coords_a = np.array([atom["coordinates"] for atom in atoms_a])
         coords_b = np.array([atom["coordinates"] for atom in atoms_b])
 
         if coords_a.size == 0 or coords_b.size == 0:
-            continue  # Skip if no coordinates found
+            continue
 
         tree_a = cKDTree(coords_a)
         pairs = tree_a.query_ball_point(coords_b, r=5.0)
@@ -70,18 +73,17 @@ def export_detailed_interactions(structure_data, interactions, run_output_path):
                     "Residue_B": atom_b["residue"],
                     "Atom_B": atom_b["atom_name"],
                     "Distance": round(distance, 2),
-                    "UniProt_A": chain.get("uniprot_id", "UNKNOWN"),
-                    "UniProt_B": chain.get("uniprot_id", "UNKNOWN"),
-                    "Interaction_Type": f"{chain['molecule_type']}-{chain['molecule_type']}"
+                    "UniProt_A": uniprot_a,
+                    "UniProt_B": uniprot_b,
+                    "Interaction_Type": interaction_type
                 })
 
-    # Convert to DataFrame
     df = pd.DataFrame(detailed_interactions)
 
-    # Save CSV file
     output_dir = os.path.join(run_output_path, pdb_id)
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, f"{pdb_id}_detailed_interactions.csv")
     df.to_csv(output_file, index=False)
 
-    print(f"✅ Detailed interactions exported: {output_file}")
+    print(f"✅ CSV export successful: {output_file} (showing first 10 rows):")
+    print(df.head(10))

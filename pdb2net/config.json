@@ -3,12 +3,15 @@
     "uniprot_fasta_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/Neuer Ordner/uniprot_sprot.fasta",
     "sifts_tsv_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/SIFTS/pdb_chain_uniprot.tsv",
     "output_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/Networks",
-    "create_separate_networks": true,
-    "keep_last_n_networks": 5,
     "cytoscape_path": "C:/Program Files/Cytoscape_v3.10.3/Cytoscape.exe",
-    "protein_network": {
-        "enabled": true,
-        "create_separate_networks": false
+
+    "networks": {
+        "chain_per_pdb": true,
+        "combined_chain_network": true,
+        "protein_per_pdb": true,
+        "combined_protein_network": true
     },
+
+    "keep_last_n_networks": 15,
     "export_detailed_interactions": true
 }

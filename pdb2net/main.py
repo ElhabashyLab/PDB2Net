@@ -19,7 +19,7 @@ CYTOSCAPE_PATH = config["cytoscape_path"]
 # Prüfen, ob Cytoscape läuft, falls nicht -> starten
 try:
     p4c.cytoscape_ping()
-    print("🌐 Cytoscape läuft bereits!")
+    print("\U0001F310 Cytoscape läuft bereits!")
 except:
     print("⚙️ Cytoscape wird gestartet...")
     subprocess.Popen(CYTOSCAPE_PATH)
@@ -35,6 +35,7 @@ def main(csv_path):
     """
     Hauptfunktion: Liest PDB-Strukturen ein, berechnet Distanzen und visualisiert Netzwerke.
     """
+    network_config = config["networks"]
 
     # 🔹 Einzigartiges Output-Verzeichnis für den Lauf erstellen
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -60,8 +61,8 @@ def main(csv_path):
             pdb_interactions = [res for res in results if res["chain_a"].startswith(pdb_id)]
             export_detailed_interactions(structure_data, pdb_interactions, run_output_path)
 
-    # 🔹 Entscheiden, ob separate Netzwerke oder ein kombiniertes Netzwerk erstellt wird
-    if config["create_separate_networks"]:
+    # 🔹 Erstellung der Netzwerke basierend auf den Konfigurationen
+    if network_config["chain_per_pdb"]:
         print("\n🌐 Creating separate networks for each PDB file...")
         results_by_pdb = {}
         for entry in results:
@@ -69,15 +70,15 @@ def main(csv_path):
             results_by_pdb.setdefault(pdb_id, []).append(entry)
 
         for pdb_id, pdb_results in results_by_pdb.items():
-            create_cytoscape_network(pdb_results, network_title=pdb_id, run_output_path=run_output_path)
-    else:
-        print("\n🌐 Creating a single combined network...")
+            create_cytoscape_network(pdb_results, network_title=f"Chain_Interaction_Network_{pdb_id}", run_output_path=run_output_path)
+
+    if network_config["combined_chain_network"]:
+        print("\n🌐 Creating a single combined chain network...")
         create_cytoscape_network(results, network_title="Combined_Network", run_output_path=run_output_path)
 
-    # 🔹 Erstellen des Protein-Netzwerks, falls aktiviert
-    if config["protein_network"]["enabled"]:
-        print("\n🌐 Creating Protein-level network...")
-        create_protein_network(results, combined_data, run_output_path=run_output_path)
+    if network_config["protein_per_pdb"] or network_config["combined_protein_network"]:
+        print("\n🔬 Processing protein-level interactions...")
+        create_protein_network(results, combined_data, run_output_path, network_config)
 
 if __name__ == "__main__":
     csv_path = "C:\\Users\\Gregor\\Documents\\Uni Bioinformatik\\9. Semester\\B.A\\PDBFiles\\PathsCSV.csv"

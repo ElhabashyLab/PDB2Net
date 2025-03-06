@@ -85,15 +85,26 @@ def load_pdb_fasta(pdb_fasta_path):
 
 def determine_molecule_info(pdb_id, chain_id, pdb_fasta):
     """
-    Determines the molecule name, type, and UniProt ID for a given PDB chain.
+    Bestimmt den Molekülnamen, Typ und die UniProt-ID für eine gegebene PDB-Kette.
+    Falls die PDB-ID nicht echt ist, wird der SIFTS-Abgleich übersprungen.
     """
     search_key = f"{pdb_id.lower()}_{chain_id.upper()}"
-    uniprot_id = pdb_to_uniprot.get(search_key)
 
+    # Falls die PDB-ID nicht aus 4 Zeichen besteht → Kein SIFTS-Abgleich!
+    if len(pdb_id) != 4:
+        print(f"⚠ Keine echte PDB-ID ({pdb_id}). Überspringe SIFTS-Abgleich und nutze UniProt FASTA...")
+        return determine_from_fasta(search_key, pdb_fasta)
+
+    # Normaler SIFTS-Abgleich für echte PDB-IDs
+    uniprot_id = pdb_to_uniprot.get(search_key)
     if uniprot_id:
         protein_name = uniprot_dict.get(uniprot_id, "Unknown Protein")
         return protein_name, "Protein", uniprot_id
 
+    return determine_from_fasta(search_key, pdb_fasta)
+
+def determine_from_fasta(search_key, pdb_fasta):
+    """Falls SIFTS nicht verwendet wird, bestimme Namen und Typ nur aus der PDB FASTA."""
     if search_key in pdb_fasta:
         fasta_info = pdb_fasta[search_key]["info"]
         sequence = pdb_fasta[search_key]["sequence"]
@@ -103,6 +114,7 @@ def determine_molecule_info(pdb_id, chain_id, pdb_fasta):
         return cleaned_info, molecule_type, None
 
     return "Unknown", "Unknown", None
+
 
 def process_molecule_info(combined_data):
     """

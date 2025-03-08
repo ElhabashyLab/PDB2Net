@@ -1,5 +1,6 @@
 from file_parser import read_files_from_csv
 from data_processor import process_structure
+from unknown_molecule_uniprot import process_molecule_info
 from uniprot_matcher import match_sequence_to_uniprot  # 🔹 Neu hinzugefügt!
 from distances import calculate_distances_with_ckdtree
 from cytoscape import create_cytoscape_network
@@ -11,6 +12,22 @@ import py4cytoscape as p4c
 import subprocess
 import time
 from detailed_results_exporter import export_detailed_interactions
+
+CYTOSCAPE_PATH = config["cytoscape_path"]
+# Prüfen, ob Cytoscape läuft, falls nicht -> starten
+try:
+    p4c.cytoscape_ping()
+    print("\U0001F310 Cytoscape läuft bereits!")
+except:
+    print("⚙️ Cytoscape wird gestartet...")
+    subprocess.Popen(CYTOSCAPE_PATH)
+    time.sleep(30)
+    try:
+        p4c.cytoscape_ping()
+        print("✅ Cytoscape erfolgreich gestartet!")
+    except:
+        print("❌ Cytoscape konnte nicht gestartet werden. Prüfe den Pfad in config.json!")
+        exit(1)
 
 def main(csv_path):
     """
@@ -29,7 +46,9 @@ def main(csv_path):
     combined_data = [process_structure(structure_data) for structure_data in structures]
 
     print("\n🔍 Determining molecule names and types...")
-    match_sequence_to_uniprot(combined_data)  # 🔹 Hier wird der UniProt-Abgleich für Dateien ohne PDB-ID durchgeführt!
+    process_molecule_info(combined_data)
+    match_sequence_to_uniprot(combined_data)
+
 
     print("\n📏 Computing atomic distances...")
     results = calculate_distances_with_ckdtree(combined_data)

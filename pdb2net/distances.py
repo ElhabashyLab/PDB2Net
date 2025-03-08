@@ -115,7 +115,7 @@ def calculate_distances_with_ckdtree(combined_data):
 
                 if molecule_type_a == "Unknown" or molecule_type_b == "Unknown":
                     print(f"⚠ WARNING: Unknown molecule type for {chain_a['chain_id']} or {chain_b['chain_id']}")
-                    continue
+
 
                 # Klassifiziere Interaktionstyp
                 if molecule_type_a == "Protein" and molecule_type_b == "Protein":

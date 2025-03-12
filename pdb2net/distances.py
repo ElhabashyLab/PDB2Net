@@ -156,7 +156,7 @@ def calculate_distances_with_ckdtree(combined_data):
             # Berechnung der Anzahl aller Atome im Nahbereich
             tree_atoms_a = tree_cache_local[(chain_a["unique_chain_id"], "all_atoms")]
             tree_atoms_b = tree_cache_local[(chain_b["unique_chain_id"], "all_atoms")]
-            all_atoms_close_pairs = tree_atoms_a.query_ball_point(tree_atoms_b.data, r=5.0)
+            all_atoms_close_pairs = tree_atoms_a.query_ball_point(tree_atoms_b.data, r=15.0)
 
             ca_nn_count = sum(len(p) for p in ca_nn_pairs)
             all_atoms_close_count = sum(len(p) for p in all_atoms_close_pairs)

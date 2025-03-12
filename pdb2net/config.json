@@ -4,6 +4,8 @@
     "sifts_tsv_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/SIFTS/pdb_chain_uniprot.tsv",
     "output_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/Networks",
     "cytoscape_path": "C:/Program Files/Cytoscape_v3.10.3/Cytoscape.exe",
+    "blast_db_path": "C:/blast_db",
+    "blastp_executable": "C:/Program Files/NCBI/blast-2.16.0+/bin/blastp.exe",
 
     "networks": {
         "chain_per_pdb": true,

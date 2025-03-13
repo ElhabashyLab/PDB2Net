@@ -77,7 +77,7 @@ def classify_molecule_type(chain):
     sample_names = {res["residue_name"].strip() for res in residues}
 
     # Prüft, ob alle Residuen in der bekannten Aminosäure-Liste sind
-    return "Protein" if all(res in AMINO_ACIDS for res in sample_names) else "Unknown"
+    return "Protein" if all(res in AMINO_ACIDS for res in sample_names) else "Nucleic Acid"
 
 
 def match_sequence_to_uniprot(parsed_data):
@@ -86,12 +86,10 @@ def match_sequence_to_uniprot(parsed_data):
     create_blast_database()
 
     for structure in parsed_data:
-        if len(structure["pdb_id"]) == 4:  # ❌ PDB-Dateien werden übersprungen
-            continue
-
         for chain in structure["atom_data"]:
-            if chain["is_hetatm"]:
-                continue  # HETATM-Ketten ignorieren
+            # 🔹 Matcher läuft nur für Ketten mit `uniprot_id == "Unknown"`
+            if chain.get("uniprot_id") not in [None, "Unknown"] or chain.get("molecule_type") in ["Nucleic Acid"]:
+                continue  # ❌ Kette hat bereits eine UniProt-ID → überspringen
 
             sequence = extract_sequence_from_parsed_data(chain)  # ✅ Umwandlung in 1-Buchstaben-Code
             if not sequence:
@@ -107,7 +105,7 @@ def match_sequence_to_uniprot(parsed_data):
                 chain["molecule_type"] = "Protein"
                 print(f"✅ {chain['unique_chain_id']} → {uniprot_id}")
             else:
-                chain["molecule_type"] = classify_molecule_type(chain)  # ✅ Alte Klassifikation wiederhergestellt!
+                chain["molecule_type"] = classify_molecule_type(chain)  # ✅ Falls kein Treffer, alte Klassifikation nutzen
                 print(
                     f"⚠ Kein UniProt-Match für {chain['unique_chain_id']}, klassifiziert als {chain['molecule_type']}")
 

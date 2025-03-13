@@ -98,5 +98,5 @@ def main(csv_path):
     print(f"\n🏁 Gesamtlaufzeit: {time.time() - start_time_total:.2f} Sekunden")
 
 if __name__ == "__main__":
-    csv_path = "C:\\Users\\Gregor\\Documents\\Uni Bioinformatik\\9. Semester\\B.A\\PDBFiles\\PathsCSV.csv"
+    csv_path = "C:\\Users\\Gregor\\Documents\\Uni Bioinformatik\\9. Semester\\B.A\\PDBFiles\\PathsCSV2.csv"
     main(csv_path)

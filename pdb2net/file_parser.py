@@ -4,13 +4,11 @@ from Bio import PDB
 from config_loader import config
 import csv
 
-
 # Define allowed file extensions
 ALLOWED_EXTENSIONS = {'.pdb', '.cif', '.mmcif'}
 
 # Load the path to pdb_seqres.txt from the configuration
 PDB_FASTA_PATH = config["pdb_fasta_path"]
-
 
 def load_valid_pdb_ids():
     """
@@ -24,18 +22,16 @@ def load_valid_pdb_ids():
         with open(PDB_FASTA_PATH, "r") as f:
             for line in f:
                 if line.startswith(">"):
-                    parts = line.split()[0][1:].split("_")  # e.g., >1abc_A → ['1abc', 'A']
+                    parts = line.split()[0][1:].split("_")  # Extract PDB ID from header
                     if len(parts[0]) == 4:
-                        valid_pdb_ids.add(parts[0].upper())  # Store all IDs in uppercase
+                        valid_pdb_ids.add(parts[0].upper())  # Store IDs in uppercase
     except Exception as e:
-        print(f"⚠ Error loading pdb_seqres.txt: {e}")
+        print(f"Error loading pdb_seqres.txt: {e}")
 
     return valid_pdb_ids
 
-
 # Load PDB IDs once at startup
 VALID_PDB_IDS = load_valid_pdb_ids()
-
 
 def is_valid_file(file_path):
     """
@@ -50,7 +46,6 @@ def is_valid_file(file_path):
     _, ext = os.path.splitext(file_path)
     return ext.lower() in ALLOWED_EXTENSIONS
 
-
 def extract_pdb_id_from_filename(file_path):
     """
     Extracts the PDB ID from the filename if it follows the standard format.
@@ -59,17 +54,16 @@ def extract_pdb_id_from_filename(file_path):
         file_path (str): Path to the file.
 
     Returns:
-        str or None: The extracted PDB ID (uppercase) if valid.
+        str or None: The extracted PDB ID (uppercase) if valid, otherwise None.
     """
     filename = os.path.basename(file_path)
-    match = re.match(r"^([0-9][A-Za-z0-9]{3})$", filename.split(".")[0])  # Exactly 4 characters
+    match = re.match(r"^([0-9][A-Za-z0-9]{3})$", filename.split(".")[0])  # PDB ID is exactly 4 characters
     if match:
         pdb_id = match.group(1).upper()
         if pdb_id in VALID_PDB_IDS:
             return pdb_id
-        print(f"⚠ File {filename} contains an invalid PDB ID ({pdb_id} not in pdb_seqres.txt).")
+        print(f"Warning: File {filename} contains an invalid PDB ID ({pdb_id} not in pdb_seqres.txt).")
     return None
-
 
 def extract_pdb_id_from_file(file_path):
     """
@@ -79,7 +73,7 @@ def extract_pdb_id_from_file(file_path):
         file_path (str): Path to the file.
 
     Returns:
-        str or None: The extracted PDB ID (uppercase) if valid.
+        str or None: The extracted PDB ID (uppercase) if valid, otherwise None.
     """
     _, ext = os.path.splitext(file_path)
     ext = ext.lower()
@@ -99,19 +93,24 @@ def extract_pdb_id_from_file(file_path):
 
                 if len(pdb_id) == 4 and pdb_id in VALID_PDB_IDS:
                     return pdb_id
-                print(f"⚠ File {file_path} contains an invalid PDB ID ({pdb_id} not in pdb_seqres.txt).")
+                print(f"Warning: File {file_path} contains an invalid PDB ID ({pdb_id} not in pdb_seqres.txt).")
                 return None
 
     except Exception as e:
-        print(f"⚠ Error reading {file_path}: {e}")
+        print(f"Error reading {file_path}: {e}")
 
     return None
 
-
 def get_pdb_id(file_path):
     """
-    Bestimmt die PDB-ID, bevorzugt aus dem Dateinamen.
-    Falls keine PDB-ID extrahiert werden kann, wird der Dateiname verwendet.
+    Determines the PDB ID, preferring extraction from the filename.
+    If no valid PDB ID can be extracted, the filename is used as a fallback.
+
+    Args:
+        file_path (str): Path to the PDB/mmCIF file.
+
+    Returns:
+        str: The determined PDB ID.
     """
     pdb_id = extract_pdb_id_from_filename(file_path)
     if pdb_id:
@@ -121,12 +120,10 @@ def get_pdb_id(file_path):
     if pdb_id:
         return pdb_id
 
-    # Falls keine PDB-ID gefunden wird → Dateiname als Ersatz nehmen
+    # If no valid PDB ID is found, use the filename as a fallback
     filename = os.path.basename(file_path).split('.')[0].upper()
-    print(f"⚠ Keine gültige PDB-ID gefunden. Verwende stattdessen den Dateinamen als PDB-ID: {filename}")
-    return filename  # Dateiname als PDB-ID
-
-
+    print(f"Warning: No valid PDB ID found. Using filename as PDB ID: {filename}")
+    return filename  # Use filename as fallback PDB ID
 
 def parse_structure(file_path, pdb_id):
     """
@@ -148,9 +145,8 @@ def parse_structure(file_path, pdb_id):
         structure = parser.get_structure(pdb_id, file_path)
         return structure
     except Exception as e:
-        print(f"⚠ Error parsing {file_path}: {e}")
+        print(f"Error parsing {file_path}: {e}")
         return None
-
 
 def read_files_from_csv(csv_path):
     """
@@ -179,14 +175,13 @@ def read_files_from_csv(csv_path):
         if is_valid_file(file_path):
             pdb_id = get_pdb_id(file_path)
             if pdb_id:
-                print(f"📂 Processing file: {file_path} → PDB ID: {pdb_id}")
 
                 structure = parse_structure(file_path, pdb_id)
                 if structure:
                     structures.append({"file_path": file_path, "pdb_id": pdb_id, "structure": structure})
             else:
-                print(f"⚠ Skipping file (no valid PDB ID found): {file_path}")
+                print(f"Skipping file (no valid PDB ID found): {file_path}")
         else:
-            print(f"⚠ Skipping file (invalid extension): {file_path}")
+            print(f"Skipping file (invalid extension): {file_path}")
 
     return structures

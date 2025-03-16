@@ -13,66 +13,70 @@ import py4cytoscape as p4c
 import subprocess
 from detailed_results_exporter import export_detailed_interactions
 
+# Load Cytoscape path from config
 CYTOSCAPE_PATH = config["cytoscape_path"]
 
-# Prüfen, ob Cytoscape läuft, falls nicht -> starten
+# Check if Cytoscape is running; if not, try to start it
 try:
     p4c.cytoscape_ping()
-    print("\U0001F310 Cytoscape läuft bereits!")
+    print("Cytoscape is already running.")
 except:
-    print("⚙️ Cytoscape wird gestartet...")
+    print("Starting Cytoscape...")
     subprocess.Popen(CYTOSCAPE_PATH)
     time.sleep(30)
     try:
         p4c.cytoscape_ping()
-        print("✅ Cytoscape erfolgreich gestartet!")
+        print("Cytoscape started successfully.")
     except:
-        print("❌ Cytoscape konnte nicht gestartet werden. Prüfe den Pfad in config.json!")
+        print("Error: Cytoscape could not be started. Check the path in config.json.")
         exit(1)
 
 def main(csv_path):
     """
-    Hauptfunktion: Liest PDB-Strukturen ein, berechnet Distanzen und visualisiert Netzwerke.
+    Main function to process PDB structures, compute distances, and visualize networks.
+
+    Args:
+        csv_path (str): Path to the CSV file containing file paths.
     """
     network_config = config["networks"]
 
-    # 🔹 Einzigartiges Output-Verzeichnis für den Lauf erstellen
+    # Create a unique output directory for the run
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     run_output_path = os.path.join(config["output_path"], timestamp)
     os.makedirs(run_output_path, exist_ok=True)
-    print(f"\n📁 Created run output directory: {run_output_path}")
+    print(f"\nCreated run output directory: {run_output_path}")
 
-    # 📌 Startzeit messen
+    # Measure total execution time
     start_time_total = time.time()
 
-    print("\n📂 Loading PDB files from CSV...")
+    print("\nLoading PDB files from CSV...")
     start_time = time.time()
     structures = read_files_from_csv(csv_path)
     combined_data = [process_structure(structure_data) for structure_data in structures]
-    print(f"✅ Datei-Parsing abgeschlossen in {time.time() - start_time:.2f} Sekunden")
+    print(f"File parsing completed in {time.time() - start_time:.2f} seconds.")
 
-    print("\n🔍 Determining molecule names and types...")
+    print("\nDetermining molecule names and types...")
     start_time = time.time()
     process_molecule_info(combined_data)
     match_sequence_to_uniprot(combined_data)
-    print(f"✅ Molekül-Bestimmung abgeschlossen in {time.time() - start_time:.2f} Sekunden")
+    print(f"Molecule identification completed in {time.time() - start_time:.2f} seconds.")
 
-    print("\n📏 Computing atomic distances...")
+    print("\nComputing atomic distances...")
     start_time = time.time()
     results = calculate_distances_with_ckdtree(combined_data)
-    print(f"✅ Distanzberechnung abgeschlossen in {time.time() - start_time:.2f} Sekunden")
+    print(f"Distance calculation completed in {time.time() - start_time:.2f} seconds.")
 
     if config.get("export_detailed_interactions", False):
-        print("\n📄 Exporting detailed interaction data for each PDB file...")
+        print("\nExporting detailed interaction data for each PDB file...")
         start_time = time.time()
         for structure_data in combined_data:
             pdb_id = structure_data["pdb_id"]
             pdb_interactions = [res for res in results if res["chain_a"].startswith(pdb_id)]
             export_detailed_interactions(structure_data, pdb_interactions, run_output_path)
-        print(f"✅ Export abgeschlossen in {time.time() - start_time:.2f} Sekunden")
+        print(f"Export completed in {time.time() - start_time:.2f} seconds.")
 
     if network_config["chain_per_pdb"]:
-        print("\n🌐 Creating separate networks for each PDB file...")
+        print("\nCreating separate networks for each PDB file...")
         start_time = time.time()
         results_by_pdb = {}
         for entry in results:
@@ -80,23 +84,23 @@ def main(csv_path):
             results_by_pdb.setdefault(pdb_id, []).append(entry)
         for pdb_id, pdb_results in results_by_pdb.items():
             create_cytoscape_network(pdb_results, network_title=f"Chain_Interaction_Network_{pdb_id}", run_output_path=run_output_path)
-        print(f"✅ Netzwerk-Erstellung abgeschlossen in {time.time() - start_time:.2f} Sekunden")
+        print(f"Network creation completed in {time.time() - start_time:.2f} seconds.")
 
     if network_config["combined_chain_network"]:
-        print("\n🌐 Creating a single combined chain network...")
+        print("\nCreating a single combined chain network...")
         start_time = time.time()
         create_cytoscape_network(results, network_title="Combined_Network", run_output_path=run_output_path)
-        print(f"✅ Kombiniertes Netzwerk erstellt in {time.time() - start_time:.2f} Sekunden")
+        print(f"Combined network created in {time.time() - start_time:.2f} seconds.")
 
     if network_config["protein_per_pdb"] or network_config["combined_protein_network"]:
-        print("\n🔬 Processing protein-level interactions...")
+        print("\nProcessing protein-level interactions...")
         start_time = time.time()
         create_protein_network(results, combined_data, run_output_path, network_config)
-        print(f"✅ Protein-Netzwerk erstellt in {time.time() - start_time:.2f} Sekunden")
+        print(f"Protein network creation completed in {time.time() - start_time:.2f} seconds.")
 
-    # 📌 Gesamtzeit messen
-    print(f"\n🏁 Gesamtlaufzeit: {time.time() - start_time_total:.2f} Sekunden")
+    # Display total execution time
+    print(f"\nTotal execution time: {time.time() - start_time_total:.2f} seconds.")
 
 if __name__ == "__main__":
-    csv_path = "C:\\Users\\Gregor\\Documents\\Uni Bioinformatik\\9. Semester\\B.A\\PDBFiles\\PathsCSV2.csv"
-    main(csv_path)
+    INPUT_CSV_PATH = config["input_csv_path"]
+    main(INPUT_CSV_PATH)

@@ -1,6 +1,3 @@
-from config_loader import config
-
-
 def process_structure(structure_data):
     """
     Processes a parsed PDB or mmCIF structure and extracts relevant atom and residue information.
@@ -20,49 +17,49 @@ def process_structure(structure_data):
                 - "molecule_name": Placeholder (to be updated later).
                 - "molecule_type": Placeholder (to be updated later).
                 - "sequence": Placeholder for the sequence.
-                - "is_hetatm": True, falls die Kette nur aus HETATM besteht.
+                - "is_hetatm": True if the chain consists only of HETATM.
                 - "residues": List of residues with atom information.
     """
     pdb_id = structure_data["pdb_id"]
     structure = structure_data["structure"]
 
-    raw_atom_data = []  # Beinhaltet alle ATOM & HETATM-Einträge
+    raw_atom_data = []  # Stores all ATOM & HETATM entries
     for model in structure:
         for chain in model:
             chain_id = chain.id.strip()
 
             residues = []
-            only_hetatm = True  # Standardmäßig annehmen, dass es nur HETATM sein könnte
+            only_hetatm = True  # Assume the chain consists only of HETATM initially
 
             for residue in chain.get_residues():
                 res_name = residue.resname.strip()
 
-                # ✅ Optimierte Residue-Nummer-Extraktion
-                res_number = residue.id[1]  # Residue-Nummer direkt aus der PDB
-                insert_code = residue.id[2]  # Einfügungs-Code (optional)
+                # Extract residue number and insertion code
+                res_number = residue.id[1]  # Residue number from PDB
+                insert_code = residue.id[2]  # Optional insertion code
 
                 if insert_code and insert_code != " ":
                     full_res_id = f"{res_number}{insert_code}"
                 else:
                     full_res_id = str(res_number)
 
-                # 🚨 Falls `residue.id[0] != " "`, ist es ein HETATM → überspringen
+                # Skip HETATM residues
                 if residue.id[0] != " ":
                     continue
 
-                # ✅ Optimierte contains_atom-Prüfung (mit Break)
+                # Check if the residue contains any non-hydrogen atom
                 contains_atom = False
                 for atom in residue.get_atoms():
-                    if atom.element not in ["H", "D"]:  # Schweres Atom gefunden
+                    if atom.element not in ["H", "D"]:  # Heavy atom found
                         contains_atom = True
-                        break  # Sofort abbrechen → unnötige Iterationen vermeiden
+                        break  # Stop checking further atoms
 
                 if contains_atom:
                     only_hetatm = False
 
                 residue_entry = {
                     "residue_name": res_name,
-                    "residue_number": full_res_id,  # Korrekt extrahierte Residue-Nummer
+                    "residue_number": full_res_id,
                     "atoms": [
                         {
                             "atom_name": atom.get_name(),
@@ -83,7 +80,7 @@ def process_structure(structure_data):
                 "residues": residues
             })
 
-    # Entferne Ketten, die nur HETATM enthalten
+    # Remove chains that contain only HETATM residues
     atom_data = [chain for chain in raw_atom_data if not chain["is_hetatm"]]
 
     return {

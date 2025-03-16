@@ -1,21 +1,8 @@
 import py4cytoscape as p4c
-import time
 import os
 import pandas as pd
-import random
 from config_loader import config
 
-# 🔹 PDB Standard-Kettenfarben (offiziell aus PyMOL / Chimera)
-PDB_CHAIN_COLORS = [
-    "#FF0000", "#0000FF", "#00FF00", "#FFFF00", "#FF00FF", "#00FFFF",
-    "#F08080", "#800080", "#808000", "#008080", "#B22222", "#FF8C00",
-    "#4682B4", "#32CD32", "#9400D3", "#FFD700", "#DC143C", "#008000",
-    "#1E90FF", "#FF4500"
-]
-
-def get_random_color():
-    """Generiert eine zufällige, aber kontrastreiche Farbe für zusätzliche Ketten."""
-    return "#{:06x}".format(random.randint(0, 0xFFFFFF))
 
 def create_cytoscape_network(results, network_title="Protein_Interaction_Network", run_output_path="."):
     """
@@ -75,15 +62,15 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
     # 🔹 Layout anwenden
     p4c.layout_network(layout_name="force-directed")
 
-    # 🔹 Setze runde Knoten
-    p4c.set_node_shape_default("ELLIPSE")
+    # 🔹 Setze den "BioPAX_SIF"-Style
+    available_styles = p4c.get_visual_style_names()
+    print("🎨 Verfügbare Styles in Cytoscape:", available_styles)
 
-    # 🔹 Setze Knoten-Transparenz (Alpha-Wert: 0 = unsichtbar, 255 = voll sichtbar)
-    p4c.set_node_fill_opacity_default(150)  # 150 gibt eine halbtransparente Optik
-
-    # 🔹 Falls relevant, wende Kettenfarben an
-    if "Chain_Interaction_Network" in network_title or "Combined_Network" in network_title:
-        apply_pdb_chain_colors_pdb_style()
+    if "BioPAX_SIF" in available_styles:
+        p4c.set_visual_style("BioPAX_SIF")
+        print("✅ BioPAX_SIF-Style angewendet!")
+    else:
+        print("⚠️ BioPAX_SIF-Style nicht verfügbar. Bitte prüfen!")
 
     # 🔹 Netzwerk speichern
     pdb_output_path = os.path.join(run_output_path, network_title)
@@ -92,30 +79,3 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
     p4c.export_network(network_file, type="cyjs")
 
     print(f"✅ Netzwerk gespeichert unter: {network_file}")
-
-def apply_pdb_chain_colors_pdb_style():
-    """
-    Setzt PDB-Standardfarben für Ketten in Cytoscape.
-    """
-    nodes = p4c.get_table_columns(columns=["id"])
-    if nodes is None or "id" not in nodes:
-        print("⚠️ Keine Nodes gefunden!")
-        return
-
-    chain_list = sorted(set(node_id.split(":")[-1] for node_id in nodes["id"]))  # Alle Ketten finden
-    node_colors = {}
-
-    for index, chain_id in enumerate(chain_list):
-        color = PDB_CHAIN_COLORS[index % len(PDB_CHAIN_COLORS)]  # Zyklisches Schema für PDB-Kettenfarben
-        for node_id in nodes["id"]:
-            if node_id.endswith(chain_id):
-                node_colors[node_id] = color
-
-    p4c.set_node_color_mapping(
-        table_column="id",
-        table_column_values=list(node_colors.keys()),
-        colors=list(node_colors.values()),
-        mapping_type="d"
-    )
-
-    print(f"✅ {len(chain_list)} Kettenfarben nach PDB-Standard angewendet!")

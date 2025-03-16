@@ -58,7 +58,7 @@ def run_blast_search(query_sequence):
     best_match = None
     with open(output_file, "r") as f:
         for line in f:
-            best_match = line.split("\t")[1]  # Zweite Spalte enthält die UniProt-ID
+            best_match = line.split("\t")[1].split("|")[1]  # Nur die UniProt-ID extrahieren
             break
 
     # Lösche temporäre Dateien

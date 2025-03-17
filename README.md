@@ -14,6 +14,17 @@ After running the tool, the following files will be generated:
   - **Protein-Level Networks** → Networks based on UniProt IDs.
   - **Combined and Per-PDB Networks** (if enabled in `config.json`).
 ---
+### **User input**  
+A csv file (list) of PDB and CIF file paths in a structured table:
+
+| file_path |
+|--------|
+| C:\Users\...\101m.pdb  |
+| C:\Users\...\9jr2.cif  |
+| ...  |
+
+
+---
 
 ## 🛠 System Requirements & Setup
 

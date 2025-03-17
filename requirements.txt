@@ -1,0 +1,7 @@
+Bio==1.7.1
+biopython==1.84
+numpy==2.2.4
+pandas==2.2.3
+py4cytoscape==1.11.0
+scipy==1.15.2
+setuptools==65.5.0

@@ -3,6 +3,7 @@ import re
 from Bio import PDB
 from config_loader import config
 import csv
+import gemmi
 
 # Define allowed file extensions
 ALLOWED_EXTENSIONS = {'.pdb', '.cif', '.mmcif'}
@@ -127,22 +128,11 @@ def get_pdb_id(file_path):
 
 def parse_structure(file_path, pdb_id):
     """
-    Parses a PDB or mmCIF file and returns the structure.
-
-    Args:
-        file_path (str): Path to the PDB or mmCIF file.
-        pdb_id (str): The PDB ID associated with the structure.
-
-    Returns:
-        Bio.PDB.Structure.Structure or None: Parsed structure object, or None on failure.
+    Lädt eine PDB/mmCIF-Datei mit gemmi.
     """
-    _, ext = os.path.splitext(file_path)
-
-    # Select the appropriate parser based on the file type
-    parser = PDB.MMCIFParser(QUIET=True) if ext.lower() in {'.cif', '.mmcif'} else PDB.PDBParser(QUIET=True)
-
     try:
-        structure = parser.get_structure(pdb_id, file_path)
+        structure = gemmi.read_structure(file_path)
+        structure.setup_entities()
         return structure
     except Exception as e:
         print(f"Error parsing {file_path}: {e}")

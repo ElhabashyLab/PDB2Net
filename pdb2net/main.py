@@ -2,7 +2,6 @@ import time
 from file_parser import read_files_from_csv
 from data_processor import process_structure
 from unknown_molecule_uniprot import process_molecule_info
-from uniprot_matcher import match_sequence_to_uniprot
 from distances import calculate_distances_with_ckdtree
 from cytoscape import create_cytoscape_network
 from protein_network import create_protein_network
@@ -12,6 +11,7 @@ import os
 import py4cytoscape as p4c
 import subprocess
 from detailed_results_exporter import export_detailed_interactions
+from uniprot_matcher import parallel_blast_search
 
 # Load Cytoscape path from config
 CYTOSCAPE_PATH = config["cytoscape_path"]
@@ -58,8 +58,10 @@ def main(csv_path):
     print("\nDetermining molecule names and types...")
     start_time = time.time()
     process_molecule_info(combined_data)
-    match_sequence_to_uniprot(combined_data)
-    print(f"Molecule identification completed in {time.time() - start_time:.2f} seconds.")
+    print(f"Molecule identification SIFTS blast completed in {time.time() - start_time:.2f} seconds.")
+    start_time = time.time()
+    parallel_blast_search(combined_data, max_workers=4)
+    print(f"Molecule identification from blast completed in {time.time() - start_time:.2f} seconds.")
 
     print("\nComputing atomic distances...")
     start_time = time.time()

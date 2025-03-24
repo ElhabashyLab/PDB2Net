@@ -2,9 +2,8 @@ import time
 from file_parser import read_files_from_csv
 from data_processor import process_structure
 from unknown_molecule_uniprot import process_molecule_info
-from uniprot_matcher import match_sequence_to_uniprot
 from distances import calculate_distances_with_ckdtree
-from cytoscape import create_cytoscape_network
+from cytoscape import create_cytoscape_network, generate_nodes_from_atom_data
 from protein_network import create_protein_network
 from config_loader import config
 from datetime import datetime
@@ -12,6 +11,7 @@ import os
 import py4cytoscape as p4c
 import subprocess
 from detailed_results_exporter import export_detailed_interactions
+from uniprot_matcher import parallel_blast_search
 
 # Load Cytoscape path from config
 CYTOSCAPE_PATH = config["cytoscape_path"]
@@ -23,13 +23,14 @@ try:
 except:
     print("Starting Cytoscape...")
     subprocess.Popen(CYTOSCAPE_PATH)
-    time.sleep(30)
+    time.sleep(40)
     try:
         p4c.cytoscape_ping()
         print("Cytoscape started successfully.")
     except:
         print("Error: Cytoscape could not be started. Check the path in config.json.")
         exit(1)
+
 
 def main(csv_path):
     """
@@ -58,8 +59,10 @@ def main(csv_path):
     print("\nDetermining molecule names and types...")
     start_time = time.time()
     process_molecule_info(combined_data)
-    match_sequence_to_uniprot(combined_data)
-    print(f"Molecule identification completed in {time.time() - start_time:.2f} seconds.")
+    print(f"Molecule identification SIFTS blast completed in {time.time() - start_time:.2f} seconds.")
+    start_time = time.time()
+    parallel_blast_search(combined_data, max_workers=4)
+    print(f"Molecule identification from blast completed in {time.time() - start_time:.2f} seconds.")
 
     print("\nComputing atomic distances...")
     start_time = time.time()
@@ -75,6 +78,7 @@ def main(csv_path):
             export_detailed_interactions(structure_data, pdb_interactions, run_output_path)
         print(f"Export completed in {time.time() - start_time:.2f} seconds.")
 
+    # 🔹 Separate Chain-Netzwerke pro PDB
     if network_config["chain_per_pdb"]:
         print("\nCreating separate networks for each PDB file...")
         start_time = time.time()
@@ -82,16 +86,29 @@ def main(csv_path):
         for entry in results:
             pdb_id = entry["chain_a"].split(":")[0]
             results_by_pdb.setdefault(pdb_id, []).append(entry)
+
         for pdb_id, pdb_results in results_by_pdb.items():
-            create_cytoscape_network(pdb_results, network_title=f"Chain_Interaction_Network_{pdb_id}", run_output_path=run_output_path)
+            structure = next((s for s in combined_data if s["pdb_id"] == pdb_id), None)
+            if not structure:
+                continue
+
+            nodes_data = generate_nodes_from_atom_data(structure["atom_data"], pdb_id)
+            network_title = f"Chain_Interaction_Network_{pdb_id}"
+            create_cytoscape_network(pdb_results, network_title=network_title, run_output_path=run_output_path, nodes_data=nodes_data)
         print(f"Network creation completed in {time.time() - start_time:.2f} seconds.")
 
+    # 🔹 Kombiniertes Chain-Netzwerk
     if network_config["combined_chain_network"]:
         print("\nCreating a single combined chain network...")
         start_time = time.time()
-        create_cytoscape_network(results, network_title="Combined_Network", run_output_path=run_output_path)
+
+        all_chains = [chain for structure in combined_data for chain in structure["atom_data"]]
+        nodes_data = generate_nodes_from_atom_data(all_chains)  # Kein pdb_id, weil kombiniert
+
+        create_cytoscape_network(results, network_title="Combined_Network", run_output_path=run_output_path, nodes_data=nodes_data)
         print(f"Combined network created in {time.time() - start_time:.2f} seconds.")
 
+    # 🔹 Protein-Level-Netzwerke (separat oder kombiniert)
     if network_config["protein_per_pdb"] or network_config["combined_protein_network"]:
         print("\nProcessing protein-level interactions...")
         start_time = time.time()
@@ -100,6 +117,7 @@ def main(csv_path):
 
     # Display total execution time
     print(f"\nTotal execution time: {time.time() - start_time_total:.2f} seconds.")
+
 
 if __name__ == "__main__":
     INPUT_CSV_PATH = config["input_csv_path"]

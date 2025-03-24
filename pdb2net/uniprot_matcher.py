@@ -1,137 +1,165 @@
 import os
 import subprocess
-from Bio import SeqIO
 from Bio.Data import IUPACData
+from concurrent.futures import ThreadPoolExecutor
 from config_loader import config
+import uuid
 
 # Load paths from configuration
-UNIPROT_FASTA_PATH = config["uniprot_fasta_path"]
 BLAST_DB_PATH = config["blast_db_path"]
 BLAST_EXECUTABLE = config["blastp_executable"]
+UNIPROT_FASTA_PATH = config["uniprot_fasta_path"]
 
-# Biopython mapping for three-letter to one-letter amino acid codes
+# 3-letter to 1-letter amino acid mapping
 three_to_one = IUPACData.protein_letters_3to1
 
-# List of 20 canonical amino acids plus selenocysteine and pyrrolysine
+# Set of valid amino acid residue codes
 AMINO_ACIDS = {
     "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS",
     "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP",
     "TYR", "VAL", "SEC", "PYL"
 }
 
+
 def create_blast_database():
     """
-    Creates a BLAST database from the UniProt FASTA file if it does not already exist.
+    Creates the UniProt BLAST database if it does not already exist.
     """
     db_path = os.path.join(BLAST_DB_PATH, "uniprot_db")
-    if not os.path.exists(db_path + ".pin"):  # Check if BLAST database exists
-        print("Creating BLAST database...")
-        subprocess.run([
+    if not os.path.exists(db_path + ".pin"):
+        result = subprocess.run([
             "makeblastdb", "-in", UNIPROT_FASTA_PATH, "-dbtype", "prot", "-out", db_path
-        ], check=True)
-        print("BLAST database created successfully.")
+        ], capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"Error while creating BLAST database:\n{result.stderr}")
+        else:
+            print("BLAST database successfully created.")
     else:
         print("BLAST database already exists.")
 
+
 def extract_sequence_from_parsed_data(chain_data):
     """
-    Converts residue names (three-letter code) into a protein sequence (one-letter code).
+    Converts residue names from 3-letter code to a protein sequence.
 
     Args:
-        chain_data (dict): Dictionary containing residue information.
+        chain_data (dict): Chain with residue information.
 
     Returns:
-        str or None: The converted protein sequence, or None if no valid sequence is found.
+        str: One-letter sequence string or None.
     """
     sequence = "".join([three_to_one.get(res["residue_name"].capitalize(), "X") for res in chain_data["residues"]])
     return sequence if sequence else None
 
+
 def run_blast_search(query_sequence):
     """
-    Performs a BLAST search using the given protein sequence.
+    Performs a BLAST search for a given protein sequence and returns the best UniProt match.
 
     Args:
-        query_sequence (str): The amino acid sequence to be matched.
+        query_sequence (str): Protein sequence to search.
 
     Returns:
-        str or None: The best UniProt ID match, or None if no match is found.
+        str or None: Matched UniProt ID or None if no match found.
     """
-    query_file = "query.fasta"
-    output_file = "blast_results.txt"
+    unique_id = str(uuid.uuid4())[:8]
+    query_file = f"query_{unique_id}.fasta"
+    output_file = f"blast_results_{unique_id}.txt"
 
-    # Write sequence to a FASTA file
-    with open(query_file, "w") as f:
-        f.write(f">query\n{query_sequence}\n")
+    try:
+        with open(query_file, "w") as f:
+            f.write(f">query\n{query_sequence}\n")
 
-    # Run BLAST search
-    subprocess.run([
-        BLAST_EXECUTABLE, "-query", query_file, "-db", os.path.join(BLAST_DB_PATH, "uniprot_db"),
-        "-out", output_file, "-evalue", "1e-5", "-max_target_seqs", "8", "-outfmt", "6"
-    ], check=True)
+        blast_cmd = [
+            BLAST_EXECUTABLE,
+            "-query", query_file,
+            "-db", os.path.join(BLAST_DB_PATH, "uniprot_db"),
+            "-out", output_file,
+            "-evalue", "1e-5",
+            "-max_target_seqs", "8",
+            "-outfmt", "6"
+        ]
 
-    # Read first hit result
-    best_match = None
-    with open(output_file, "r") as f:
-        for line in f:
-            best_match = line.split("\t")[1].split("|")[1]  # Extract only the UniProt ID
-            break
+        result = subprocess.run(blast_cmd, capture_output=True, text=True)
 
-    # Delete temporary files
-    os.remove(query_file)
-    os.remove(output_file)
+        if result.returncode != 0:
+            return None
 
-    return best_match if best_match else None
+        if not os.path.exists(output_file):
+            return None
+
+        best_match = None
+        with open(output_file, "r") as f:
+            for line in f:
+                best_match = line.split("\t")[1].split("|")[1]
+                break
+
+        return best_match
+
+    except Exception:
+        return None
+
+    finally:
+        if os.path.exists(query_file):
+            os.remove(query_file)
+        if os.path.exists(output_file):
+            os.remove(output_file)
+
 
 def classify_molecule_type(chain):
     """
-    Determines if a chain is a protein based on its residues.
+    Classifies the molecule type of a chain based on its residues.
 
     Args:
-        chain (dict): Chain dictionary containing residue information.
+        chain (dict): Chain with residues.
 
     Returns:
-        str: "Protein" if the chain contains only amino acids, otherwise "Nucleic Acid".
+        str: "Protein", "Nucleic Acid", or "Unknown".
     """
     residues = chain["residues"]
     if len(residues) == 0:
         return "Unknown"
 
     sample_names = {res["residue_name"].strip() for res in residues}
-
-    # Check if all residues belong to known amino acids
     return "Protein" if all(res in AMINO_ACIDS for res in sample_names) else "Nucleic Acid"
 
-def match_sequence_to_uniprot(parsed_data):
+
+def parallel_blast_search(parsed_data, max_workers=8):
     """
-    Matches extracted sequences with UniProt via BLAST and classifies molecules.
+    Performs parallelized BLAST searches for all eligible chains in the dataset.
 
     Args:
-        parsed_data (list): List of parsed structure data with atom and sequence information.
+        parsed_data (list): List of structure dictionaries.
+        max_workers (int): Number of parallel threads.
     """
-    print("Starting UniProt BLAST search...")
-    create_blast_database()
+    tasks = []
 
+    # Prepare list of chains and sequences to BLAST
     for structure in parsed_data:
         for chain in structure["atom_data"]:
-            # Skip chains that already have a UniProt ID or are nucleic acids
-            if chain.get("uniprot_id") not in [None, "Unknown"] or chain.get("molecule_type") in ["Nucleic Acid"]:
+            if chain.get("uniprot_id") not in [None, "Unknown"] or chain.get("molecule_type") == "Nucleic Acid":
                 continue
 
-            sequence = extract_sequence_from_parsed_data(chain)  # Convert to one-letter code
+            sequence = extract_sequence_from_parsed_data(chain)
             if not sequence:
-                print(f"Warning: No sequence extracted for {chain['unique_chain_id']}")
                 continue
 
-            sequence = sequence.replace("O", "X")  # Fix incorrect "O" characters
+            sequence = sequence.replace("O", "X")
+            tasks.append((len(sequence), sequence, chain))
 
-            uniprot_id = run_blast_search(sequence)
+    # Sort tasks by sequence length if many tasks
+    if len(tasks) > 40:
+        tasks.sort(key=lambda t: t[0])
+
+    # Perform parallel BLAST searches
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [(executor.submit(run_blast_search, seq), chain) for _, seq, chain in tasks]
+
+        for future, chain in futures:
+            uniprot_id = future.result()
             if uniprot_id:
                 chain["uniprot_id"] = uniprot_id
                 chain["molecule_name"] = f"Matched UniProt: {uniprot_id}"
                 chain["molecule_type"] = "Protein"
-                print(f"Matched {chain['unique_chain_id']} → {uniprot_id}")
             else:
-                chain["molecule_type"] = classify_molecule_type(chain)  # Use classification if no match
-                print(f"No UniProt match for {chain['unique_chain_id']}, classified as {chain['molecule_type']}")
-
-    print("UniProt BLAST search completed.")
+                chain["molecule_type"] = classify_molecule_type(chain)

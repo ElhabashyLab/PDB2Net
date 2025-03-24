@@ -46,7 +46,13 @@ pip install -r requirements.txt
   [Cytoscape Download](https://cytoscape.org/download.html)  
 - **Start Cytoscape manually** once before running the tool. After that it will start automatically when running the tool.
 
-### 4️⃣ Setting up BLAST for UniProt Matching
+### 4️⃣ Download pdb_chain_uniprot.tsv
+https://www.ebi.ac.uk/pdbe/docs/sifts/quick.html
+
+### 5️⃣ Download the PDB Single FASTA File (pdb_seqres.txt)
+https://www.rcsb.org/downloads/fasta
+
+### 6️⃣ Setting up BLAST for UniProt Matching
 
 #### **Download & Install BLAST+**
 1. **Go to the NCBI BLAST+ Download page:**  

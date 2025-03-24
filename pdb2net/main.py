@@ -23,7 +23,7 @@ try:
 except:
     print("Starting Cytoscape...")
     subprocess.Popen(CYTOSCAPE_PATH)
-    time.sleep(30)
+    time.sleep(40)
     try:
         p4c.cytoscape_ping()
         print("Cytoscape started successfully.")

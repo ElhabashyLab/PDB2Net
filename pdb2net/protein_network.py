@@ -3,7 +3,21 @@ from config_loader import config
 from matplotlib import cm
 from matplotlib.colors import to_hex
 
+
 def create_protein_network(results, combined_data, run_output_path, network_config):
+    """
+    Builds and visualizes protein-level interaction networks using UniProt IDs.
+
+    Depending on the configuration, the function creates:
+      - separate networks per PDB file
+      - a combined protein-level network
+
+    Args:
+        results (list): List of interaction dictionaries (chain pairs and distances).
+        combined_data (list): Parsed structure data including atom chains and UniProt annotations.
+        run_output_path (str): Output directory for saving Cytoscape files.
+        network_config (dict): Configuration flags to control which networks to generate.
+    """
     if not network_config["protein_per_pdb"] and not network_config["combined_protein_network"]:
         print("Protein network creation is disabled.")
         return
@@ -12,6 +26,7 @@ def create_protein_network(results, combined_data, run_output_path, network_conf
     uniprot_to_pdb_ids = {}
     uniprot_to_name = {}
 
+    # Build mapping from chain IDs to UniProt and names
     for structure in combined_data:
         pdb_id = structure["pdb_id"]
         for chain in structure["atom_data"]:
@@ -27,6 +42,7 @@ def create_protein_network(results, combined_data, run_output_path, network_conf
     protein_interactions = set()
     interaction_data = {}
 
+    # Group interactions by UniProt-level pairs
     for entry in results:
         if entry.get("all_atoms_count", 0) > 0:
             chain_a = entry["chain_a"]
@@ -52,12 +68,24 @@ def create_protein_network(results, combined_data, run_output_path, network_conf
                 }
 
     def get_color_group(uniprot_id):
+        """
+        Determines the color group label based on the number of PDB files a UniProt ID appears in.
+        """
         pdbs = uniprot_to_pdb_ids.get(uniprot_id, set())
         if not pdbs:
             return "Multi"
         return "Multi" if len(pdbs) > 1 else list(pdbs)[0]
 
     def generate_nodes(interactions):
+        """
+        Generates Cytoscape nodes from interaction edges.
+
+        Args:
+            interactions (list): List of edges with UniProt IDs.
+
+        Returns:
+            list: Node dictionaries with ID, color group and name.
+        """
         nodes = set()
         for inter in interactions:
             nodes.add(inter["chain_a"])
@@ -70,13 +98,9 @@ def create_protein_network(results, combined_data, run_output_path, network_conf
             "molecule_name": uniprot_to_name.get(node, node)
         } for node in nodes]
 
-        # 🔎 DEBUG: Ausgabe der color_groups
-        print("\n[DEBUG] color_group assignment in generate_nodes():")
-        for node in node_list:
-            print(f"  {node['id']} → {node['color_group']}")
         return node_list
 
-    # Netzwerke erzeugen
+    # Generate networks per PDB if enabled
     if network_config["protein_per_pdb"]:
         print("\nCreating separate protein networks for each PDB file...")
         results_by_pdb = {}
@@ -92,6 +116,7 @@ def create_protein_network(results, combined_data, run_output_path, network_conf
             network_title = f"Protein_Network_{pdb_id}"
             create_cytoscape_network(pdb_results, network_title, run_output_path, nodes_data=nodes)
 
+    # Generate one combined protein network if enabled
     if network_config["combined_protein_network"]:
         print("\nCreating a single combined protein network...")
         combined_results = []
@@ -103,8 +128,4 @@ def create_protein_network(results, combined_data, run_output_path, network_conf
             })
 
         nodes = generate_nodes(combined_results)
-
-        print("\n[DEBUG] unique color_groups used in Combined Network:")
-        print(set(n["color_group"] for n in nodes))
-
         create_cytoscape_network(combined_results, "Combined_Protein_Network", run_output_path, nodes_data=nodes)

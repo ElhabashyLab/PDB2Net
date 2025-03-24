@@ -1,24 +1,35 @@
 import gemmi
 
-# Erlaubte Residuen (3-letter-codes) für Proteine und Nukleinsäuren
+# Set of allowed residue names for proteins and nucleic acids
 ALLOWED_RESIDUES = {
-    # Proteine
+    # Protein residues
     "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS",
     "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP",
     "TYR", "VAL", "SEC", "PYL",
-    # RNA
+    # RNA residues
     "A", "U", "G", "C", "I",
-    # DNA (Desoxyformen)
+    # DNA residues (deoxy versions)
     "DA", "DT", "DG", "DC", "DI"
 }
 
+
 def process_structure(structure_data):
+    """
+    Extracts atom and residue information from a parsed structure using Gemmi.
+
+    Args:
+        structure_data (dict): Contains 'file_path', 'pdb_id', and the parsed 'structure'.
+
+    Returns:
+        dict: Includes 'file_path', 'pdb_id', and list of processed chains with residue and atom data.
+    """
     file_path = structure_data["file_path"]
     pdb_id = structure_data["pdb_id"]
     structure = structure_data["structure"]
 
     atom_data = []
 
+    # Loop through each model and chain in the structure
     for model in structure:
         for chain in model:
             chain_id = chain.name.strip()
@@ -30,7 +41,7 @@ def process_structure(structure_data):
                 atoms = []
 
                 for atom in res:
-                    if atom.element.name not in ["H", "D"]:
+                    if atom.element.name not in ["H", "D"]:  # Exclude hydrogens
                         atoms.append({
                             "atom_name": atom.name,
                             "coordinates": list(atom.pos)
@@ -43,7 +54,7 @@ def process_structure(structure_data):
                         "atoms": atoms
                     })
 
-                    # Akzeptiere Chain, wenn mind. 1 Residuum aus Protein oder NA besteht
+                    # Accept chain if it contains at least one allowed residue
                     if res_name in ALLOWED_RESIDUES:
                         is_valid_chain = True
 

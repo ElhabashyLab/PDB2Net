@@ -1,9 +1,9 @@
 {
-    "input_csv_path": "C:\\Users\\Gregor\\Documents\\Uni Bioinformatik\\9. Semester\\B.A\\PDBFiles\\PathsCSV1.csv",
-    "pdb_fasta_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/Neuer Ordner/pdb_seqres.txt",
-    "uniprot_fasta_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/Neuer Ordner/uniprot_sprot.fasta",
-    "sifts_tsv_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/SIFTS/pdb_chain_uniprot.tsv",
-    "output_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/Networks",
+    "input_csv_path": "C:/Path/to/CSV-file.csv",
+    "pdb_fasta_path": "C:/Path/to/pdb_seqres.txt",
+    "uniprot_fasta_path": "C:/Path/to/uniprot_sprot.fasta",
+    "sifts_tsv_path": "C:/Path/to/pdb_chain_uniprot.tsv",
+    "output_path": "C:/Path/to/output-folder",
     "cytoscape_path": "C:/Program Files/Cytoscape_v3.10.3/Cytoscape.exe",
     "blast_db_path": "C:/blast_db",
     "blastp_executable": "C:/Program Files/NCBI/blast-2.16.0+/bin/blastp.exe",
@@ -14,12 +14,13 @@
         "protein_per_pdb": true,
         "combined_protein_network": true
     },
-    "distance_thresholds": {
-    "ca_radius": 15.0,
-    "nn_heavy_radius": 15.0,
-    "all_atoms_radius": 5.0
-    },
 
     "keep_last_n_networks": 30,
-    "export_detailed_interactions": true
+    "export_detailed_interactions": true,
+
+    "distance_thresholds": {
+        "ca_radius": 15.0,
+        "nn_heavy_radius": 15.0,
+        "all_atoms_radius": 5.0
+    }
 }

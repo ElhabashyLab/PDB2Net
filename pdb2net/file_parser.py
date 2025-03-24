@@ -1,6 +1,5 @@
 import os
 import re
-from Bio import PDB
 from config_loader import config
 import csv
 import gemmi
@@ -128,7 +127,7 @@ def get_pdb_id(file_path):
 
 def parse_structure(file_path, pdb_id):
     """
-    Lädt eine PDB/mmCIF-Datei mit gemmi.
+    Loads PDB/mmCIF-File with gemmi.
     """
     try:
         structure = gemmi.read_structure(file_path)

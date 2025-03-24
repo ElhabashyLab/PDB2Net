@@ -14,6 +14,7 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         print(f"Error: Cytoscape is not running. Details: {e}")
         return
 
+    # Remove older networks if the configured maximum is exceeded
     existing_networks = p4c.get_network_list()
     while len(existing_networks) > config["keep_last_n_networks"]:
         oldest_network = existing_networks.pop(0)
@@ -83,13 +84,12 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
                 table_key_column="name"
             )
     except Exception as e:
-        print(f"❌ Fehler beim Laden von Knotendaten: {e}")
+        print(f"Error while loading node data: {e}")
 
     try:
         color_groups = sorted(nodes_df["color_group"].dropna().unique()) if "color_group" in nodes_df.columns else []
-        print(f"[DEBUG] Found {len(color_groups)} unique color groups: {color_groups}")
 
-        # Bestimme Style je nach Netzwerktyp
+        # Determine the type of network from the title
         is_chain_network = "Chain" in network_title
         is_protein_network = "Protein" in network_title
         is_combined_protein = is_protein_network and "combined" in network_title.lower()
@@ -105,9 +105,9 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         cmap = cm.get_cmap('tab20', len(base_color_groups))
         color_map = {group: to_hex(cmap(i)) for i, group in enumerate(base_color_groups)}
 
-        # 🔴 Setze Multi NUR im Combined Protein Network rot
+        # Set "Multi" to red only for combined protein network
         if is_combined_protein and "Multi" in color_groups:
-            color_map["Multi"] = "#d62728"  # schönes Rot
+            color_map["Multi"] = "#d62728"
 
         if style_name not in p4c.get_visual_style_names():
             defaults = {
@@ -142,18 +142,13 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
                 })
 
             p4c.create_visual_style(style_name, mappings=mappings, defaults=defaults)
-            print(f"🎨 Visual Style '{style_name}' wurde neu erstellt.")
-        else:
-            print(f"🎨 Visual Style '{style_name}' wird wiederverwendet.")
-
         p4c.set_current_network(network_title)
         p4c.set_visual_style(style_name)
         p4c.map_visual_property("NODE_LABEL", "name", "p")
         p4c.layout_network(layout_name="force-directed")
-        print("✅ Visual Style und Layout angewendet.")
 
     except Exception as e:
-        print(f"❌ Fehler beim Anwenden des Styles: {e}")
+        print(f"Error while applying style: {e}")
 
     pdb_output_path = os.path.join(run_output_path, network_title)
     os.makedirs(pdb_output_path, exist_ok=True)
@@ -162,6 +157,15 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
 
 
 def generate_nodes_from_atom_data(atom_data, pdb_id=None):
+    """
+    Generates node metadata for Cytoscape from atomic chain data.
+
+    Args:
+        atom_data (list): List of chain dictionaries with IDs and annotation.
+
+    Returns:
+        list: List of Cytoscape-compatible node dictionaries.
+    """
     return [
         {
             "id": chain["unique_chain_id"],

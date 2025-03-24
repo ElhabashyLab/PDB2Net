@@ -51,20 +51,10 @@ def create_protein_network(results, combined_data, run_output_path, network_conf
                     "all_atoms_count": entry["all_atoms_count"]
                 }
 
-    # Farbzuordnung vorbereiten
-    def generate_color_map(keys):
-        cmap = cm.get_cmap('tab20', len(keys))
-        return {key: to_hex(cmap(i)) for i, key in enumerate(keys)}
-
-    all_pdb_ids = sorted({pdb_id for (pdb_id, _) in interaction_data.keys()
-                          if isinstance(pdb_id, str) and len(pdb_id) == 4})
-    color_keys = all_pdb_ids + ["Multi"]
-    color_map = generate_color_map(color_keys)
-
     def get_color_group(uniprot_id):
         pdbs = uniprot_to_pdb_ids.get(uniprot_id, set())
         if not pdbs:
-            return "Unknown"
+            return "Multi"
         return "Multi" if len(pdbs) > 1 else list(pdbs)[0]
 
     def generate_nodes(interactions):
@@ -73,12 +63,18 @@ def create_protein_network(results, combined_data, run_output_path, network_conf
             nodes.add(inter["chain_a"])
             nodes.add(inter["chain_b"])
 
-        return [{
+        node_list = [{
             "id": node,
             "label": node,
             "color_group": get_color_group(node),
-            "molecule_name": uniprot_to_name.get(node, node)  # Für Tooltip
+            "molecule_name": uniprot_to_name.get(node, node)
         } for node in nodes]
+
+        # 🔎 DEBUG: Ausgabe der color_groups
+        print("\n[DEBUG] color_group assignment in generate_nodes():")
+        for node in node_list:
+            print(f"  {node['id']} → {node['color_group']}")
+        return node_list
 
     # Netzwerke erzeugen
     if network_config["protein_per_pdb"]:
@@ -105,5 +101,10 @@ def create_protein_network(results, combined_data, run_output_path, network_conf
                 "chain_b": inter.get("uniprot_b", "UNKNOWN_B"),
                 "all_atoms_count": inter["all_atoms_count"]
             })
+
         nodes = generate_nodes(combined_results)
+
+        print("\n[DEBUG] unique color_groups used in Combined Network:")
+        print(set(n["color_group"] for n in nodes))
+
         create_cytoscape_network(combined_results, "Combined_Protein_Network", run_output_path, nodes_data=nodes)

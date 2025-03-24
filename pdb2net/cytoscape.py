@@ -81,7 +81,6 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
 
     # Load node table data
     try:
-        # Load color_group if present
         if "color_group" in nodes_df.columns:
             p4c.load_table_data(
                 data=nodes_df[["id", "color_group"]],
@@ -90,7 +89,6 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
                 table_key_column="name"
             )
 
-        # Load name column (used for node labels)
         p4c.load_table_data(
             data=nodes_df[["id", "name"]],
             data_key_column="id",
@@ -98,7 +96,6 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
             table_key_column="id"
         )
 
-        # Load tooltip column (used for hover)
         if "tooltip" in nodes_df.columns:
             p4c.load_table_data(
                 data=nodes_df[["id", "tooltip"]],
@@ -112,49 +109,54 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
 
     # Apply visual style
     try:
-        color_groups = sorted(nodes_df["color_group"].dropna().unique()) if "color_group" in nodes_df.columns else []
-        cmap = cm.get_cmap('tab20', len(color_groups))
-        color_map = {group: to_hex(cmap(i)) for i, group in enumerate(color_groups)}
+        color_groups = sorted(nodes_df["color_group"].dropna().unique())
+        base_color_groups = [g for g in color_groups if g != "Multi"]
+        print(f"[DEBUG] Found {len(color_groups)} unique color groups: {color_groups}")
+        cmap = cm.get_cmap('tab20', len(base_color_groups))
+        color_map = {group: to_hex(cmap(i)) for i, group in enumerate(base_color_groups)}
 
-        style_name = "PDB2Net_Style"
+        # 🔴 Manuelle Farbe für "Multi" (rot)
+        if "Multi" in color_groups:
+            color_map["Multi"] = "#d62728"  # schönes kräftiges Rot aus tab10
 
-        # Erstelle Style nur einmalig
-        if style_name not in p4c.get_visual_style_names():
-            defaults = {
-                "NODE_SHAPE": "ELLIPSE",
-                "NODE_SIZE": 40,
-                "NODE_LABEL_POSITION": "C,C,c,0.00,0.00",
-                "EDGE_TRANSPARENCY": 120
+        # ✅ Individueller Style pro Netzwerk
+        style_name = f"PDB2Net_Style_{network_title}"
+
+        defaults = {
+            "NODE_SHAPE": "ELLIPSE",
+            "NODE_SIZE": 40,
+            "NODE_LABEL_POSITION": "C,C,c,0.00,0.00",
+            "EDGE_TRANSPARENCY": 120
+        }
+
+        mappings = [
+            {
+                "mappingType": "passthrough",
+                "mappingColumn": "name",
+                "mappingColumnType": "String",
+                "visualProperty": "NODE_LABEL"
+            },
+            {
+                "mappingType": "passthrough",
+                "mappingColumn": "tooltip",
+                "mappingColumnType": "String",
+                "visualProperty": "NODE_TOOLTIP"
             }
+        ]
 
-            mappings = [
-                {
-                    "mappingType": "passthrough",
-                    "mappingColumn": "name",
-                    "mappingColumnType": "String",
-                    "visualProperty": "NODE_LABEL"
-                },
-                {
-                    "mappingType": "passthrough",
-                    "mappingColumn": "tooltip",
-                    "mappingColumnType": "String",
-                    "visualProperty": "NODE_TOOLTIP"
-                }
-            ]
+        if "color_group" in nodes_df.columns:
+            mappings.append({
+                "mappingType": "discrete",
+                "mappingColumn": "color_group",
+                "mappingColumnType": "String",
+                "visualProperty": "NODE_FILL_COLOR",
+                "map": [{"key": k, "value": v} for k, v in color_map.items()]
+            })
 
-            if "color_group" in nodes_df.columns:
-                mappings.append({
-                    "mappingType": "discrete",
-                    "mappingColumn": "color_group",
-                    "mappingColumnType": "String",
-                    "visualProperty": "NODE_FILL_COLOR",
-                    "map": [{"key": k, "value": v} for k, v in color_map.items()]
-                })
+        # Style immer neu erstellen – für volle Kontrolle über Farblogik
+        p4c.create_visual_style(style_name, mappings=mappings, defaults=defaults)
+        print(f"🎨 Visual Style '{style_name}' mit Tooltip und Farben erstellt.")
 
-            p4c.create_visual_style(style_name, mappings=mappings, defaults=defaults)
-            print(f"🎨 Visual Style '{style_name}' mit Tooltip erstellt.")
-
-        # Style anwenden
         p4c.set_current_network(network_title)
         p4c.set_visual_style(style_name)
         p4c.map_visual_property("NODE_LABEL", "name", "p")
@@ -168,6 +170,7 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
     os.makedirs(pdb_output_path, exist_ok=True)
     network_file = os.path.join(pdb_output_path, f"{network_title}.cyjs")
     p4c.export_network(network_file, type="cyjs")
+
 
 def generate_nodes_from_atom_data(atom_data, pdb_id=None):
     """
@@ -183,9 +186,8 @@ def generate_nodes_from_atom_data(atom_data, pdb_id=None):
     return [
         {
             "id": chain["unique_chain_id"],
-            "color_group": chain.get("molecule_type", "Unknown"),  # 🔹 Jetzt nach Molekültyp einfärben
+            "color_group": chain.get("molecule_type", "Unknown"),
             "molecule_name": chain.get("molecule_name", "Unknown")
         }
         for chain in atom_data
     ]
-

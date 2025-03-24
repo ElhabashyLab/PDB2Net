@@ -4,4 +4,5 @@ numpy==2.2.4
 pandas==2.2.3
 py4cytoscape==1.11.0
 scipy==1.15.2
+gemmi
 setuptools==65.5.0

@@ -15,7 +15,7 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         results (list): A list of dictionaries containing interaction data.
         network_title (str): The name of the network in Cytoscape.
         run_output_path (str): The directory where the network output should be saved.
-        nodes_data (list of dict, optional): Node metadata including color_group.
+        nodes_data (list of dict, optional): Node metadata including color_group, molecule_name, etc.
     """
 
     # Check if Cytoscape is running
@@ -51,9 +51,17 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
     if nodes_data:
         nodes_df = pd.DataFrame(nodes_data)
         nodes_df["name"] = nodes_df["id"]
+
+        if "molecule_name" in nodes_df.columns:
+            nodes_df["tooltip"] = nodes_df["molecule_name"]
+        elif "label" in nodes_df.columns:
+            nodes_df["tooltip"] = nodes_df["label"]
+        else:
+            nodes_df["tooltip"] = "Unknown"
     else:
         nodes_df = pd.DataFrame({"id": list(unique_nodes)})
         nodes_df["name"] = nodes_df["id"]
+        nodes_df["tooltip"] = "Unknown"
 
     edges_df = pd.DataFrame(edges)
     if edges_df.empty:
@@ -65,107 +73,119 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
 
     # Create network in Cytoscape
     network_suid = p4c.create_network_from_data_frames(nodes_df, edges_df, title=network_title)
-
-    # Apply layout
     p4c.layout_network(layout_name="force-directed")
 
     # Default style fallback
     if "BioPAX_SIF" in p4c.get_visual_style_names():
         p4c.set_visual_style("BioPAX_SIF")
 
-    # Apply color_group mapping and label passthrough
-    if "color_group" in nodes_df.columns:
-        try:
-            print("\n🔍 Vorschau auf Node-Daten mit color_group:")
-            print(nodes_df[['id', 'color_group']].head())
-
-            # color_group in Cytoscape laden
+    # Load node table data
+    try:
+        # Load color_group if present
+        if "color_group" in nodes_df.columns:
             p4c.load_table_data(
-                data=nodes_df[['id', 'color_group']],
+                data=nodes_df[["id", "color_group"]],
                 data_key_column="id",
                 table="node",
                 table_key_column="name"
             )
 
-            # UniProt-ID als "name" setzen
-            try:
-                nodes_df_corrected = nodes_df.copy()
-                nodes_df_corrected["name"] = nodes_df_corrected["id"]
-                p4c.load_table_data(
-                    data=nodes_df_corrected[['id', 'name']],
-                    data_key_column="id",
-                    table="node",
-                    table_key_column="id"
-                )
-                print("✅ Cytoscape-Spalte 'name' wurde erfolgreich mit UniProt-IDs überschrieben.")
-            except Exception as e:
-                print(f"❌ Fehler beim Überschreiben der 'name'-Spalte: {e}")
+        # Load name column (used for node labels)
+        p4c.load_table_data(
+            data=nodes_df[["id", "name"]],
+            data_key_column="id",
+            table="node",
+            table_key_column="id"
+        )
 
-            # Farb-Mapping vorbereiten
-            color_groups = sorted(nodes_df["color_group"].dropna().unique())
-            cmap = cm.get_cmap('tab20', len(color_groups))
-            color_map = {group: to_hex(cmap(i)) for i, group in enumerate(color_groups)}
+        # Load tooltip column (used for hover)
+        if "tooltip" in nodes_df.columns:
+            p4c.load_table_data(
+                data=nodes_df[["id", "tooltip"]],
+                data_key_column="id",
+                table="node",
+                table_key_column="name"
+            )
 
-            style_name = "PDB2Net_Style"
+    except Exception as e:
+        print(f"❌ Fehler beim Laden von Knotendaten: {e}")
 
-            if "combined" in network_title.lower():
-                if style_name not in p4c.get_visual_style_names():
-                    defaults = {
-                        "NODE_SHAPE": "ELLIPSE",
-                        "NODE_SIZE": 40,
-                        "NODE_LABEL_POSITION": "C,C,c,0.00,0.00",
-                        "EDGE_TRANSPARENCY": 120
-                    }
-                    mappings = [
-                        {
-                            "mappingType": "passthrough",
-                            "mappingColumn": "name",
-                            "mappingColumnType": "String",
-                            "visualProperty": "NODE_LABEL"
-                        },
-                        {
-                            "mappingType": "discrete",
-                            "mappingColumn": "color_group",
-                            "mappingColumnType": "String",
-                            "visualProperty": "NODE_FILL_COLOR",
-                            "map": [{"key": k, "value": v} for k, v in color_map.items()]
-                        }
-                    ]
-                    p4c.create_visual_style(style_name, mappings=mappings, defaults=defaults)
-                    print(f"🎨 Visual Style '{style_name}' mit NODE_LABEL passthrough erstellt.")
-                else:
-                    print(f"🎨 Visual Style '{style_name}' bereits vorhanden.")
+    # Apply visual style
+    try:
+        color_groups = sorted(nodes_df["color_group"].dropna().unique()) if "color_group" in nodes_df.columns else []
+        cmap = cm.get_cmap('tab20', len(color_groups))
+        color_map = {group: to_hex(cmap(i)) for i, group in enumerate(color_groups)}
 
-                # Aktuelles Netzwerk setzen und Style anwenden
-                try:
-                    p4c.set_current_network(network_title)
-                    p4c.set_visual_style(style_name)
-                    print("✅ Visual Style wurde aktiv auf das kombinierte Netzwerk angewendet.")
+        style_name = "PDB2Net_Style"
 
-                    # 🔥 **Hier wird das Mapping sicher nochmal erzwungen**
-                    p4c.map_visual_property("NODE_LABEL", "name", "p")
-                    print("✅ Passthrough-Mapping für NODE_LABEL wurde erzwungen.")
+        # Erstelle Style nur einmalig
+        if style_name not in p4c.get_visual_style_names():
+            defaults = {
+                "NODE_SHAPE": "ELLIPSE",
+                "NODE_SIZE": 40,
+                "NODE_LABEL_POSITION": "C,C,c,0.00,0.00",
+                "EDGE_TRANSPARENCY": 120
+            }
 
-                except Exception as e:
-                    print(f"❌ Fehler beim Anwenden des Styles: {e}")
+            mappings = [
+                {
+                    "mappingType": "passthrough",
+                    "mappingColumn": "name",
+                    "mappingColumnType": "String",
+                    "visualProperty": "NODE_LABEL"
+                },
+                {
+                    "mappingType": "passthrough",
+                    "mappingColumn": "tooltip",
+                    "mappingColumnType": "String",
+                    "visualProperty": "NODE_TOOLTIP"
+                }
+            ]
 
-                # Finales Layout erneut anwenden
-                p4c.layout_network(layout_name="force-directed")
+            if "color_group" in nodes_df.columns:
+                mappings.append({
+                    "mappingType": "discrete",
+                    "mappingColumn": "color_group",
+                    "mappingColumnType": "String",
+                    "visualProperty": "NODE_FILL_COLOR",
+                    "map": [{"key": k, "value": v} for k, v in color_map.items()]
+                })
 
-                # Debug
-                try:
-                    node_table = p4c.get_table_columns('node', columns=['name'])
-                    print("🔍 Finale Cytoscape Node-Labels (name):", node_table.head())
-                except Exception as e:
-                    print(f"❌ Fehler beim Abrufen der Node-Tabelle: {e}")
-            else:
-                print("🔄 Standard-Style für separates Netzwerk beibehalten.")
+            p4c.create_visual_style(style_name, mappings=mappings, defaults=defaults)
+            print(f"🎨 Visual Style '{style_name}' mit Tooltip erstellt.")
 
-        except Exception as e:
-            print(f"❌ Fehler beim Anwenden des finalen Label-Fixes: {e}")
+        # Style anwenden
+        p4c.set_current_network(network_title)
+        p4c.set_visual_style(style_name)
+        p4c.map_visual_property("NODE_LABEL", "name", "p")
+        print("✅ Visual Style wurde angewendet.")
+
+    except Exception as e:
+        print(f"❌ Fehler beim Anwenden des Styles: {e}")
 
     # Export network
     pdb_output_path = os.path.join(run_output_path, network_title)
     os.makedirs(pdb_output_path, exist_ok=True)
     network_file = os.path.join(pdb_output_path, f"{network_title}.cyjs")
     p4c.export_network(network_file, type="cyjs")
+
+def generate_nodes_from_atom_data(atom_data, pdb_id=None):
+    """
+    Erstellt eine Liste von nodes_data-Einträgen für create_cytoscape_network().
+
+    Args:
+        atom_data (list): Liste von Chains mit atomaren Infos.
+        pdb_id (str, optional): Wird hier NICHT mehr für color_group verwendet.
+
+    Returns:
+        list of dict: Node-Einträge mit id, color_group (molecule_type), molecule_name.
+    """
+    return [
+        {
+            "id": chain["unique_chain_id"],
+            "color_group": chain.get("molecule_type", "Unknown"),  # 🔹 Jetzt nach Molekültyp einfärben
+            "molecule_name": chain.get("molecule_name", "Unknown")
+        }
+        for chain in atom_data
+    ]
+

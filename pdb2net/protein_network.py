@@ -10,6 +10,7 @@ def create_protein_network(results, combined_data, run_output_path, network_conf
 
     chain_to_uniprot = {}
     uniprot_to_pdb_ids = {}
+    uniprot_to_name = {}
 
     for structure in combined_data:
         pdb_id = structure["pdb_id"]
@@ -17,9 +18,11 @@ def create_protein_network(results, combined_data, run_output_path, network_conf
             chain_id = chain["chain_id"]
             unique_chain_id = f"{pdb_id}:{chain_id}"
             uniprot_id = chain.get("uniprot_id")
+            name = chain.get("molecule_name", "Unknown")
             if uniprot_id:
                 chain_to_uniprot[unique_chain_id] = uniprot_id
                 uniprot_to_pdb_ids.setdefault(uniprot_id, set()).add(pdb_id)
+                uniprot_to_name[uniprot_id] = name
 
     protein_interactions = set()
     interaction_data = {}
@@ -48,7 +51,7 @@ def create_protein_network(results, combined_data, run_output_path, network_conf
                     "all_atoms_count": entry["all_atoms_count"]
                 }
 
-    # 🔷 Farbzuordnung vorbereiten
+    # Farbzuordnung vorbereiten
     def generate_color_map(keys):
         cmap = cm.get_cmap('tab20', len(keys))
         return {key: to_hex(cmap(i)) for i, key in enumerate(keys)}
@@ -60,7 +63,9 @@ def create_protein_network(results, combined_data, run_output_path, network_conf
 
     def get_color_group(uniprot_id):
         pdbs = uniprot_to_pdb_ids.get(uniprot_id, set())
-        return "Multi" if len(pdbs) > 1 else next(iter(pdbs), "Unknown")
+        if not pdbs:
+            return "Unknown"
+        return "Multi" if len(pdbs) > 1 else list(pdbs)[0]
 
     def generate_nodes(interactions):
         nodes = set()
@@ -71,10 +76,11 @@ def create_protein_network(results, combined_data, run_output_path, network_conf
         return [{
             "id": node,
             "label": node,
-            "color_group": get_color_group(node)
+            "color_group": get_color_group(node),
+            "molecule_name": uniprot_to_name.get(node, node)  # Für Tooltip
         } for node in nodes]
 
-    # 🔄 Erzeuge Netzwerke
+    # Netzwerke erzeugen
     if network_config["protein_per_pdb"]:
         print("\nCreating separate protein networks for each PDB file...")
         results_by_pdb = {}

@@ -6,30 +6,13 @@ from config_loader import config
 # Cache for KD-Trees and extracted coordinates
 tree_cache, coords_cache = {}, {}
 
-def get_nearest_heavy_atom(residue, ca_coord):
-    """
-    Finds the nearest heavy atom (excluding hydrogen) to a given Cα atom.
-
-    Args:
-        residue (dict): Dictionary containing residue information.
-        ca_coord (list): Coordinates of the Cα atom.
-
-    Returns:
-        list: Coordinates of the nearest heavy atom, or Cα coordinates if no heavy atom is found.
-    """
-    heavy_atoms = [
-        atom for atom in residue["atoms"] if atom["atom_name"] != "CA" and not atom["atom_name"].startswith("H")
-    ]
-    return min(heavy_atoms, key=lambda atom: np.linalg.norm(np.array(atom["coordinates"]) - ca_coord),
-               default={"coordinates": ca_coord})["coordinates"]
-
 def extract_coordinates(chain, extraction_type):
     """
     Extracts atom coordinates from a chain and caches them.
 
     Args:
         chain (dict): Chain data containing residue and atom information.
-        extraction_type (str): Type of extraction ('ca', 'nn_heavy', or 'all_atoms').
+        extraction_type (str): Type of extraction ('ca' or 'all_atoms').
 
     Returns:
         np.ndarray: Array of extracted coordinates.
@@ -41,10 +24,6 @@ def extract_coordinates(chain, extraction_type):
     atoms = (atom for residue in chain["residues"] for atom in residue["atoms"])
     if extraction_type == "ca":
         coords = np.array([atom["coordinates"] for atom in atoms if atom["atom_name"] == "CA"])
-    elif extraction_type == "nn_heavy":
-        coords = np.array(
-            [get_nearest_heavy_atom(residue, atom["coordinates"]) for residue in chain["residues"] for atom in
-             residue["atoms"] if atom["atom_name"] == "CA"])
     elif extraction_type == "all_atoms":
         coords = np.array([atom["coordinates"] for atom in atoms])
     else:
@@ -59,7 +38,7 @@ def get_or_create_tree(chain, extraction_type):
 
     Args:
         chain (dict): Chain data containing residue and atom information.
-        extraction_type (str): Type of extraction ('ca', 'nn_heavy', 'all_atoms').
+        extraction_type (str): Type of extraction ('ca' or 'all_atoms').
 
     Returns:
         cKDTree or None: The created or cached KD-Tree.
@@ -104,12 +83,9 @@ def determine_interaction_type(mol_type_a, mol_type_b):
         return "Protein-Nucleic Acid" if "Protein" in [mol_type_a, mol_type_b] else "Nucleic Acid-Nucleic Acid"
     return "Unknown"
 
-
 # Load radius thresholds from config
 RADIUS_CA = config["distance_thresholds"]["ca_radius"]
-RADIUS_NN_HEAVY = config["distance_thresholds"]["nn_heavy_radius"]
 RADIUS_ALL_ATOMS = config["distance_thresholds"]["all_atoms_radius"]
-
 
 def calculate_distances_with_ckdtree(combined_data):
     """
@@ -127,7 +103,7 @@ def calculate_distances_with_ckdtree(combined_data):
 
         # Prepare KD-Trees for each chain
         local_trees = {(c["unique_chain_id"], t): get_or_create_tree(c, t) for c in atom_data for t in
-                       ["ca", "nn_heavy", "all_atoms"]}
+                       ["ca", "all_atoms"]}
 
         for chain_a, chain_b in itertools.combinations(atom_data, 2):
             if chain_a["chain_id"] == chain_b["chain_id"]:
@@ -154,15 +130,10 @@ def calculate_distances_with_ckdtree(combined_data):
                     })
                 continue
 
-            # First check Cα distances, then NN-heavy atoms
             if count_nearby_atoms(
                     local_trees.get((chain_a["unique_chain_id"], "ca")),
                     local_trees.get((chain_b["unique_chain_id"], "ca")),
-                    radius=RADIUS_CA) >= 10 or \
-                    count_nearby_atoms(
-                        local_trees.get((chain_a["unique_chain_id"], "nn_heavy")),
-                        local_trees.get((chain_b["unique_chain_id"], "nn_heavy")),
-                        radius=RADIUS_NN_HEAVY) >= 10:
+                    radius=RADIUS_CA) >= 10:
 
                 all_atoms_count = count_nearby_atoms(
                     local_trees.get((chain_a["unique_chain_id"], "all_atoms")),

@@ -5,4 +5,5 @@ pandas==2.2.3
 py4cytoscape==1.11.0
 scipy==1.15.2
 gemmi
+matplotlib
 setuptools==65.5.0

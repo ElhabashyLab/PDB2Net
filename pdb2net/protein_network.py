@@ -1,7 +1,4 @@
 from cytoscape import create_cytoscape_network
-from config_loader import config
-from matplotlib import cm
-from matplotlib.colors import to_hex
 
 
 def create_protein_network(results, combined_data, run_output_path, network_config):

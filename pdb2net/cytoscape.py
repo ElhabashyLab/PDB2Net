@@ -113,7 +113,7 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
             defaults = {
                 "NODE_SHAPE": "ELLIPSE",
                 "NODE_SIZE": 40,
-                "NODE_LABEL_POSITION": "C,C,c,0.00,0.00",
+                "NODE_LABEL_POSITION": "S,C,c,0.00,0.00",
                 "EDGE_TRANSPARENCY": 120
             }
 

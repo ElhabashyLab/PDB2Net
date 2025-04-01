@@ -150,7 +150,6 @@ Before using the tool, adjust the following paths and parameters in `config.json
 
     "distance_thresholds": {
         "ca_radius": 15.0,
-        "nn_heavy_radius": 15.0,
         "all_atoms_radius": 5.0
     }
 }

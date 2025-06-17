@@ -1,52 +1,27 @@
 # PDB2Net
 
-## 📌 Project Description  
-This tool extracts **Protein Interaction Networks (PINs)** from **PDB/mmCIF files** and visualizes them in **Cytoscape**.  
+PDB2Net is a tool extracts **Protein Interaction Networks (PINs)** from **PDB/mmCIF files** and visualizes them in **Cytoscape**.  
 It utilizes **Biopython** for file parsing, **cKDTree** for efficient distance calculations, and **BLAST** for UniProt matching to also process files without PDB-ID.
 
----
-### **📤 Output Files**  
-After running the tool, the following files will be generated:  
-- **Interaction Data (CSV)**
-  - Contains all atomic interactions between chains.
-- **Cytoscape Networks**
-  - **Chain Interaction Networks** → Networks where each chain is a node.
-  - **Protein-Level Networks** → Networks based on UniProt IDs.
-  - **Combined and Per-PDB Networks** (if enabled in `config.json`).
----
-### **User input**  
-A csv file (list) of PDB and CIF file paths in a structured table:
-
-| file_path |
-|--------|
-| C:\Users\...\101m.pdb  |
-| C:\Users\...\9jr2.cif  |
-| ...  |
-
-
----
-
-## 🛠 System Requirements & Setup
+## System Requirements & Setup
 
 ### 1️⃣ Install Python **3.11 or 3.12** 
 - **Recommended Version:** Python **3.11**  
 - [Download Python](https://www.python.org/downloads/)  
 - Ensure that **pip** is installed:
-  ```bash
-  python -m ensurepip --default-pip
-  ```
+
+>  python -m ensurepip --default-pip
+
 
 ### 2️⃣ Install Required Libraries  
-```bash
-pip install -r requirements.txt
-```
+> pip install -r requirements.txt
+
 
 ### 3️⃣ Install Cytoscape  
 - Download **Cytoscape 3.10.3**:  
   [Cytoscape Download](https://cytoscape.org/download.html)  
 - **Start Cytoscape manually** once before running the tool. After that it will start automatically when running the tool.
-
-### 4️⃣ Download pdb_chain_uniprot.tsv
+  ### 4️⃣ Download pdb_chain_uniprot.tsv
 https://www.ebi.ac.uk/pdbe/docs/sifts/quick.html
 
 ### 5️⃣ Download the PDB Single FASTA File (pdb_seqres.txt)
@@ -69,15 +44,31 @@ https://www.rcsb.org/downloads/fasta
      sudo mv ncbi-blast-* /usr/local/bin
      ```
 
-4. **Verify the installation**:  
-   Open a terminal or command prompt and run:
-   ```bash
-   blastp -version
-   ```
-   Expected output:
-   ```
-   blastp: 2.16.0+ Package: blast 2.16.0, build Nov 2023
-   ```
+## Run the Tool  
+Once all dependencies are installed, you can run the tool with:
+> python main.py
+
+### ** Output Files**  
+After running the tool, the following files will be generated:  
+- **Interaction Data (CSV)**
+  - Contains all atomic interactions between chains.
+- **Cytoscape Networks**
+  - **Chain Interaction Networks** → Networks where each chain is a node.
+  - **Protein-Level Networks** → Networks based on UniProt IDs.
+  - **Combined and Per-PDB Networks** (if enabled in `config.json`).
+
+
+### **User input**  
+A csv file (list) of PDB and CIF file paths in a structured table:
+
+| file_path |
+|--------|
+| C:\Users\...\101m.pdb  |
+| C:\Users\...\9jr2.cif  |
+| ...  |
+
+
+
 
 
 
@@ -156,12 +147,7 @@ Before using the tool, adjust the following paths and parameters in `config.json
 ```
 ⚠ **Important:** Adjust paths according to your system!
 
----
 
-## Run the Tool  
 
-Once all dependencies are installed, you can run the tool with:
 
-```bash
-python main.py
-```
+

@@ -93,30 +93,24 @@ def load_pdb_fasta(pdb_fasta_path):
     return pdb_sequences
 
 def determine_molecule_info(pdb_id, chain_id, pdb_fasta):
-    """
-    Determines the molecule name, type, and UniProt ID for a given PDB chain.
-
-    Args:
-        pdb_id (str): The PDB ID of the structure.
-        chain_id (str): The chain identifier.
-        pdb_fasta (dict): Dictionary containing PDB FASTA sequences.
-
-    Returns:
-        tuple: (molecule_name, molecule_type, uniprot_id)
-    """
     search_key = f"{pdb_id.lower()}_{chain_id.upper()}"
 
-    # If PDB ID is not 4 characters long, do not use SIFTS mapping
-    if len(pdb_id) != 4:
-        return determine_from_fasta(search_key, pdb_fasta)
+    # Hole Initialdaten aus pdb_seqres.txt
+    fasta_name, mol_type, _ = determine_from_fasta(search_key, pdb_fasta)
 
-    # Standard SIFTS lookup for valid PDB IDs
-    uniprot_id = pdb_to_uniprot.get(search_key)
-    if uniprot_id:
-        protein_name = uniprot_dict.get(uniprot_id, "Unknown Protein")
-        return protein_name, "Protein", uniprot_id
+    name = fasta_name
+    uniprot_id = None
 
-    return determine_from_fasta(search_key, pdb_fasta)
+    if len(pdb_id) == 4:
+        uniprot_id = pdb_to_uniprot.get(search_key)
+        if uniprot_id:
+            better_name = uniprot_dict.get(uniprot_id)
+            if better_name and better_name != "Unknown Protein":
+                name = better_name
+            mol_type = "Protein"  # Override typ falls nötig
+
+    return name, mol_type, uniprot_id
+
 
 def determine_from_fasta(search_key, pdb_fasta):
     """
@@ -162,7 +156,7 @@ def process_molecule_info(combined_data):
     # Debugging: Show up to 10 assignments
     print("\nUniProt Assignments (example for one file):")
     for i, structure_data in enumerate(combined_data):
-        if i >= 1:
+        if i >= 10:
             break
         pdb_id = structure_data["pdb_id"]
         for chain in structure_data["atom_data"]:

@@ -90,7 +90,7 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         color_groups = sorted(nodes_df["color_group"].dropna().unique()) if "color_group" in nodes_df.columns else []
 
         # Determine the type of network from the title
-        is_chain_network = "Chain" in network_title
+        is_chain_network = "Chain" in network_title or network_title == "Combined_Network"
         is_protein_network = "Protein" in network_title
         is_combined_protein = is_protein_network and "combined" in network_title.lower()
 
@@ -113,7 +113,7 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
             defaults = {
                 "NODE_SHAPE": "ELLIPSE",
                 "NODE_SIZE": 40,
-                "NODE_LABEL_POSITION": "S,C,c,0.00,0.00",
+                "NODE_LABEL_POSITION": "C,C,c,0.00,0.00",
                 "EDGE_TRANSPARENCY": 120
             }
 

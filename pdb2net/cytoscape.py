@@ -89,7 +89,6 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
     try:
         color_groups = sorted(nodes_df["color_group"].dropna().unique()) if "color_group" in nodes_df.columns else []
 
-        # Determine the type of network from the title
         is_chain_network = "Chain" in network_title or network_title == "Combined_Network"
         is_protein_network = "Protein" in network_title
         is_combined_protein = is_protein_network and "combined" in network_title.lower()
@@ -105,7 +104,6 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         cmap = cm.get_cmap('tab20', len(base_color_groups))
         color_map = {group: to_hex(cmap(i)) for i, group in enumerate(base_color_groups)}
 
-        # Set "Multi" to red only for combined protein network
         if is_combined_protein and "Multi" in color_groups:
             color_map["Multi"] = "#d62728"
 
@@ -142,9 +140,9 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
                 })
 
             p4c.create_visual_style(style_name, mappings=mappings, defaults=defaults)
+
         p4c.set_current_network(network_title)
         p4c.set_visual_style(style_name)
-        p4c.map_visual_property("NODE_LABEL", "name", "p")
         p4c.layout_network(layout_name="force-directed")
 
     except Exception as e:
@@ -157,15 +155,6 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
 
 
 def generate_nodes_from_atom_data(atom_data, pdb_id=None):
-    """
-    Generates node metadata for Cytoscape from atomic chain data.
-
-    Args:
-        atom_data (list): List of chain dictionaries with IDs and annotation.
-
-    Returns:
-        list: List of Cytoscape-compatible node dictionaries.
-    """
     return [
         {
             "id": chain["unique_chain_id"],

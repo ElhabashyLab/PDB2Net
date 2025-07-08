@@ -60,6 +60,15 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
 
     p4c.create_network_from_data_frames(nodes_df, edges_df, title=network_title)
 
+    # Headless-Modus: exportieren, aber nicht anzeigen
+    if not config.get("open_in_cytoscape", True):
+        pdb_output_path = os.path.join(run_output_path, network_title)
+        os.makedirs(pdb_output_path, exist_ok=True)
+        network_file = os.path.join(pdb_output_path, f"{network_title}.cyjs")
+        p4c.export_network(network_file, type="cyjs")
+        p4c.delete_network(network_title)
+        return
+
     try:
         if "color_group" in nodes_df.columns:
             p4c.load_table_data(

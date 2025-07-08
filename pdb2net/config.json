@@ -10,9 +10,9 @@
 
     "networks": {
         "chain_per_pdb": true,
-        "combined_chain_network": true,
+        "combined_chain_network": false,
         "protein_per_pdb": true,
-        "combined_protein_network": true
+        "combined_protein_network": false
     },
     "distance_thresholds": {
     "ca_radius": 15.0,
@@ -20,5 +20,6 @@
     },
 
     "keep_last_n_networks": 30,
-    "export_detailed_interactions": true
+    "export_detailed_interactions": true,
+    "open_in_cytoscape": false
 }

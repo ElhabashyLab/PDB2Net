@@ -1,5 +1,5 @@
 import time
-from file_parser import read_files_from_csv
+from file_parser import read_files_from_folder
 from data_processor import process_structure
 from unknown_molecule_uniprot import process_molecule_info
 from distances import calculate_distances_with_ckdtree
@@ -52,7 +52,7 @@ def main(csv_path):
 
     print("\nLoading PDB files from CSV...")
     start_time = time.time()
-    structures = read_files_from_csv(csv_path)
+    structures = read_files_from_folder(csv_path)
     combined_data = [process_structure(structure_data) for structure_data in structures]
     print(f"File parsing completed in {time.time() - start_time:.2f} seconds.")
 
@@ -120,5 +120,6 @@ def main(csv_path):
 
 
 if __name__ == "__main__":
-    INPUT_CSV_PATH = config["input_csv_path"]
-    main(INPUT_CSV_PATH)
+    INPUT_FOLDER_PATH = config["input_folder_path"]
+    main(INPUT_FOLDER_PATH)
+

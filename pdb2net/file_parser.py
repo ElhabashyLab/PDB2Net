@@ -174,3 +174,30 @@ def read_files_from_csv(csv_path):
             print(f"Skipping file (invalid extension): {file_path}")
 
     return structures
+
+def read_files_from_folder(folder_path):
+    """
+    Scans a folder for valid PDB/mmCIF files, extracts PDB IDs, and parses valid structures.
+
+    Args:
+        folder_path (str): Path to the input directory.
+
+    Returns:
+        list: A list of dictionaries containing file path, PDB ID, and parsed structure.
+    """
+    structures = []
+    for filename in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, filename)
+
+        if os.path.isfile(file_path) and is_valid_file(file_path):
+            pdb_id = get_pdb_id(file_path)
+            if pdb_id:
+                structure = parse_structure(file_path, pdb_id)
+                if structure:
+                    structures.append({"file_path": file_path, "pdb_id": pdb_id, "structure": structure})
+            else:
+                print(f"Skipping file (no valid PDB ID found): {file_path}")
+        else:
+            print(f"Skipping file (invalid extension or not a file): {file_path}")
+
+    return structures

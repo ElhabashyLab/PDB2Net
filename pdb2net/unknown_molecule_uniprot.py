@@ -23,7 +23,7 @@ def load_sifts_mapping(tsv_path):
     if _sifts_loaded:
         return
 
-    print("\nLoading SIFTS PDB-UniProt mapping...")
+    #print("\nLoading SIFTS PDB-UniProt mapping...")
     with open(tsv_path, "r") as f:
         reader = csv.reader(f, delimiter="\t")
         for row in reader:
@@ -33,7 +33,7 @@ def load_sifts_mapping(tsv_path):
             key = f"{pdb_id}_{chain}"
             pdb_to_uniprot[key] = uniprot_id
 
-    print(f"{len(pdb_to_uniprot)} PDB chains successfully mapped to UniProt IDs.")
+    #print(f"{len(pdb_to_uniprot)} PDB chains successfully mapped to UniProt IDs.")
     _sifts_loaded = True
 
 
@@ -42,13 +42,13 @@ def load_uniprot_fasta(fasta_path):
     if _uniprot_loaded:
         return
 
-    print("\nLoading UniProt FASTA data...")
+    #print("\nLoading UniProt FASTA data...")
     for record in SeqIO.parse(fasta_path, "fasta"):
         uniprot_id = record.id.split("|")[1]  # Extract UniProt ID
         protein_name = record.description.split(" ", 1)[1]
         uniprot_dict[uniprot_id] = protein_name
 
-    print(f"{len(uniprot_dict)} entries loaded from UniProt FASTA.")
+    #print(f"{len(uniprot_dict)} entries loaded from UniProt FASTA.")
     _uniprot_loaded = True
 
 
@@ -114,7 +114,7 @@ def process_molecule_info(combined_data):
     load_sifts_mapping(SIFTS_TSV_PATH)
     load_uniprot_fasta(UNIPROT_FASTA_PATH)
 
-    print("\nAssigning molecule names and types...")
+    #print("\nAssigning molecule names and types...")
     pdb_fasta = load_pdb_fasta(PDB_FASTA_PATH)
 
     for structure_data in combined_data:
@@ -128,10 +128,10 @@ def process_molecule_info(combined_data):
             chain["uniprot_id"] = uniprot_id
 
     # Optional: Einmalige Ausgabe für Debugging
-    print("\nUniProt Assignments (example for one file):")
-    for i, structure_data in enumerate(combined_data):
-        if i >= 10:
-            break
-        pdb_id = structure_data["pdb_id"]
-        for chain in structure_data["atom_data"]:
-            print(f"  {pdb_id}_{chain['chain_id']}: {chain['molecule_name']} ({chain['molecule_type']}) UniProt-ID: {chain['uniprot_id']}")
+    # print("\nUniProt Assignments (example for one file):")
+    # for i, structure_data in enumerate(combined_data):
+    #     if i >= 10:
+    #         break
+    #     pdb_id = structure_data["pdb_id"]
+    #     for chain in structure_data["atom_data"]:
+    #         print(f"  {pdb_id}_{chain['chain_id']}: {chain['molecule_name']} ({chain['molecule_type']}) UniProt-ID: {chain['uniprot_id']}")

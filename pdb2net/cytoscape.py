@@ -11,13 +11,11 @@ def export_custom_cyjs(nodes_df, edges_df, network_title, run_output_path):
     """
     Saves a Cytoscape-compatible .cyjs file without using Cytoscape.
     Includes molecule_name, tooltip, color_group etc. in the node attributes.
-
-    Args:
-        nodes_df (pd.DataFrame): DataFrame containing node data.
-        edges_df (pd.DataFrame): DataFrame containing edge data.
-        network_title (str): Title for the network and filename.
-        run_output_path (str): Directory to save the file in.
     """
+    import json
+    os.makedirs(run_output_path, exist_ok=True)
+    network_file = os.path.join(run_output_path, f"{network_title}.cyjs")
+
     nodes = []
     for _, row in nodes_df.iterrows():
         node = {
@@ -47,23 +45,20 @@ def export_custom_cyjs(nodes_df, edges_df, network_title, run_output_path):
         edges.append(edge)
 
     cyjs_data = {
-        "data": {
-            "name": network_title
-        },
-        "elements": {
-            "nodes": nodes,
-            "edges": edges
-        }
+        "data": {"name": network_title},
+        "elements": {"nodes": nodes, "edges": edges}
     }
 
-    pdb_output_path = os.path.join(run_output_path, network_title)
-    os.makedirs(pdb_output_path, exist_ok=True)
-    network_file = os.path.join(pdb_output_path, f"{network_title}.cyjs")
     with open(network_file, "w") as f:
         json.dump(cyjs_data, f, indent=2)
 
 
 def create_cytoscape_network(results, network_title="Protein_Interaction_Network", run_output_path=".", nodes_data=None):
+    import py4cytoscape as p4c
+    import pandas as pd
+    from matplotlib import cm
+    from matplotlib.colors import to_hex
+
     unique_nodes = set()
     edges = []
 
@@ -86,12 +81,7 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
     if nodes_data:
         nodes_df = pd.DataFrame(nodes_data)
         nodes_df["name"] = nodes_df["id"]
-        if "molecule_name" in nodes_df.columns:
-            nodes_df["tooltip"] = nodes_df["molecule_name"]
-        elif "label" in nodes_df.columns:
-            nodes_df["tooltip"] = nodes_df["label"]
-        else:
-            nodes_df["tooltip"] = "Unknown"
+        nodes_df["tooltip"] = nodes_df["molecule_name"]
     else:
         nodes_df = pd.DataFrame({"id": list(unique_nodes)})
         nodes_df["name"] = nodes_df["id"]
@@ -101,7 +91,6 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
     edges_df.rename(columns={"chain_a": "source", "chain_b": "target"}, inplace=True)
     edges_df["interaction"] = "interacts_with"
 
-    # Use fast export if Cytoscape is disabled
     if not config.get("open_in_cytoscape", True):
         export_custom_cyjs(nodes_df, edges_df, network_title, run_output_path)
         return
@@ -112,7 +101,6 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         print(f"Error: Cytoscape is not running. Details: {e}")
         return
 
-    # Remove older networks if the configured maximum is exceeded
     existing_networks = p4c.get_network_list()
     while len(existing_networks) > config["keep_last_n_networks"]:
         oldest_network = existing_networks.pop(0)
@@ -148,17 +136,15 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
 
     try:
         color_groups = sorted(nodes_df["color_group"].dropna().unique()) if "color_group" in nodes_df.columns else []
-
         is_chain_network = "Chain" in network_title or network_title == "Combined_Network"
         is_protein_network = "Protein" in network_title
         is_combined_protein = is_protein_network and "combined" in network_title.lower()
 
-        if is_chain_network:
-            style_name = "PDB2Net_Chain_Style"
-        elif is_combined_protein:
-            style_name = "PDB2Net_Protein_Combined_Style"
-        else:
-            style_name = "PDB2Net_Protein_Style"
+        style_name = (
+            "PDB2Net_Chain_Style" if is_chain_network else
+            "PDB2Net_Protein_Combined_Style" if is_combined_protein else
+            "PDB2Net_Protein_Style"
+        )
 
         base_color_groups = [g for g in color_groups if g != "Multi"]
         cmap = cm.get_cmap('tab20', len(base_color_groups))
@@ -207,10 +193,11 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
     except Exception as e:
         print(f"Error while applying style: {e}")
 
-    pdb_output_path = os.path.join(run_output_path, network_title)
-    os.makedirs(pdb_output_path, exist_ok=True)
-    network_file = os.path.join(pdb_output_path, f"{network_title}.cyjs")
+    os.makedirs(run_output_path, exist_ok=True)
+    network_file = os.path.join(run_output_path, f"{network_title}.cyjs")
     p4c.export_network(network_file, type="cyjs")
+
+
 
 
 def generate_nodes_from_atom_data(atom_data, pdb_id=None):

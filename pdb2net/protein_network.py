@@ -99,7 +99,7 @@ def create_protein_network(results, combined_data, run_output_path, network_conf
 
     # Generate networks per PDB if enabled
     if network_config["protein_per_pdb"]:
-        print("\nCreating separate protein networks for each PDB file...")
+        #print("\nCreating separate protein networks for each PDB file...")
         results_by_pdb = {}
         for (pdb_id, (a, b)), inter in interaction_data.items():
             results_by_pdb.setdefault(pdb_id, []).append({

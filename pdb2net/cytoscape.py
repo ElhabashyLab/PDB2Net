@@ -10,6 +10,7 @@ import json
 def export_custom_cyjs(nodes_df, edges_df, network_title, run_output_path):
     """
     Saves a Cytoscape-compatible .cyjs file without using Cytoscape.
+    Includes molecule_name, tooltip, color_group etc. in the node attributes.
 
     Args:
         nodes_df (pd.DataFrame): DataFrame containing node data.
@@ -22,7 +23,8 @@ def export_custom_cyjs(nodes_df, edges_df, network_title, run_output_path):
         node = {
             "data": {
                 "id": row["id"],
-                "name": row["name"]
+                "name": row["name"],
+                "molecule_name": row.get("molecule_name", "Unknown")
             }
         }
         if "color_group" in row:

@@ -1,9 +1,9 @@
 {
-    "input_folder_path": "D:\\PDB_Files\\Test1000",
+    "input_folder_path": "D:\\PDB_Files\\alle",
     "pdb_fasta_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/Neuer Ordner/pdb_seqres.txt",
     "uniprot_fasta_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/Neuer Ordner/uniprot_sprot.fasta",
     "sifts_tsv_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/SIFTS/pdb_chain_uniprot.tsv",
-    "output_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/Networks",
+    "output_path": "D:/156k_1st_run_Networks_and_logs",
     "cytoscape_path": "C:/Program Files/Cytoscape_v3.10.3/Cytoscape.exe",
     "blast_db_path": "C:/blast_db",
     "blastp_executable": "C:/Program Files/NCBI/blast-2.16.0+/bin/blastp.exe",
@@ -21,5 +21,5 @@
 
     "keep_last_n_networks": 30,
     "export_detailed_interactions": false,
-    "open_in_cytoscape": false
+    "open_in_cytoscape": true
 }

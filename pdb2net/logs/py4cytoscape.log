@@ -38986,3 +38986,707 @@
 2025-07-11 21:30:59,655 [DEBUG] py4...: ǀReturning 'commands_post': {'file': 'D:\\156k_1st_run_Networks_and_logs\\2025-07-11_21-29-26\\Protein_Network_6W41.cyjs'}
 2025-07-11 21:30:59,655 [DEBUG] py4...: Returning 'export_network': {'file': 'D:\\156k_1st_run_Networks_and_logs\\2025-07-11_21-29-26\\Protein_Network_6W41.cyjs'}
 2025-07-11 21:30:59,656 [DEBUG] py4...: --------------------
+2025-07-11 21:35:12,052 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-11 21:35:12,053 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-11 21:35:12,053 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-11 21:35:12,054 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-11 21:35:12,062 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-11 21:35:12,063 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-11 21:35:12,068 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-11 21:35:12,069 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-11 21:35:12,069 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-11 21:35:12,070 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-11 21:35:12,071 [DEBUG] py4...: --------------------
+2025-07-11 21:35:40,463 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-11 21:35:40,464 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-11 21:35:40,464 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-11 21:35:40,465 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-11 21:35:40,471 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-11 21:35:40,472 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-11 21:35:40,476 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-11 21:35:40,476 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-11 21:35:40,478 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-11 21:35:40,478 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-11 21:35:40,478 [DEBUG] py4...: --------------------
+2025-07-11 21:35:59,988 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-11 21:35:59,988 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-11 21:35:59,989 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-11 21:35:59,989 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-11 21:35:59,996 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-11 21:35:59,997 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-11 21:36:00,001 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-11 21:36:00,002 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-11 21:36:00,002 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-11 21:36:00,003 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-11 21:36:00,004 [DEBUG] py4...: --------------------
+2025-07-12 09:35:55,917 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-12 09:35:55,919 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-12 09:35:55,919 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-12 09:35:55,920 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-12 09:35:57,952 [DEBUG] py4...: Attempting to connect to remote Cytoscape because of error HTTPConnectionPool(host='127.0.0.1', port=1234): Max retries exceeded with url: /v1 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000120C2907390>: Failed to establish a new connection: [WinError 10061] Es konnte keine Verbindung hergestellt werden, da der Zielcomputer die Verbindung verweigerte'))
+2025-07-12 09:35:57,956 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1)
+2025-07-12 09:35:59,164 [DEBUG] py4...: Error initially contacting Jupyter-bridge: Error posting to Jupyter-bridge: Channel None:request contains unprocessed message
+2025-07-12 09:35:59,167 [DEBUG] py4...: ǀǀ'cyrest_get' exception RequestException('Cannot find local or remote Cytoscape. Start Cytoscape and then proceed.')
+2025-07-12 09:35:59,169 [DEBUG] py4...: ǀ'cytoscape_version_info' exception RequestException('Cannot find local or remote Cytoscape. Start Cytoscape and then proceed.')
+2025-07-12 09:35:59,170 [DEBUG] py4...: 'cytoscape_ping' exception RequestException('Cannot find local or remote Cytoscape. Start Cytoscape and then proceed.')
+2025-07-12 09:35:59,172 [DEBUG] py4...: --------------------
+2025-07-12 09:37:00,249 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-12 09:37:00,249 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-12 09:37:00,251 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-12 09:37:00,251 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-12 09:37:02,290 [DEBUG] py4...: Attempting to connect to remote Cytoscape because of error HTTPConnectionPool(host='127.0.0.1', port=1234): Max retries exceeded with url: /v1 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000120C29F5A10>: Failed to establish a new connection: [WinError 10061] Es konnte keine Verbindung hergestellt werden, da der Zielcomputer die Verbindung verweigerte'))
+2025-07-12 09:37:02,291 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1)
+2025-07-12 09:37:03,175 [DEBUG] py4...: Error initially contacting Jupyter-bridge: Error posting to Jupyter-bridge: Channel None:request contains unprocessed message
+2025-07-12 09:37:03,177 [DEBUG] py4...: ǀǀ'cyrest_get' exception RequestException('Cannot find local or remote Cytoscape. Start Cytoscape and then proceed.')
+2025-07-12 09:37:03,178 [DEBUG] py4...: ǀ'cytoscape_version_info' exception RequestException('Cannot find local or remote Cytoscape. Start Cytoscape and then proceed.')
+2025-07-12 09:37:03,181 [DEBUG] py4...: 'cytoscape_ping' exception RequestException('Cannot find local or remote Cytoscape. Start Cytoscape and then proceed.')
+2025-07-12 09:37:03,182 [DEBUG] py4...: --------------------
+2025-07-12 09:37:40,580 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-12 09:37:40,581 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-12 09:37:40,583 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-12 09:37:40,585 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-12 09:37:40,927 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-12 09:37:40,928 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-12 09:37:40,960 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-12 09:37:40,961 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-12 09:37:40,962 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-12 09:37:40,965 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-12 09:37:40,966 [DEBUG] py4...: --------------------
+2025-07-12 09:56:13,496 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-12 09:56:13,497 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-12 09:56:13,498 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-12 09:56:13,498 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-12 09:56:13,733 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-12 09:56:13,734 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-12 09:56:13,758 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-12 09:56:13,759 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-12 09:56:13,760 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-12 09:56:13,761 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-12 09:56:13,761 [DEBUG] py4...: --------------------
+2025-07-12 10:01:38,461 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-12 10:01:38,461 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-12 10:01:38,462 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-12 10:01:38,462 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-12 10:01:38,486 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-12 10:01:38,487 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-12 10:01:38,509 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-12 10:01:38,510 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-12 10:01:38,511 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-12 10:01:38,512 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-12 10:01:38,513 [DEBUG] py4...: --------------------
+2025-07-12 11:25:41,872 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-12 11:25:41,873 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-12 11:25:41,874 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-12 11:25:41,875 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-12 11:25:41,913 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-12 11:25:41,913 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-12 11:25:41,929 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-12 11:25:41,930 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-12 11:25:41,931 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-12 11:25:41,932 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-12 11:25:41,933 [DEBUG] py4...: --------------------
+2025-07-12 11:28:38,094 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-12 11:28:38,094 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-12 11:28:38,095 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-12 11:28:38,095 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-12 11:28:38,112 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-12 11:28:38,113 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-12 11:28:38,127 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-12 11:28:38,128 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-12 11:28:38,129 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-12 11:28:38,130 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-12 11:28:38,130 [DEBUG] py4...: --------------------
+2025-07-13 08:49:28,293 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 08:49:28,293 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 08:49:28,294 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 08:49:28,294 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 08:49:30,346 [DEBUG] py4...: Attempting to connect to remote Cytoscape because of error HTTPConnectionPool(host='127.0.0.1', port=1234): Max retries exceeded with url: /v1 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002060E447A50>: Failed to establish a new connection: [WinError 10061] Es konnte keine Verbindung hergestellt werden, da der Zielcomputer die Verbindung verweigerte'))
+2025-07-13 08:49:30,348 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1)
+2025-07-13 08:49:31,491 [DEBUG] py4...: Error initially contacting Jupyter-bridge: Error posting to Jupyter-bridge: Channel None:request contains unprocessed message
+2025-07-13 08:49:31,496 [DEBUG] py4...: ǀǀ'cyrest_get' exception RequestException('Cannot find local or remote Cytoscape. Start Cytoscape and then proceed.')
+2025-07-13 08:49:31,498 [DEBUG] py4...: ǀ'cytoscape_version_info' exception RequestException('Cannot find local or remote Cytoscape. Start Cytoscape and then proceed.')
+2025-07-13 08:49:31,500 [DEBUG] py4...: 'cytoscape_ping' exception RequestException('Cannot find local or remote Cytoscape. Start Cytoscape and then proceed.')
+2025-07-13 08:49:31,501 [DEBUG] py4...: --------------------
+2025-07-13 08:50:31,562 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 08:50:31,562 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 08:50:31,563 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 08:50:31,563 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 08:50:31,744 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 08:50:31,745 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 08:50:31,760 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 08:50:31,761 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 08:50:31,762 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 08:50:31,763 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 08:50:31,763 [DEBUG] py4...: --------------------
+2025-07-13 09:01:29,322 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:01:29,322 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:29,322 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:29,323 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:01:29,335 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:01:29,336 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:01:29,347 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:01:29,348 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:01:29,348 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:01:29,349 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:01:29,350 [DEBUG] py4...: --------------------
+2025-07-13 09:01:34,663 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:01:34,664 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:34,665 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:34,665 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:01:34,676 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:01:34,677 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:01:34,686 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:01:34,687 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:01:34,688 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:01:34,689 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:01:34,689 [DEBUG] py4...: --------------------
+2025-07-13 09:01:34,695 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:01:34,695 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:34,696 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:34,696 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:01:34,707 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:01:34,708 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:01:34,709 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:01:34,709 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:01:34,710 [DEBUG] py4...: --------------------
+2025-07-13 09:01:40,534 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:01:40,534 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:40,535 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:40,535 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:01:40,547 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:01:40,547 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:01:40,560 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:01:40,561 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:01:40,562 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:01:40,563 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:01:40,563 [DEBUG] py4...: --------------------
+2025-07-13 09:01:40,565 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:01:40,566 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:40,566 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:40,566 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:01:40,576 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:01:40,577 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:01:40,577 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:01:40,578 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:01:40,578 [DEBUG] py4...: --------------------
+2025-07-13 09:01:46,737 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:01:46,738 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:46,738 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:46,739 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:01:46,754 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:01:46,756 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:01:46,767 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:01:46,768 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:01:46,769 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:01:46,770 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:01:46,771 [DEBUG] py4...: --------------------
+2025-07-13 09:01:46,774 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:01:46,774 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:46,775 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:46,776 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:01:46,787 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:01:46,788 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:01:46,790 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:01:46,790 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:01:46,791 [DEBUG] py4...: --------------------
+2025-07-13 09:01:52,825 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:01:52,826 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:52,826 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:52,826 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:01:52,835 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:01:52,836 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:01:52,844 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:01:52,845 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:01:52,846 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:01:52,847 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:01:52,847 [DEBUG] py4...: --------------------
+2025-07-13 09:01:52,849 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:01:52,850 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:52,850 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:52,851 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:01:52,858 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:01:52,860 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:01:52,860 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:01:52,861 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:01:52,861 [DEBUG] py4...: --------------------
+2025-07-13 09:01:58,710 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:01:58,711 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:58,711 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:58,712 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:01:58,720 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:01:58,721 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:01:58,727 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:01:58,728 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:01:58,728 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:01:58,729 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:01:58,730 [DEBUG] py4...: --------------------
+2025-07-13 09:01:58,732 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:01:58,732 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:58,733 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:01:58,733 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:01:58,739 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:01:58,740 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:01:58,741 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:01:58,741 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:01:58,742 [DEBUG] py4...: --------------------
+2025-07-13 09:02:04,817 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:04,817 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:04,817 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:04,818 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:02:04,827 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:02:04,828 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:04,837 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:04,838 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:04,839 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:04,840 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:04,840 [DEBUG] py4...: --------------------
+2025-07-13 09:02:04,842 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:04,842 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:04,843 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:04,843 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:04,849 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:04,850 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:04,851 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:04,851 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:04,852 [DEBUG] py4...: --------------------
+2025-07-13 09:02:10,993 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:10,993 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:10,994 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:10,994 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:02:11,002 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:02:11,003 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:11,010 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:11,011 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:11,012 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:11,013 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:11,013 [DEBUG] py4...: --------------------
+2025-07-13 09:02:11,015 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:11,016 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:11,017 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:11,017 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:11,024 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:11,025 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:11,026 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:11,027 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:11,027 [DEBUG] py4...: --------------------
+2025-07-13 09:02:17,323 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:17,323 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:17,323 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:17,324 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:02:17,331 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:02:17,332 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:17,338 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:17,339 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:17,339 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:17,341 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:17,341 [DEBUG] py4...: --------------------
+2025-07-13 09:02:17,342 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:17,343 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:17,343 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:17,344 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:17,349 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:17,350 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:17,350 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:17,351 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:17,351 [DEBUG] py4...: --------------------
+2025-07-13 09:02:23,028 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:23,029 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:23,029 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:23,030 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:02:23,039 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:02:23,040 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:23,048 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:23,049 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:23,050 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:23,051 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:23,051 [DEBUG] py4...: --------------------
+2025-07-13 09:02:23,053 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:23,053 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:23,054 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:23,054 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:23,060 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:23,061 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:23,062 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:23,062 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:23,063 [DEBUG] py4...: --------------------
+2025-07-13 09:02:29,010 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:29,010 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:29,011 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:29,011 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:02:29,019 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:02:29,020 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:29,026 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:29,026 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:29,027 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:29,028 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:29,028 [DEBUG] py4...: --------------------
+2025-07-13 09:02:29,030 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:29,030 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:29,030 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:29,031 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:29,036 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:29,037 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:29,038 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:29,038 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:29,038 [DEBUG] py4...: --------------------
+2025-07-13 09:02:35,021 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:35,021 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:35,022 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:35,022 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:02:35,030 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:02:35,031 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:35,038 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:35,039 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:35,040 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:35,042 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:35,042 [DEBUG] py4...: --------------------
+2025-07-13 09:02:35,044 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:35,044 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:35,044 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:35,045 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:35,051 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:35,052 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:35,052 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:35,053 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:35,053 [DEBUG] py4...: --------------------
+2025-07-13 09:02:41,044 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:41,044 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:41,044 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:41,045 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:02:41,054 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:02:41,055 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:41,061 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:41,062 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:41,062 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:41,063 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:41,064 [DEBUG] py4...: --------------------
+2025-07-13 09:02:41,066 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:41,066 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:41,067 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:41,067 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:41,073 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:41,074 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:41,075 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:41,076 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:41,076 [DEBUG] py4...: --------------------
+2025-07-13 09:02:47,070 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:47,071 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:47,071 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:47,072 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:02:47,079 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:02:47,080 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:47,086 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:47,087 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:47,088 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:47,089 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:47,089 [DEBUG] py4...: --------------------
+2025-07-13 09:02:47,091 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:47,091 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:47,092 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:47,092 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:47,098 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:47,099 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:47,099 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:47,100 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:47,100 [DEBUG] py4...: --------------------
+2025-07-13 09:02:53,044 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:53,045 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:53,045 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:53,045 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:02:53,054 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:02:53,055 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:53,060 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:53,061 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:53,061 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:53,062 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:53,062 [DEBUG] py4...: --------------------
+2025-07-13 09:02:53,064 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:53,064 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:53,065 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:53,065 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:53,070 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:53,071 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:53,072 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:53,072 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:53,072 [DEBUG] py4...: --------------------
+2025-07-13 09:02:59,293 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:59,294 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:59,294 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:59,295 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:02:59,303 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:02:59,304 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:59,311 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:59,312 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:59,313 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:59,314 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:59,315 [DEBUG] py4...: --------------------
+2025-07-13 09:02:59,316 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:02:59,317 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:59,317 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:02:59,317 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:02:59,323 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:02:59,324 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:02:59,324 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:02:59,325 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:02:59,325 [DEBUG] py4...: --------------------
+2025-07-13 09:03:05,154 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:03:05,155 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:03:05,155 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:03:05,155 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:03:05,163 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:03:05,164 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:03:05,169 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:03:05,170 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:03:05,171 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:03:05,171 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:03:05,172 [DEBUG] py4...: --------------------
+2025-07-13 09:03:05,174 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:03:05,174 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:03:05,175 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:03:05,175 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:03:05,181 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:03:05,182 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:03:05,183 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:03:05,183 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:03:05,184 [DEBUG] py4...: --------------------
+2025-07-13 09:03:11,180 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:03:11,180 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:03:11,181 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:03:11,182 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:03:11,190 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:03:11,191 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:03:11,199 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:03:11,200 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:03:11,200 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:03:11,201 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:03:11,202 [DEBUG] py4...: --------------------
+2025-07-13 09:03:11,204 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:03:11,204 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:03:11,205 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:03:11,205 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:03:11,211 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:03:11,212 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:03:11,213 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:03:11,213 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:03:11,214 [DEBUG] py4...: --------------------
+2025-07-13 09:03:17,185 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:03:17,186 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:03:17,186 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:03:17,187 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:03:17,196 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:03:17,197 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:03:17,204 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:03:17,205 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:03:17,206 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:03:17,207 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:03:17,208 [DEBUG] py4...: --------------------
+2025-07-13 09:03:17,209 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:03:17,210 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:03:17,210 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:03:17,211 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:03:17,217 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:03:17,218 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:03:17,219 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:03:17,219 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:03:17,220 [DEBUG] py4...: --------------------
+2025-07-13 09:03:23,214 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:03:23,215 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:03:23,215 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:03:23,216 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:03:23,223 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:03:23,224 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:03:23,231 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:03:23,232 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:03:23,232 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:03:23,233 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:03:23,233 [DEBUG] py4...: --------------------
+2025-07-13 09:03:23,235 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:03:23,236 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:03:23,236 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:03:23,236 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:03:23,242 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:03:23,243 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:03:23,244 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:03:23,244 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:03:23,245 [DEBUG] py4...: --------------------
+2025-07-13 09:07:35,309 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:07:35,309 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:07:35,310 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:07:35,310 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:07:35,320 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:07:35,321 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:07:35,327 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:07:35,327 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:07:35,328 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:07:35,329 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:07:35,329 [DEBUG] py4...: --------------------
+2025-07-13 09:07:49,565 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:07:49,565 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:07:49,565 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:07:49,566 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:07:49,574 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:07:49,574 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:07:49,581 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:07:49,582 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:07:49,582 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:07:49,583 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:07:49,584 [DEBUG] py4...: --------------------
+2025-07-13 09:08:16,891 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:08:16,891 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:08:16,892 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:08:16,892 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:08:16,900 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:08:16,901 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:08:16,909 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:08:16,909 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:08:16,910 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:08:16,911 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:08:16,911 [DEBUG] py4...: --------------------
+2025-07-13 09:09:11,758 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:09:11,758 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:09:11,759 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:09:11,759 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:09:11,768 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:09:11,768 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:09:11,775 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:09:11,776 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:09:11,776 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:09:11,777 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:09:11,778 [DEBUG] py4...: --------------------
+2025-07-13 09:10:01,576 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:10:01,577 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:10:01,577 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:10:01,577 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:10:01,585 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:10:01,586 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:10:01,592 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:10:01,593 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:10:01,593 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:10:01,594 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:10:01,595 [DEBUG] py4...: --------------------
+2025-07-13 09:11:01,188 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:11:01,189 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:11:01,189 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:11:01,190 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:11:01,198 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:11:01,200 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:11:01,206 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:11:01,206 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:11:01,207 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:11:01,208 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:11:01,208 [DEBUG] py4...: --------------------
+2025-07-13 09:13:16,265 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:13:16,265 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:13:16,266 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:13:16,266 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:13:16,278 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:13:16,279 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:13:16,286 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:13:16,287 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:13:16,287 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:13:16,289 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:13:16,289 [DEBUG] py4...: --------------------
+2025-07-13 09:13:39,393 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:13:39,394 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:13:39,394 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:13:39,395 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:13:39,403 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:13:39,404 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:13:39,410 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:13:39,411 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:13:39,411 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:13:39,412 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:13:39,412 [DEBUG] py4...: --------------------
+2025-07-13 09:25:27,671 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:25:27,671 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:25:27,672 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:25:27,672 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:25:27,689 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:25:27,690 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:25:27,697 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:25:27,698 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:25:27,699 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:25:27,700 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:25:27,701 [DEBUG] py4...: --------------------
+2025-07-13 09:32:09,347 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:32:09,347 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:32:09,348 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:32:09,348 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:32:09,361 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:32:09,362 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:32:09,369 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:32:09,370 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:32:09,371 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:32:09,372 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:32:09,372 [DEBUG] py4...: --------------------
+2025-07-13 09:58:33,911 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:58:33,911 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:58:33,913 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:58:33,913 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:58:33,944 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:58:33,945 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:58:33,953 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:58:33,953 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:58:33,953 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:58:33,954 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:58:33,954 [DEBUG] py4...: --------------------
+2025-07-13 09:59:17,513 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 09:59:17,513 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:59:17,513 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 09:59:17,513 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 09:59:17,520 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 09:59:17,521 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 09:59:17,528 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 09:59:17,529 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 09:59:17,529 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 09:59:17,530 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 09:59:17,531 [DEBUG] py4...: --------------------
+2025-07-13 12:29:30,512 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 12:29:30,513 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 12:29:30,513 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 12:29:30,514 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 12:29:32,573 [DEBUG] py4...: Attempting to connect to remote Cytoscape because of error HTTPConnectionPool(host='127.0.0.1', port=1234): Max retries exceeded with url: /v1 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000197E0127310>: Failed to establish a new connection: [WinError 10061] Es konnte keine Verbindung hergestellt werden, da der Zielcomputer die Verbindung verweigerte'))
+2025-07-13 12:29:32,573 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1)
+2025-07-13 12:29:33,395 [DEBUG] py4...: Error initially contacting Jupyter-bridge: Error posting to Jupyter-bridge: Channel None:request contains unprocessed message
+2025-07-13 12:29:33,397 [DEBUG] py4...: ǀǀ'cyrest_get' exception RequestException('Cannot find local or remote Cytoscape. Start Cytoscape and then proceed.')
+2025-07-13 12:29:33,398 [DEBUG] py4...: ǀ'cytoscape_version_info' exception RequestException('Cannot find local or remote Cytoscape. Start Cytoscape and then proceed.')
+2025-07-13 12:29:33,398 [DEBUG] py4...: 'cytoscape_ping' exception RequestException('Cannot find local or remote Cytoscape. Start Cytoscape and then proceed.')
+2025-07-13 12:29:33,398 [DEBUG] py4...: --------------------
+2025-07-13 12:30:10,940 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 12:30:10,941 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 12:30:10,942 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 12:30:10,942 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 12:30:12,135 [DEBUG] py4...: Attempting to connect to remote Cytoscape because of error <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 503 Jersey is not ready yet!</title>
+</head>
+<body><h2>HTTP ERROR 503 Jersey is not ready yet!</h2>
+<table>
+<tr><th>URI:</th><td>/v1</td></tr>
+<tr><th>STATUS:</th><td>503</td></tr>
+<tr><th>MESSAGE:</th><td>Jersey is not ready yet!</td></tr>
+<tr><th>SERVLET:</th><td>org.ops4j.pax.web.service.spi.model.ServletModel-2</td></tr>
+</table>
+<hr/><a href="https://eclipse.org/jetty">Powered by Jetty:// 9.4.46.v20220331</a><hr/>
+
+</body>
+</html>
+
+2025-07-13 12:30:12,135 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1)
+2025-07-13 12:30:12,799 [DEBUG] py4...: Error initially contacting Jupyter-bridge: Error posting to Jupyter-bridge: Channel None:request contains unprocessed message
+2025-07-13 12:30:12,801 [DEBUG] py4...: ǀǀ'cyrest_get' exception RequestException('Cannot find local or remote Cytoscape. Start Cytoscape and then proceed.')
+2025-07-13 12:30:12,802 [DEBUG] py4...: ǀ'cytoscape_version_info' exception RequestException('Cannot find local or remote Cytoscape. Start Cytoscape and then proceed.')
+2025-07-13 12:30:12,802 [DEBUG] py4...: 'cytoscape_ping' exception RequestException('Cannot find local or remote Cytoscape. Start Cytoscape and then proceed.')
+2025-07-13 12:30:12,803 [DEBUG] py4...: --------------------
+2025-07-13 12:31:01,330 [DEBUG] py4...: Calling cytoscape_ping()
+2025-07-13 12:31:01,331 [DEBUG] py4...: ǀCalling cytoscape_version_info(base_url='http://127.0.0.1:1234/v1')
+2025-07-13 12:31:01,331 [DEBUG] py4...: ǀǀCalling cyrest_get('version', base_url='http://127.0.0.1:1234/v1')
+2025-07-13 12:31:01,332 [DEBUG] py4...: Attempting to direct connect to Cytoscape on http://127.0.0.1:1234/v1
+2025-07-13 12:31:01,492 [DEBUG] py4...: Detected py4cytoscape running on Cytoscape workstation
+2025-07-13 12:31:01,494 [DEBUG] py4...: ǀǀHTTP GET(http://127.0.0.1:1234/v1/version)
+2025-07-13 12:31:01,523 [DEBUG] py4...: ǀǀOK[200], content: {"apiVersion":"v1","cytoscapeVersion":"3.10.3"}
+2025-07-13 12:31:01,524 [DEBUG] py4...: ǀǀReturning 'cyrest_get': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3'}
+2025-07-13 12:31:01,525 [DEBUG] py4...: ǀReturning 'cytoscape_version_info': {'apiVersion': 'v1', 'cytoscapeVersion': '3.10.3', 'automationAPIVersion': '1.11.0', 'py4cytoscapeVersion': '1.11.0'}
+2025-07-13 12:31:01,526 [DEBUG] py4...: Returning 'cytoscape_ping': 'You are connected to Cytoscape!'
+2025-07-13 12:31:01,527 [DEBUG] py4...: --------------------

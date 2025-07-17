@@ -13,24 +13,12 @@ import subprocess
 from detailed_results_exporter import export_detailed_interactions
 from uniprot_matcher import parallel_blast_search
 from distances import tree_cache, coords_cache
-import gc  # optional für Speicherbereinigung
+import gc
+import multiprocessing
 
-# Cytoscape-Startversuch (nur einmal am Anfang)
-CYTOSCAPE_PATH = config["cytoscape_path"]
-try:
-    p4c.cytoscape_ping()
-    print("Cytoscape is already running.")
-except:
-    print("Starting Cytoscape...")
-    subprocess.Popen(CYTOSCAPE_PATH)
-    time.sleep(60)
-    try:
-        p4c.cytoscape_ping()
-        print("Cytoscape started successfully.")
-    except:
-        print("Error: Cytoscape could not be started. Check the path in config.json.")
-        exit(1)
-
+def run_main(batch_files):
+    from main import main  # Importieren innerhalb des Subprozesses
+    main(batch_files)
 
 def main(input_path_or_filelist):
     """
@@ -125,33 +113,60 @@ def main(input_path_or_filelist):
         f.write(f"- Total:                   {total_time:.1f} sec\n")
         f.write("\n===============================\n")
 
+    # 🧹 Speicher aufräumen
+    tree_cache.clear()
+    coords_cache.clear()
+    gc.collect()
 
-def batch_run(input_folder, batch_size=500):
+def batch_run(input_folder, batch_size=500, timeout_minutes=10):
     """
-    Läuft main() in Batches über alle Dateien im Input-Ordner, ohne Kopieren.
+    Läuft main() in Batches über alle Dateien im Input-Ordner. Bricht Batches ab, die zu lange brauchen.
+    Gibt nach jedem Batch die Laufzeit in Sekunden aus.
     """
     all_files = [entry.path for entry in os.scandir(input_folder)
                  if entry.is_file() and is_valid_file(entry.path)]
 
     total_batches = (len(all_files) + batch_size - 1) // batch_size
     print(f"\nStarting batch run: {total_batches} batches of size {batch_size}")
+    timeout_seconds = timeout_minutes * 60
+
+    logs_dir = os.path.join(config["output_path"], "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+    log_path = os.path.join(logs_dir, "skipped_batches.txt")
 
     start_time_all = time.time()
 
     for i in range(total_batches):
         batch_files = all_files[i * batch_size:(i + 1) * batch_size]
         print(f"\n--- Processing batch {i + 1}/{total_batches} ({len(batch_files)} files) ---")
-        main(batch_files)
 
-        # 🧹 Speicher aufräumen
-        tree_cache.clear()
-        coords_cache.clear()
-        gc.collect()  # optional: RAM direkt freigeben
+        start_time_batch = time.time()
+
+        process = multiprocessing.Process(target=run_main, args=(batch_files,))
+        process.start()
+        process.join(timeout=timeout_seconds)
+
+        if process.is_alive():
+            print(f"⚠️ Batch {i + 1} took too long (> {timeout_minutes} min). Skipping.")
+            process.terminate()
+            process.join()
+            with open(log_path, "a") as log_file:
+                for file_path in batch_files:
+                    pdb_id = os.path.basename(file_path).split(".")[0]
+                    log_file.write(f"{pdb_id}\n")
+        else:
+            duration = time.time() - start_time_batch
+            print(f"✅ Batch {i + 1} completed in {duration:.1f} seconds.")
 
     total_time_all = time.time() - start_time_all
     print(f"\n⏱ Gesamtzeit aller Batches: {total_time_all:.2f} Sekunden")
 
 
+
 if __name__ == "__main__":
+    from cytoscape import ensure_cytoscape_running
+    ensure_cytoscape_running()
     INPUT_FOLDER_PATH = config["input_folder_path"]
-    batch_run(INPUT_FOLDER_PATH, batch_size=1000)
+    batch_run(INPUT_FOLDER_PATH, batch_size=100)
+
+

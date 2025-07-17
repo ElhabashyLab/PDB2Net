@@ -21,5 +21,5 @@
 
     "keep_last_n_networks": 30,
     "export_detailed_interactions": false,
-    "open_in_cytoscape": true
+    "open_in_cytoscape": false
 }

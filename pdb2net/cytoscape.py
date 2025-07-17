@@ -1,10 +1,28 @@
-import py4cytoscape as p4c
 import os
 import pandas as pd
 from config_loader import config
 from matplotlib import cm
 from matplotlib.colors import to_hex
 import json
+import time
+import py4cytoscape as p4c
+import subprocess
+from config_loader import config
+
+def ensure_cytoscape_running():
+    try:
+        p4c.cytoscape_ping()
+        print("Cytoscape is already running.")
+    except:
+        print("Starting Cytoscape...")
+        subprocess.Popen(config["cytoscape_path"])
+        time.sleep(40)
+        try:
+            p4c.cytoscape_ping()
+            print("Cytoscape started successfully.")
+        except:
+            print("Error: Cytoscape could not be started. Check the path in config.json.")
+            exit(1)
 
 
 def export_custom_cyjs(nodes_df, edges_df, network_title, run_output_path):

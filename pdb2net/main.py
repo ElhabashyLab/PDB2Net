@@ -1,20 +1,22 @@
+import logging
+logging.getLogger("py4cytoscape").disabled = True
+
 import time
+import os
+import gc
+import multiprocessing
+from datetime import datetime
+
 from file_parser import is_valid_file, get_pdb_id, parse_structure
 from data_processor import process_structure
 from unknown_molecule_uniprot import process_molecule_info
-from distances import calculate_distances_with_ckdtree
-from cytoscape import create_cytoscape_network, generate_nodes_from_atom_data
-from protein_network import create_protein_network
-from config_loader import config
-from datetime import datetime
-import os
-import py4cytoscape as p4c
-import subprocess
+from distances import calculate_distances_with_ckdtree, tree_cache, coords_cache
 from detailed_results_exporter import export_detailed_interactions
 from uniprot_matcher import parallel_blast_search
-from distances import tree_cache, coords_cache
-import gc
-import multiprocessing
+from config_loader import config
+
+from cytoscape import create_cytoscape_network, generate_nodes_from_atom_data
+from protein_network import create_protein_network
 
 def run_main(batch_files):
     from main import main  # Importieren innerhalb des Subprozesses
@@ -113,7 +115,7 @@ def main(input_path_or_filelist):
         f.write(f"- Total:                   {total_time:.1f} sec\n")
         f.write("\n===============================\n")
 
-    # 🧹 Speicher aufräumen
+    # Speicher aufräumen
     tree_cache.clear()
     coords_cache.clear()
     gc.collect()

@@ -19,7 +19,9 @@ from cytoscape import create_cytoscape_network, generate_nodes_from_atom_data
 from protein_network import create_protein_network
 
 def run_main(batch_files):
-    from main import main  # Importieren innerhalb des Subprozesses
+    import logging
+    logging.getLogger("py4cytoscape").disabled = True
+    from main import main
     main(batch_files)
 
 def main(input_path_or_filelist):
@@ -120,16 +122,46 @@ def main(input_path_or_filelist):
     coords_cache.clear()
     gc.collect()
 
-def batch_run(input_folder, batch_size=500, timeout_minutes=10):
+def create_size_limited_batches(file_paths, max_batch_kb):
     """
-    Läuft main() in Batches über alle Dateien im Input-Ordner. Bricht Batches ab, die zu lange brauchen.
-    Gibt nach jedem Batch die Laufzeit in Sekunden aus.
+    Teilt Dateien in Batches ein, die jeweils maximal max_batch_kb groß sind.
+    """
+    batches = []
+    current_batch = []
+    current_size = 0
+
+    for file_path in file_paths:
+        size_kb = os.path.getsize(file_path) // 1024
+        if size_kb > max_batch_kb:
+            print(f"⚠️ Datei zu groß für einzelnes Batch: {file_path} ({size_kb} KB)")
+            continue
+
+        if current_size + size_kb > max_batch_kb:
+            batches.append(current_batch)
+            current_batch = [file_path]
+            current_size = size_kb
+        else:
+            current_batch.append(file_path)
+            current_size += size_kb
+
+    if current_batch:
+        batches.append(current_batch)
+
+    return batches
+
+
+def batch_run(input_folder, timeout_minutes=10):
+    """
+    Läuft main() in Batches über alle Dateien im Input-Ordner.
+    Jeder Batch ist max. 600 MB groß.
     """
     all_files = [entry.path for entry in os.scandir(input_folder)
                  if entry.is_file() and is_valid_file(entry.path)]
 
-    total_batches = (len(all_files) + batch_size - 1) // batch_size
-    print(f"\nStarting batch run: {total_batches} batches of size {batch_size}")
+    max_batch_kb = 614400  # 600 MB
+    batches = create_size_limited_batches(all_files, max_batch_kb)
+
+    print(f"\n📦 Starte Batch-Verarbeitung: {len(batches)} Batches, max {max_batch_kb // 1024} MB pro Batch")
     timeout_seconds = timeout_minutes * 60
 
     logs_dir = os.path.join(config["output_path"], "logs")
@@ -138,9 +170,8 @@ def batch_run(input_folder, batch_size=500, timeout_minutes=10):
 
     start_time_all = time.time()
 
-    for i in range(total_batches):
-        batch_files = all_files[i * batch_size:(i + 1) * batch_size]
-        print(f"\n--- Processing batch {i + 1}/{total_batches} ({len(batch_files)} files) ---")
+    for i, batch_files in enumerate(batches):
+        print(f"\n--- Bearbeite Batch {i + 1}/{len(batches)} ({len(batch_files)} Dateien) ---")
 
         start_time_batch = time.time()
 
@@ -149,16 +180,16 @@ def batch_run(input_folder, batch_size=500, timeout_minutes=10):
         process.join(timeout=timeout_seconds)
 
         if process.is_alive():
-            print(f"⚠️ Batch {i + 1} took too long (> {timeout_minutes} min). Skipping.")
+            print(f"⚠️ Batch {i + 1} zu lange (> {timeout_minutes} min). Wird abgebrochen.")
             process.terminate()
             process.join()
             with open(log_path, "a") as log_file:
                 for file_path in batch_files:
-                    pdb_id = os.path.basename(file_path).split(".")[0]
+                    pdb_id = get_pdb_id(file_path)
                     log_file.write(f"{pdb_id}\n")
         else:
             duration = time.time() - start_time_batch
-            print(f"✅ Batch {i + 1} completed in {duration:.1f} seconds.")
+            print(f"✅ Batch {i + 1} abgeschlossen in {duration:.1f} Sekunden.")
 
     total_time_all = time.time() - start_time_all
     print(f"\n⏱ Gesamtzeit aller Batches: {total_time_all:.2f} Sekunden")
@@ -169,6 +200,6 @@ if __name__ == "__main__":
     from cytoscape import ensure_cytoscape_running
     ensure_cytoscape_running()
     INPUT_FOLDER_PATH = config["input_folder_path"]
-    batch_run(INPUT_FOLDER_PATH, batch_size=100)
+    batch_run(INPUT_FOLDER_PATH)
 
 

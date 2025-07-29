@@ -6,4 +6,4 @@ py4cytoscape==1.11.0
 scipy==1.15.2
 gemmi
 matplotlib
-setuptools==65.5.0
+setuptools>=80.9.0

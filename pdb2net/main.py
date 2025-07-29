@@ -150,18 +150,22 @@ def create_size_limited_batches(file_paths, max_batch_kb):
     return batches
 
 
-def batch_run(input_folder, timeout_minutes=10):
+def batch_run(input_folder, timeout_minutes=10, size_limit_kb=614400):
     """
-    Läuft main() in Batches über alle Dateien im Input-Ordner.
-    Jeder Batch ist max. 600 MB groß.
+    Führt entweder einen Komplettlauf oder batching aus, je nach Gesamtdatengröße.
     """
     all_files = [entry.path for entry in os.scandir(input_folder)
                  if entry.is_file() and is_valid_file(entry.path)]
 
-    max_batch_kb = 614400  # 600 MB
-    batches = create_size_limited_batches(all_files, max_batch_kb)
+    total_size_kb = sum(os.path.getsize(f) // 1024 for f in all_files)
 
-    print(f"\n📦 Starte Batch-Verarbeitung: {len(batches)} Batches, max {max_batch_kb // 1024} MB pro Batch")
+    if total_size_kb <= size_limit_kb:
+        print(f"✅ Gesamtgröße {total_size_kb // 1024} MB – Direktverarbeitung ohne Batching.")
+        run_main(all_files)
+        return
+
+    print(f" Gesamtgröße {total_size_kb // 1024} MB – Batching wird verwendet (max {size_limit_kb // 1024} MB pro Batch).")
+    batches = create_size_limited_batches(all_files, size_limit_kb)
     timeout_seconds = timeout_minutes * 60
 
     logs_dir = os.path.join(config["output_path"], "logs")
@@ -193,6 +197,7 @@ def batch_run(input_folder, timeout_minutes=10):
 
     total_time_all = time.time() - start_time_all
     print(f"\n⏱ Gesamtzeit aller Batches: {total_time_all:.2f} Sekunden")
+
 
 
 

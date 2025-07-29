@@ -1,5 +1,5 @@
 {
-    "input_folder_path": "D:\\PDB_Files\\Test1000",
+    "input_folder_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/PDBFiles/Datensatz19",
     "pdb_fasta_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/Neuer Ordner/pdb_seqres.txt",
     "uniprot_fasta_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/Neuer Ordner/uniprot_sprot.fasta",
     "sifts_tsv_path": "C:/Users/Gregor/Documents/Uni Bioinformatik/9. Semester/B.A/SIFTS/pdb_chain_uniprot.tsv",

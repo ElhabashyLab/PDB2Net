@@ -122,22 +122,27 @@ def main(input_path_or_filelist):
     coords_cache.clear()
     gc.collect()
 
-def create_size_limited_batches(file_paths, max_batch_kb):
+def create_batches_streaming(file_paths, max_batch_kb):
     """
-    Teilt Dateien in Batches ein, die jeweils maximal max_batch_kb groß sind.
+    Generator, der Dateien nacheinander in Batches liefert,
+    ohne vorher alle Batchgrößen zu berechnen.
     """
-    batches = []
     current_batch = []
     current_size = 0
 
     for file_path in file_paths:
-        size_kb = os.path.getsize(file_path) // 1024
+        try:
+            size_kb = os.path.getsize(file_path) // 1024
+        except Exception as e:
+            print(f"⚠️ Fehler beim Lesen der Dateigröße: {file_path} – {e}")
+            continue
+
         if size_kb > max_batch_kb:
-            print(f"⚠️ Datei zu groß für einzelnes Batch: {file_path} ({size_kb} KB)")
+            print(f"⚠️ Datei zu groß für ein einzelnes Batch: {file_path} ({size_kb} KB)")
             continue
 
         if current_size + size_kb > max_batch_kb:
-            batches.append(current_batch)
+            yield current_batch
             current_batch = [file_path]
             current_size = size_kb
         else:
@@ -145,46 +150,35 @@ def create_size_limited_batches(file_paths, max_batch_kb):
             current_size += size_kb
 
     if current_batch:
-        batches.append(current_batch)
-
-    return batches
+        yield current_batch
 
 
-def batch_run(input_folder, timeout_minutes=10, size_limit_kb=614400):
-    """
-    Führt entweder einen Komplettlauf oder batching aus, je nach Gesamtdatengröße.
-    """
-    all_files = [entry.path for entry in os.scandir(input_folder)
-                 if entry.is_file() and is_valid_file(entry.path)]
+def batch_run(input_folder, timeout_minutes=10, size_limit_kb=716800):  # 700 MB
+    def stream_valid_files(folder):
+        for entry in os.scandir(folder):
+            if entry.is_file() and is_valid_file(entry.path):
+                yield entry.path
 
-    total_size_kb = sum(os.path.getsize(f) // 1024 for f in all_files)
-
-    if total_size_kb <= size_limit_kb:
-        print(f"✅ Gesamtgröße {total_size_kb // 1024} MB – Direktverarbeitung ohne Batching.")
-        run_main(all_files)
-        return
-
-    print(f" Gesamtgröße {total_size_kb // 1024} MB – Batching wird verwendet (max {size_limit_kb // 1024} MB pro Batch).")
-    batches = create_size_limited_batches(all_files, size_limit_kb)
     timeout_seconds = timeout_minutes * 60
-
     logs_dir = os.path.join(config["output_path"], "logs")
     os.makedirs(logs_dir, exist_ok=True)
     log_path = os.path.join(logs_dir, "skipped_batches.txt")
 
     start_time_all = time.time()
+    total_done = 0
 
-    for i, batch_files in enumerate(batches):
-        print(f"\n--- Bearbeite Batch {i + 1}/{len(batches)} ({len(batch_files)} Dateien) ---")
+    file_stream = stream_valid_files(input_folder)
+
+    for i, batch_files in enumerate(create_batches_streaming(file_stream, size_limit_kb), start=1):
+        print(f"\n--- Bearbeite Batch {i} ({len(batch_files)} Dateien) ---")
 
         start_time_batch = time.time()
-
         process = multiprocessing.Process(target=run_main, args=(batch_files,))
         process.start()
         process.join(timeout=timeout_seconds)
 
         if process.is_alive():
-            print(f"⚠️ Batch {i + 1} zu lange (> {timeout_minutes} min). Wird abgebrochen.")
+            print(f"⚠️ Batch {i} zu lange (> {timeout_minutes} min). Wird abgebrochen.")
             process.terminate()
             process.join()
             with open(log_path, "a") as log_file:
@@ -193,11 +187,12 @@ def batch_run(input_folder, timeout_minutes=10, size_limit_kb=614400):
                     log_file.write(f"{pdb_id}\n")
         else:
             duration = time.time() - start_time_batch
-            print(f"✅ Batch {i + 1} abgeschlossen in {duration:.1f} Sekunden.")
+            total_done += len(batch_files)
+            print(f"✅ Batch {i} abgeschlossen in {duration:.1f} Sekunden.")
+            print(f"📈 Verarbeitet bisher: {total_done} Dateien.")
 
     total_time_all = time.time() - start_time_all
     print(f"\n⏱ Gesamtzeit aller Batches: {total_time_all:.2f} Sekunden")
-
 
 
 

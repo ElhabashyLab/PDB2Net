@@ -18,6 +18,30 @@ from config_loader import config
 from cytoscape import create_cytoscape_network, generate_nodes_from_atom_data
 from protein_network import create_protein_network
 
+def process_single_file(file_path):
+    """
+    Verarbeitet eine einzelne PDB/mmCIF-Datei vollständig:
+    - PDB-ID extrahieren
+    - Struktur mit Gemmi parsen
+    - Atome/Residuen extrahieren mit process_structure
+
+    Gibt None zurück, wenn Datei fehlschlägt.
+    """
+    try:
+        pdb_id = get_pdb_id(file_path)
+        structure = parse_structure(file_path, pdb_id)
+        if not structure:
+            return None
+        return process_structure({
+            "file_path": file_path,
+            "pdb_id": pdb_id,
+            "structure": structure
+        })
+    except Exception as e:
+        print(f"⚠️ Fehler beim Verarbeiten von {file_path}: {e}")
+        return None
+
+
 def run_main(batch_files):
     import logging
     logging.getLogger("py4cytoscape").disabled = True
@@ -43,38 +67,39 @@ def main(input_path_or_filelist):
     start_time_total = time.time()
     sum_times = {"parsing": 0, "sifts": 0, "blast": 0, "interaction": 0, "networks": 0}
 
+    # === PARSING (parallel über process_single_file) ===
+    from concurrent.futures import ProcessPoolExecutor
+
     start_time = time.time()
-    structures = []
-    for f in file_paths:
-        pdb_id = get_pdb_id(f)
-        structure = parse_structure(f, pdb_id)
-        if structure:
-            structures.append({
-                "file_path": f,
-                "pdb_id": pdb_id,
-                "structure": structure
-            })
-    combined_data = [process_structure(s) for s in structures]
+    t_parse = time.time()
+    with ProcessPoolExecutor(max_workers=12) as executor:
+        combined_data = list(filter(None, executor.map(process_single_file, file_paths)))
+    parsing_duration = time.time() - t_parse
     sum_times["parsing"] = time.time() - start_time
 
+    # === Molekülklassifikation via SIFTS/pdb_seqres.txt ===
     start_time = time.time()
     process_molecule_info(combined_data)
     sum_times["sifts"] = time.time() - start_time
 
+    # === Klassifikation via BLAST (nur fehlende IDs) ===
     start_time = time.time()
     parallel_blast_search(combined_data, max_workers=4)
     sum_times["blast"] = time.time() - start_time
 
+    # === Interaktionsanalyse ===
     start_time = time.time()
     results = calculate_distances_with_ckdtree(combined_data)
     sum_times["interaction"] = time.time() - start_time
 
+    # === Optional: Export detaillierter Interaktionen ===
     if config.get("export_detailed_interactions", False):
         for structure_data in combined_data:
             pdb_id = structure_data["pdb_id"]
             pdb_interactions = [res for res in results if res["chain_a"].startswith(pdb_id)]
             export_detailed_interactions(structure_data, pdb_interactions, run_output_path)
 
+    # === Netzwerkexporte (Kette pro PDB) ===
     if network_config["chain_per_pdb"]:
         start_time = time.time()
         results_by_pdb = {}
@@ -91,6 +116,7 @@ def main(input_path_or_filelist):
             create_cytoscape_network(pdb_results, network_title, run_output_path, nodes_data=nodes_data)
         sum_times["networks"] += time.time() - start_time
 
+    # === Netzwerkexport: alle Ketten kombiniert ===
     if network_config["combined_chain_network"]:
         start_time = time.time()
         all_chains = [chain for structure in combined_data for chain in structure["atom_data"]]
@@ -98,29 +124,36 @@ def main(input_path_or_filelist):
         create_cytoscape_network(results, "Combined_Network", run_output_path, nodes_data=nodes_data)
         sum_times["networks"] += time.time() - start_time
 
+    # === Netzwerkexport: Proteinbasiert (per PDB oder kombiniert) ===
     if network_config["protein_per_pdb"] or network_config["combined_protein_network"]:
         start_time = time.time()
         create_protein_network(results, combined_data, run_output_path, network_config)
         sum_times["networks"] += time.time() - start_time
 
+    # === Gesamtzeit + Logging ===
     total_time = time.time() - start_time_total
-
     log_file = os.path.join(run_output_path, "log.txt")
+
     with open(log_file, "w") as f:
         f.write("===== PDB2Net Batch Log =====\n\n")
-        f.write("Timing:\n")
+        f.write("Timing (gesamt):\n")
         f.write(f"- Parsing:                 {sum_times['parsing']:.1f} sec\n")
         f.write(f"- Classification (SIFTS):  {sum_times['sifts']:.1f} sec\n")
         f.write(f"- Classification (BLAST):  {sum_times['blast']:.1f} sec\n")
         f.write(f"- Interaction:             {sum_times['interaction']:.1f} sec\n")
         f.write(f"- Network export:          {sum_times['networks']:.1f} sec\n")
         f.write(f"- Total:                   {total_time:.1f} sec\n")
+
+        f.write("\nDetaillierte Parsing-Zeit (parallel):\n")
+        f.write(f"- process_single_file():   {parsing_duration:.2f} sec\n")
+
         f.write("\n===============================\n")
 
-    # Speicher aufräumen
+    # Speicher freigeben
     tree_cache.clear()
     coords_cache.clear()
     gc.collect()
+
 
 def create_batches_streaming(file_paths, max_batch_kb):
     """

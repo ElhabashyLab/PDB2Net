@@ -98,19 +98,33 @@ def calculate_distances_with_ckdtree(combined_data):
         list: A list of dictionaries with interaction results.
     """
     results = []
+
     for file_data in combined_data:
         file_path, atom_data = file_data["file_path"], file_data["atom_data"]
 
         # Prepare KD-Trees for each chain
-        local_trees = {(c["unique_chain_id"], t): get_or_create_tree(c, t) for c in atom_data for t in
-                       ["ca", "all_atoms"]}
+        local_trees = {
+            (c["unique_chain_id"], t): get_or_create_tree(c, t)
+            for c in atom_data for t in ["ca", "all_atoms"]
+        }
+
+        seen_pairs = set()  # Prevent duplicate chain-chain pairs
 
         for chain_a, chain_b in itertools.combinations(atom_data, 2):
+            # Skip self-interactions
             if chain_a["chain_id"] == chain_b["chain_id"]:
-                continue  # Skip self-interactions
+                continue
 
-            interaction_type = determine_interaction_type(chain_a.get("molecule_type", "Unknown"),
-                                                          chain_b.get("molecule_type", "Unknown"))
+            # Deduplicate (unordered chain pairs)
+            pair_key = tuple(sorted([chain_a["unique_chain_id"], chain_b["unique_chain_id"]]))
+            if pair_key in seen_pairs:
+                continue
+            seen_pairs.add(pair_key)
+
+            interaction_type = determine_interaction_type(
+                chain_a.get("molecule_type", "Unknown"),
+                chain_b.get("molecule_type", "Unknown")
+            )
             if not interaction_type:
                 continue
 
@@ -130,10 +144,12 @@ def calculate_distances_with_ckdtree(combined_data):
                     })
                 continue
 
+            # Only if at least 10 CA atoms are close
             if count_nearby_atoms(
-                    local_trees.get((chain_a["unique_chain_id"], "ca")),
-                    local_trees.get((chain_b["unique_chain_id"], "ca")),
-                    radius=RADIUS_CA) >= 10:
+                local_trees.get((chain_a["unique_chain_id"], "ca")),
+                local_trees.get((chain_b["unique_chain_id"], "ca")),
+                radius=RADIUS_CA
+            ) >= 10:
 
                 all_atoms_count = count_nearby_atoms(
                     local_trees.get((chain_a["unique_chain_id"], "all_atoms")),
@@ -150,3 +166,4 @@ def calculate_distances_with_ckdtree(combined_data):
                     })
 
     return results
+

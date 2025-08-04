@@ -124,7 +124,7 @@ def classify_molecule_type(chain):
     return "Protein" if all(res in AMINO_ACIDS for res in sample_names) else "Nucleic Acid"
 
 
-def parallel_blast_search(parsed_data, max_workers=8):
+def parallel_blast_search(parsed_data, max_workers=16):
     """
     Performs parallelized BLAST searches for all eligible chains in the dataset.
 

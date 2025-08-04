@@ -9,4 +9,8 @@ __pycache__/
 *.pyc
 *.pyo
 
+# BLAST temp files
+blast_results_*.txt
+query_*.fasta
+
 logs/

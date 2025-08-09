@@ -1,5 +1,5 @@
 {
-    "input_folder_path": "D:/PDB_Files/2x_Nucleic_Acid",
+    "input_folder_path": "D:/PDB_Files/Datensatz19",
     "pdb_fasta_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/pdb_seqres.txt",
     "uniprot_fasta_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/uniprot_sprot.fasta",
     "sifts_tsv_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/pdb_chain_uniprot.tsv",
@@ -10,9 +10,9 @@
 
     "networks": {
         "chain_per_pdb": true,
-        "combined_chain_network": false,
+        "combined_chain_network": true,
         "protein_per_pdb": true,
-        "combined_protein_network": false
+        "combined_protein_network": true
     },
     "distance_thresholds": {
     "ca_radius": 15.0,
@@ -21,5 +21,5 @@
 
     "keep_last_n_networks": 30,
     "export_detailed_interactions": false,
-    "open_in_cytoscape": false
+    "open_in_cytoscape": true
 }

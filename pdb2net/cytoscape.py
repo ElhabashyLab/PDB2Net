@@ -164,11 +164,26 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
             "PDB2Net_Protein_Style"
         )
 
-        base_color_groups = [g for g in color_groups if g != "Multi"]
+        # 🎨 Feste Farben für bestimmte Molekültypen
+        fixed_colors = {
+            "Protein": "#1f77b4",      # Blau
+            "DNA": "#ff7f0e",          # Orange
+            "RNA": "#2ca02c",          # Grün
+            "DNA/RNA": "#d62728",      # Rot
+            "Nucleic Acid": "#9467bd"  # Lila
+        }
+
+        # Automatische Farben für alle anderen Gruppen
+        base_color_groups = [g for g in color_groups if g not in fixed_colors and g != "Multi"]
         cmap = cm.get_cmap('tab20', len(base_color_groups))
-        color_map = {group: to_hex(cmap(i)) for i, group in enumerate(base_color_groups)}
+        auto_colors = {group: to_hex(cmap(i)) for i, group in enumerate(base_color_groups)}
+
+        # Multi-Farbe im kombinierten Protein-Netzwerk
         if is_combined_protein and "Multi" in color_groups:
-            color_map["Multi"] = "#d62728"
+            auto_colors["Multi"] = "#8c564b"
+
+        # Farb-Map kombinieren: feste Farben + automatisch generierte
+        color_map = {**auto_colors, **fixed_colors}
 
         if style_name not in p4c.get_visual_style_names():
             defaults = {

@@ -109,13 +109,12 @@ def run_blast_search(query_sequence):
 def classify_molecule_type(chain):
     """
     Classifies the molecule type of a chain based on its residues.
-
-    Args:
-        chain (dict): Chain with residues.
-
-    Returns:
-        str: "Protein", "Nucleic Acid", or "Unknown".
+    Respects existing DNA/RNA subcategories.
     """
+    # Falls schon ein spezifischer Typ vorhanden ist, diesen beibehalten
+    if chain.get("molecule_type") in ["DNA", "RNA", "DNA/RNA"]:
+        return chain["molecule_type"]
+
     residues = chain["residues"]
     if len(residues) == 0:
         return "Unknown"
@@ -162,4 +161,6 @@ def parallel_blast_search(parsed_data, max_workers=16):
                 chain["molecule_name"] = f"Matched UniProt: {uniprot_id}"
                 chain["molecule_type"] = "Protein"
             else:
-                chain["molecule_type"] = classify_molecule_type(chain)
+                # Nur überschreiben, wenn wir nicht schon eine spezifische DNA/RNA-Kategorie haben
+                if chain.get("molecule_type") not in ["DNA", "RNA", "DNA/RNA"]:
+                    chain["molecule_type"] = classify_molecule_type(chain)

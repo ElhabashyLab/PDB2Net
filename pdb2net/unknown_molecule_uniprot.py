@@ -83,7 +83,22 @@ def determine_from_fasta(search_key, pdb_fasta):
         sequence = pdb_fasta[search_key]["sequence"]
         cleaned_info = re.sub(r"mol:\w+\s*", "", fasta_info)
         cleaned_info = re.sub(r"length:\d+\s*", "", cleaned_info).strip()
-        molecule_type = "Protein" if "mol:protein" in fasta_info else "Nucleic Acid"
+
+        if "mol:protein" in fasta_info.lower():
+            molecule_type = "Protein"
+        elif "mol:na" in fasta_info.lower():
+            # Detailauswertung nach length:...
+            if "dna/rna" in fasta_info.lower():
+                molecule_type = "DNA/RNA"
+            elif "dna" in fasta_info.lower():
+                molecule_type = "DNA"
+            elif "rna" in fasta_info.lower():
+                molecule_type = "RNA"
+            else:
+                molecule_type = "Nucleic Acid"
+        else:
+            molecule_type = "Unknown"
+
         return cleaned_info, molecule_type, None
     return "Unknown", "Unknown", None
 
@@ -127,11 +142,11 @@ def process_molecule_info(combined_data):
             chain["molecule_type"] = mol_type
             chain["uniprot_id"] = uniprot_id
 
-    # Optional: Einmalige Ausgabe für Debugging
-    # print("\nUniProt Assignments (example for one file):")
-    # for i, structure_data in enumerate(combined_data):
-    #     if i >= 10:
-    #         break
-    #     pdb_id = structure_data["pdb_id"]
-    #     for chain in structure_data["atom_data"]:
-    #         print(f"  {pdb_id}_{chain['chain_id']}: {chain['molecule_name']} ({chain['molecule_type']}) UniProt-ID: {chain['uniprot_id']}")
+    #Optional: Einmalige Ausgabe für Debugging
+    print("\nUniProt Assignments (example for one file):")
+    for i, structure_data in enumerate(combined_data):
+        if i >= 20:
+            break
+        pdb_id = structure_data["pdb_id"]
+        for chain in structure_data["atom_data"]:
+            print(f"  {pdb_id}_{chain['chain_id']}: {chain['molecule_name']} ({chain['molecule_type']}) UniProt-ID: {chain['uniprot_id']}")

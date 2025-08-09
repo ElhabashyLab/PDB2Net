@@ -65,22 +65,22 @@ def count_nearby_atoms(tree_a, tree_b, radius):
     return sum(len(p) for p in tree_a.query_ball_point(tree_b.data, r=radius)) if tree_a and tree_b else 0
 
 def determine_interaction_type(mol_type_a, mol_type_b):
-    """
-    Determines the molecular interaction type based on molecule types.
-
-    Args:
-        mol_type_a (str): Molecule type of chain A.
-        mol_type_b (str): Molecule type of chain B.
-
-    Returns:
-        str or None: Interaction type or None if it cannot be determined.
-    """
+    # Normale Unknown-Filterung
     if "Unknown" in [mol_type_a, mol_type_b]:
         return None
+
+    # Gruppen definieren
+    nucleic_acids = {"Nucleic Acid", "DNA", "RNA", "DNA/RNA"}
+
     if mol_type_a == mol_type_b == "Protein":
         return "Protein-Protein"
-    if "Nucleic Acid" in [mol_type_a, mol_type_b]:
-        return "Protein-Nucleic Acid" if "Protein" in [mol_type_a, mol_type_b] else "Nucleic Acid-Nucleic Acid"
+
+    if mol_type_a in nucleic_acids or mol_type_b in nucleic_acids:
+        if mol_type_a == "Protein" or mol_type_b == "Protein":
+            return "Protein-Nucleic Acid"
+        else:
+            return "Nucleic Acid-Nucleic Acid"
+
     return "Unknown"
 
 # Load radius thresholds from config
@@ -98,6 +98,9 @@ def calculate_distances_with_ckdtree(combined_data):
         list: A list of dictionaries with interaction results.
     """
     results = []
+
+    # Einheitliche Nucleic-Acid-Typen-Definition
+    nucleic_acid_types = {"Nucleic Acid", "DNA", "RNA", "DNA/RNA"}
 
     for file_data in combined_data:
         file_path, atom_data = file_data["file_path"], file_data["atom_data"]
@@ -128,7 +131,10 @@ def calculate_distances_with_ckdtree(combined_data):
             if not interaction_type:
                 continue
 
-            if "Nucleic Acid" in [chain_a["molecule_type"], chain_b["molecule_type"]]:
+            # Nucleic Acid handling (inkl. DNA/RNA/DNA-RNA)
+            if (chain_a["molecule_type"] in nucleic_acid_types or
+                chain_b["molecule_type"] in nucleic_acid_types):
+
                 all_atoms_count = count_nearby_atoms(
                     local_trees.get((chain_a["unique_chain_id"], "all_atoms")),
                     local_trees.get((chain_b["unique_chain_id"], "all_atoms")),
@@ -144,7 +150,7 @@ def calculate_distances_with_ckdtree(combined_data):
                     })
                 continue
 
-            # Only if at least 10 CA atoms are close
+            # Protein-Protein handling (CA-Filter)
             if count_nearby_atoms(
                 local_trees.get((chain_a["unique_chain_id"], "ca")),
                 local_trees.get((chain_b["unique_chain_id"], "ca")),

@@ -187,7 +187,7 @@ def create_batches_streaming(file_paths, max_batch_kb):
         yield current_batch
 
 
-def batch_run(input_folder, timeout_minutes=10, size_limit_kb=716800):  # 700 MB
+def batch_run(input_folder, timeout_minutes=10, size_limit_kb=720800):  # 700 MB
     def stream_valid_files(folder):
         for entry in os.scandir(folder):
             if entry.is_file() and is_valid_file(entry.path):

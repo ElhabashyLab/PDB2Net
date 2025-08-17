@@ -65,23 +65,52 @@ def count_nearby_atoms(tree_a, tree_b, radius):
     return sum(len(p) for p in tree_a.query_ball_point(tree_b.data, r=radius)) if tree_a and tree_b else 0
 
 def determine_interaction_type(mol_type_a, mol_type_b):
-    # Normale Unknown-Filterung
-    if "Unknown" in [mol_type_a, mol_type_b]:
+    """
+    Returns a fine-grained interaction label.
+
+    Rules:
+      - Unknown -> skip (None)
+      - Protein-Protein
+      - Protein-(DNA | RNA | DNA/RNA | Nucleic Acid)
+      - Nucleic-acid pairs:
+          DNA-DNA, RNA-RNA, DNA-RNA, DNA-DNA/RNA, RNA-DNA/RNA, DNA/RNA-DNA/RNA
+        If either side is the generic 'Nucleic Acid', fall back to 'Nucleic Acid-Nucleic Acid'.
+    """
+    a = (mol_type_a or "Unknown").strip()
+    b = (mol_type_b or "Unknown").strip()
+
+    if "Unknown" in (a, b):
         return None
 
-    # Gruppen definieren
-    nucleic_acids = {"Nucleic Acid", "DNA", "RNA", "DNA/RNA"}
+    # Normalized sets
+    specific_na = {"DNA", "RNA", "DNA/RNA"}
+    generic_na = "Nucleic Acid"
 
-    if mol_type_a == mol_type_b == "Protein":
+    # Protein—Protein
+    if a == "Protein" and b == "Protein":
         return "Protein-Protein"
 
-    if mol_type_a in nucleic_acids or mol_type_b in nucleic_acids:
-        if mol_type_a == "Protein" or mol_type_b == "Protein":
+    # Protein—Nucleic Acid variants
+    if "Protein" in (a, b):
+        other = b if a == "Protein" else a
+        if other in specific_na:
+            return f"Protein-{other}"
+        if other == generic_na:
             return "Protein-Nucleic Acid"
-        else:
-            return "Nucleic Acid-Nucleic Acid"
+        # Anything else -> unknown combo
+        return None
 
-    return "Unknown"
+    # Nucleic Acid—Nucleic Acid variants
+    if a in specific_na and b in specific_na:
+        # Sort for canonical labels like DNA-RNA (not order-dependent)
+        pair = "-".join(sorted([a, b], key=lambda x: {"DNA": 0, "RNA": 1, "DNA/RNA": 2}.get(x, 3)))
+        return pair
+
+    # If either side is only generic NA, keep it generic
+    if generic_na in (a, b) and (a in specific_na | {generic_na}) and (b in specific_na | {generic_na}):
+        return "Nucleic Acid-Nucleic Acid"
+
+    return None
 
 # Load radius thresholds from config
 RADIUS_CA = config["distance_thresholds"]["ca_radius"]

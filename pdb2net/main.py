@@ -1,6 +1,3 @@
-import logging
-logging.getLogger("py4cytoscape").disabled = True
-logging.getLogger("py4cytoscape.detail").disabled = True
 import time
 import os
 import gc
@@ -43,9 +40,6 @@ def process_single_file(file_path):
 
 
 def run_main(batch_files):
-    import logging
-    logging.getLogger("py4cytoscape").disabled = True
-    logging.getLogger("py4cytoscape.detail").disabled = True
     from main import main
     main(batch_files)
 

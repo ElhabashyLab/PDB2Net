@@ -8,14 +8,6 @@ import time
 import py4cytoscape as p4c
 import subprocess
 from config_loader import config
-# --- hard-disable py4cytoscape logging to avoid file locks on Windows ---
-import logging
-for _name in ("py4cytoscape", "py4cytoscape.detail"):
-    _lg = logging.getLogger(_name)
-    _lg.propagate = False
-    _lg.handlers.clear()
-    _lg.disabled = True
-# ------------------------------------------------------------------------
 
 def ensure_cytoscape_running():
     try:

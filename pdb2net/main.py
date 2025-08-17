@@ -187,7 +187,7 @@ def create_batches_streaming(file_paths, max_batch_kb):
         yield current_batch
 
 
-def batch_run(input_folder, timeout_minutes=10, size_limit_kb=720800):  # 700 MB
+def batch_run(input_folder, timeout_minutes=10, size_limit_kb=900800):  # ~700 MB
     def stream_valid_files(folder):
         for entry in os.scandir(folder):
             if entry.is_file() and is_valid_file(entry.path):
@@ -206,6 +206,18 @@ def batch_run(input_folder, timeout_minutes=10, size_limit_kb=720800):  # 700 MB
     for i, batch_files in enumerate(create_batches_streaming(file_stream, size_limit_kb), start=1):
         print(f"\n--- Bearbeite Batch {i} ({len(batch_files)} Dateien) ---")
 
+        # 👉 Wenn Cytoscape/py4cytoscape genutzt wird, NICHT in einem separaten Prozess ausführen,
+        #    damit keine parallelen Rotationszugriffe auf die Logdatei passieren.
+        if config.get("open_in_cytoscape", False):
+            start_time_batch = time.time()
+            run_main(batch_files)  # direkt im Hauptprozess
+            duration = time.time() - start_time_batch
+            total_done += len(batch_files)
+            print(f"✅ Batch {i} abgeschlossen in {duration:.1f} Sekunden.")
+            print(f"📈 Verarbeitet bisher: {total_done} Dateien.")
+            continue
+
+        # Standardpfad: Batch in Subprozess mit Timeout
         start_time_batch = time.time()
         process = multiprocessing.Process(target=run_main, args=(batch_files,))
         process.start()
@@ -226,7 +238,7 @@ def batch_run(input_folder, timeout_minutes=10, size_limit_kb=720800):  # 700 MB
             print(f"📈 Verarbeitet bisher: {total_done} Dateien.")
 
     total_time_all = time.time() - start_time_all
-    print(f"\n⏱ Gesamtzeit aller Batches: {total_time_all:.2f} Sekunden")
+    print(f"\n⏱ Gesamtzeit aller Batches: {total_time_all:.2f} Sekunden") 
 
 
 

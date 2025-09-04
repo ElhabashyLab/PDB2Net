@@ -135,6 +135,7 @@ def main(input_path_or_filelist):
             pdb_id = entry["chain_a"].split(":")[0]
             results_by_pdb.setdefault(pdb_id, []).append(entry)
 
+        # 1) PDBs mit Interaktionen (wie bisher)
         for pdb_id, pdb_results in results_by_pdb.items():
             structure = next((s for s in combined_data if s["pdb_id"] == pdb_id), None)
             if not structure:
@@ -142,7 +143,17 @@ def main(input_path_or_filelist):
             nodes_data = generate_nodes_from_atom_data(structure["atom_data"], pdb_id)
             network_title = f"Chain_Interaction_Network_{pdb_id}"
             create_cytoscape_network(pdb_results, network_title, run_output_path, nodes_data=nodes_data)
+
+        # 2) NEU: PDBs ohne Interaktionen → Nodes-only Netzwerk
+        for structure in combined_data:
+            pdb_id = structure["pdb_id"]
+            if pdb_id not in results_by_pdb:
+                nodes_data = generate_nodes_from_atom_data(structure["atom_data"], pdb_id)
+                network_title = f"Chain_Interaction_Network_{pdb_id}"
+                create_cytoscape_network([], network_title, run_output_path, nodes_data=nodes_data)
+
         sum_times["networks"] += time.time() - start_time
+
 
     # === Netzwerkexport: alle Ketten kombiniert ===
     if network_config["combined_chain_network"]:
@@ -214,7 +225,7 @@ def create_batches_streaming(file_paths, max_batch_kb):
         yield current_batch
 
 
-def batch_run(input_folder, timeout_minutes=10, size_limit_kb=900800):  # ~700 MB
+def batch_run(input_folder, timeout_minutes=10, size_limit_kb=900800): 
     def stream_valid_files(folder):
         for entry in os.scandir(folder):
             if entry.is_file() and is_valid_file(entry.path):
@@ -233,7 +244,7 @@ def batch_run(input_folder, timeout_minutes=10, size_limit_kb=900800):  # ~700 M
     for i, batch_files in enumerate(create_batches_streaming(file_stream, size_limit_kb), start=1):
         print(f"\n--- Bearbeite Batch {i} ({len(batch_files)} Dateien) ---")
 
-        # 👉 Wenn Cytoscape/py4cytoscape genutzt wird, NICHT in einem separaten Prozess ausführen,
+        #    Wenn Cytoscape/py4cytoscape genutzt wird, NICHT in einem separaten Prozess ausführen,
         #    damit keine parallelen Rotationszugriffe auf die Logdatei passieren.
         if config.get("open_in_cytoscape", False):
             start_time_batch = time.time()

@@ -25,7 +25,7 @@
         "blast_threads": "auto"
     },
 
-    "keep_last_n_networks": 30,
+    "keep_last_n_networks": 35,
     "export_detailed_interactions": true,
     "open_in_cytoscape": true
 }

@@ -94,6 +94,10 @@ def determine_from_fasta(search_key, pdb_fasta):
                 molecule_type = "DNA"
             elif "rna" in fasta_info.lower():
                 molecule_type = "RNA"
+            elif "polyribonucleotide" in fasta_info.lower():
+                molecule_type = "RNA"
+            elif "polydeoxyribonucleotide" in fasta_info.lower():
+                molecule_type = "DNA"
             else:
                 molecule_type = "Nucleic Acid"
         else:

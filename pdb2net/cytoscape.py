@@ -169,7 +169,7 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
             "Protein": "#1f77b4",      # Blau
             "DNA": "#ff7f0e",          # Orange
             "RNA": "#2ca02c",          # Grün
-            "DNA/RNA": "#d62728",      # Rot
+            "DNA/RNA": "#556b2f",      # Olive
             "Nucleic Acid": "#9467bd"  # Lila
         }
 

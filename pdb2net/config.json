@@ -1,5 +1,5 @@
 {
-    "input_folder_path": "D:/PDB_Files/Datensatz19",
+    "input_folder_path": "D:/PDB_Files/Datensatz22",
     "pdb_fasta_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/pdb_seqres.txt",
     "uniprot_fasta_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/uniprot_sprot.fasta",
     "sifts_tsv_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/pdb_chain_uniprot.tsv",
@@ -19,7 +19,7 @@
     "ca_radius": 15.0,
     "all_atoms_radius": 5.0
     },
-    
+
     "workers": {
         "parsing": "auto",
         "blast_threads": "auto"

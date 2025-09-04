@@ -15,6 +15,29 @@ from config_loader import config
 from cytoscape import create_cytoscape_network, generate_nodes_from_atom_data
 from protein_network import create_protein_network
 
+def _resolve_workers(value, *, kind="parsing"):
+    """
+    Wandelt config-Werte in eine sinnvolle Worker-Zahl um.
+    - "auto": heuristisch basierend auf os.cpu_count()
+    - int: verwendet den Wert, min. 1
+    - None/fehlend: wie "auto"
+    """
+    import os
+    cpu = os.cpu_count() or 4
+
+    if isinstance(value, int):
+        return max(1, value)
+
+    if kind == "parsing":
+        
+        return max(1, cpu - 1)
+    if kind == "blast":
+        
+        return max(1, cpu - 2)
+
+    return max(1, cpu - 1)
+
+
 def process_single_file(file_path):
     """
     Verarbeitet eine einzelne PDB/mmCIF-Datei vollständig:
@@ -67,7 +90,12 @@ def main(input_path_or_filelist):
 
     start_time = time.time()
     t_parse = time.time()
-    with ProcessPoolExecutor(max_workers=12) as executor:
+    parsing_workers = _resolve_workers(
+        config.get("workers", {}).get("parsing"),
+        kind="parsing"
+    )
+    print(f"[Workers] Parsing-Prozesse: {parsing_workers}")
+    with ProcessPoolExecutor(max_workers=parsing_workers) as executor:
         combined_data = list(filter(None, executor.map(process_single_file, file_paths)))
     parsing_duration = time.time() - t_parse
     sum_times["parsing"] = time.time() - start_time
@@ -79,7 +107,12 @@ def main(input_path_or_filelist):
 
     # === Klassifikation via BLAST (nur fehlende IDs) ===
     start_time = time.time()
-    parallel_blast_search(combined_data, max_workers=4)
+    blast_workers = _resolve_workers(
+        config.get("workers", {}).get("blast_threads"),
+        kind="blast"
+    )
+    print(f"[Workers] BLAST-Threads: {blast_workers}")
+    parallel_blast_search(combined_data, max_workers=blast_workers)
     sum_times["blast"] = time.time() - start_time
 
     # === Interaktionsanalyse ===

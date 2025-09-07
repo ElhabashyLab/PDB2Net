@@ -3,126 +3,114 @@ from cytoscape import create_cytoscape_network
 
 def create_protein_network(results, combined_data, run_output_path, network_config):
     """
-    Builds and visualizes protein-level interaction networks using UniProt IDs.
-
-    Depending on the configuration, the function creates:
-      - separate networks per PDB file
-      - a combined protein-level network
-
-    Args:
-        results (list): List of interaction dictionaries (chain pairs and distances).
-        combined_data (list): Parsed structure data including atom chains and UniProt annotations.
-        run_output_path (str): Output directory for saving Cytoscape files.
-        network_config (dict): Configuration flags to control which networks to generate.
+    Erzeugt Protein-Level Netzwerke (UniProt-Knoten) – pro PDB und/oder kombiniert.
+    NEU: Auch wenn es keine Protein-Protein-Kanten gibt, wird ein Nodes-only Netzwerk gebaut
+    (z. B. wenn eine PDB nur ein einziges UniProt-Protein enthält oder nur Homomere vorliegen).
     """
-    if not network_config["protein_per_pdb"] and not network_config["combined_protein_network"]:
+    if not network_config.get("protein_per_pdb", False) and not network_config.get("combined_protein_network", False):
         print("Protein network creation is disabled.")
         return
 
-    chain_to_uniprot = {}
-    uniprot_to_pdb_ids = {}
-    uniprot_to_name = {}
+    # --------- Sammle UniProt-Informationen ----------
+    chain_to_uniprot = {}       # "PDB:Chain" -> UniProt
+    uniprot_to_pdb_ids = {}     # UniProt -> {PDBs}
+    uniprot_to_name = {}        # UniProt -> schöner Name
+    pdb_to_uniprots = {}        # PDB -> {UniProt-IDs in dieser PDB}
 
-    # Build mapping from chain IDs to UniProt and names
     for structure in combined_data:
         pdb_id = structure["pdb_id"]
         for chain in structure["atom_data"]:
-            chain_id = chain["chain_id"]
-            unique_chain_id = f"{pdb_id}:{chain_id}"
+            unique_chain_id = f"{pdb_id}:{chain['chain_id']}"
             uniprot_id = chain.get("uniprot_id")
-            name = chain.get("molecule_name", "Unknown")
-            if uniprot_id:
-                chain_to_uniprot[unique_chain_id] = uniprot_id
-                uniprot_to_pdb_ids.setdefault(uniprot_id, set()).add(pdb_id)
-                uniprot_to_name[uniprot_id] = name
+            if not uniprot_id:
+                continue
+            chain_to_uniprot[unique_chain_id] = uniprot_id
+            uniprot_to_name[uniprot_id] = chain.get("molecule_name", "Unknown")
+            uniprot_to_pdb_ids.setdefault(uniprot_id, set()).add(pdb_id)
+            pdb_to_uniprots.setdefault(pdb_id, set()).add(uniprot_id)
 
+    # --------- Aggregiere Interaktionen auf UniProt-Ebene ----------
     protein_interactions = set()
     interaction_data = {}
 
-    # Group interactions by UniProt-level pairs
     for entry in results:
-        if entry.get("all_atoms_count", 0) > 0:
-            chain_a = entry["chain_a"]
-            chain_b = entry["chain_b"]
-            uniprot_a = chain_to_uniprot.get(chain_a)
-            uniprot_b = chain_to_uniprot.get(chain_b)
+        if entry.get("all_atoms_count", 0) <= 0:
+            continue
 
-            if not uniprot_a or not uniprot_b or uniprot_a == uniprot_b:
-                continue
+        up_a = chain_to_uniprot.get(entry["chain_a"])
+        up_b = chain_to_uniprot.get(entry["chain_b"])
+        if not up_a or not up_b:
+            continue
 
-            if network_config["protein_per_pdb"]:
-                pdb_id = chain_a.split(":")[0]
-                interaction_key = (pdb_id, tuple(sorted([uniprot_a, uniprot_b])))
-            else:
-                interaction_key = tuple(sorted([uniprot_a, uniprot_b]))
+        # Homomere (up_a == up_b) werden als Kanten weggelassen; für Einzel-Protein-PDBs wollen wir Nodes-only
+        if up_a == up_b:
+            continue
 
-            if interaction_key not in protein_interactions:
-                protein_interactions.add(interaction_key)
-                interaction_data[interaction_key] = {
-                    "uniprot_a": uniprot_a,
-                    "uniprot_b": uniprot_b,
-                    "all_atoms_count": entry["all_atoms_count"]
-                }
+        if network_config.get("protein_per_pdb", False):
+            pdb_id = entry["chain_a"].split(":")[0]
+            inter_key = (pdb_id, tuple(sorted([up_a, up_b])))
+        else:
+            inter_key = tuple(sorted([up_a, up_b]))
 
-    def get_color_group(uniprot_id):
-        """
-        Determines the color group label based on the number of PDB files a UniProt ID appears in.
-        """
+        if inter_key not in protein_interactions:
+            protein_interactions.add(inter_key)
+            interaction_data[inter_key] = {
+                "uniprot_a": up_a,
+                "uniprot_b": up_b,
+                "all_atoms_count": entry["all_atoms_count"]
+            }
+
+    # --------- Hilfsfunktionen für Nodes ----------
+    def get_color_group(uniprot_id: str) -> str:
+        """Ein PDB-Code, wenn das UniProt nur in genau 1 PDB vorkommt; sonst 'Multi'."""
         pdbs = uniprot_to_pdb_ids.get(uniprot_id, set())
-        if not pdbs:
-            return "Multi"
-        return "Multi" if len(pdbs) > 1 else list(pdbs)[0]
+        return "Multi" if len(pdbs) != 1 else next(iter(pdbs))
 
-    def generate_nodes(interactions):
-        """
-        Generates Cytoscape nodes from interaction edges.
+    def nodes_from_uniprots(uniprot_ids):
+        return [{
+            "id": up,
+            "color_group": get_color_group(up),
+            "molecule_name": uniprot_to_name.get(up, up)
+        } for up in sorted(uniprot_ids)]
 
-        Args:
-            interactions (list): List of edges with UniProt IDs.
-
-        Returns:
-            list: Node dictionaries with ID, color group and name.
-        """
-        nodes = set()
-        for inter in interactions:
-            nodes.add(inter["chain_a"])
-            nodes.add(inter["chain_b"])
-
-        node_list = [{
-            "id": node,
-            "label": node,
-            "color_group": get_color_group(node),
-            "molecule_name": uniprot_to_name.get(node, node)
-        } for node in nodes]
-
-        return node_list
-
-    # Generate networks per PDB if enabled
-    if network_config["protein_per_pdb"]:
-        #print("\nCreating separate protein networks for each PDB file...")
+    # --------- Netzwerke pro PDB ----------
+    if network_config.get("protein_per_pdb", False):
+        # Edges je PDB
         results_by_pdb = {}
         for (pdb_id, (a, b)), inter in interaction_data.items():
             results_by_pdb.setdefault(pdb_id, []).append({
-                "chain_a": inter.get("uniprot_a", "UNKNOWN_A"),
-                "chain_b": inter.get("uniprot_b", "UNKNOWN_B"),
+                "chain_a": inter["uniprot_a"],
+                "chain_b": inter["uniprot_b"],
                 "all_atoms_count": inter["all_atoms_count"]
             })
 
-        for pdb_id, pdb_results in results_by_pdb.items():
-            nodes = generate_nodes(pdb_results)
+        # 1) PDBs MIT Kanten: nutze alle in der PDB vorkommenden UniProts als Nodes
+        for pdb_id, edges in results_by_pdb.items():
+            node_set = pdb_to_uniprots.get(pdb_id, set())
+            nodes = nodes_from_uniprots(node_set)
             network_title = f"Protein_Network_{pdb_id}"
-            create_cytoscape_network(pdb_results, network_title, run_output_path, nodes_data=nodes)
+            create_cytoscape_network(edges, network_title, run_output_path, nodes_data=nodes)
 
-    # Generate one combined protein network if enabled
-    if network_config["combined_protein_network"]:
-        print("\nCreating a single combined protein network...")
-        combined_results = []
+        # 2) PDBs OHNE Kanten (z. B. nur 1 UniProt oder nur Homomere) -> Nodes-only
+        for pdb_id, node_set in pdb_to_uniprots.items():
+            if pdb_id not in results_by_pdb:
+                if not node_set:
+                    continue
+                nodes = nodes_from_uniprots(node_set)
+                network_title = f"Protein_Network_{pdb_id}"
+                create_cytoscape_network([], network_title, run_output_path, nodes_data=nodes)
+
+    # --------- Kombiniertes Protein-Netzwerk ----------
+    if network_config.get("combined_protein_network", False):
+        combined_edges = []
         for inter in interaction_data.values():
-            combined_results.append({
-                "chain_a": inter.get("uniprot_a", "UNKNOWN_A"),
-                "chain_b": inter.get("uniprot_b", "UNKNOWN_B"),
+            combined_edges.append({
+                "chain_a": inter["uniprot_a"],
+                "chain_b": inter["uniprot_b"],
                 "all_atoms_count": inter["all_atoms_count"]
             })
 
-        nodes = generate_nodes(combined_results)
-        create_cytoscape_network(combined_results, "Combined_Protein_Network", run_output_path, nodes_data=nodes)
+        # Alle UniProts, die überhaupt im Datensatz vorkommen – auch wenn sie keine Kante haben
+        all_uniprots = set(uniprot_to_name.keys())
+        nodes = nodes_from_uniprots(all_uniprots)
+        create_cytoscape_network(combined_edges, "Combined_Protein_Network", run_output_path, nodes_data=nodes)

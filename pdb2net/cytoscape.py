@@ -210,7 +210,7 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
             "Protein": "#1f77b4",
             "DNA": "#ff7f0e",
             "RNA": "#2ca02c",
-            "DNA/RNA": "#d62728",
+            "DNA/RNA": "#a2a200",
             "Nucleic Acid": "#9467bd"
         }
 
@@ -219,7 +219,7 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         cmap = cm.get_cmap('tab20', len(base_color_groups))
         auto_colors = {group: to_hex(cmap(i)) for i, group in enumerate(base_color_groups)}
         if is_combined_protein and "Multi" in color_groups:
-            auto_colors["Multi"] = "#8c564b"
+            auto_colors["Multi"] = "#FF0000"
         color_map = {**auto_colors, **fixed_colors}
 
         # Style einmalig anlegen (falls nicht vorhanden)

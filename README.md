@@ -148,6 +148,22 @@ Before using the tool, adjust the following paths and parameters in `config.json
 ⚠ **Important:** Adjust paths according to your system!
 
 
+# Cite
+Habitzreither, G., Gautam, Lupas, A., Elhabashy, H. PDB2Net: Automated extraction of biomolecular Interaction Networks from Three-Dimensional Structures. Manuscript in preparation.
+
+# Authors
+- Gregor Habitzreither
+- Hadeer Elhabashy
+
+# Contact
+If you have any questions or inquiries, please feel free to contact Hadeer Elhabashy at (Elhabashylab [@] gmail.com))
+
+# License
+- The **PDB2NET code** in this repository is licensed under the [MIT License](./LICENSE).
+
+
+
+
 
 
 

@@ -92,6 +92,160 @@ def compute_preset_positions_spring(nodes_df, edges_df, network_title, scale=100
 
     return {n: {"x": float(x), "y": float(y)} for n, (x, y) in pos.items()}
 
+def _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df_for_export, color_map, positions):
+    """
+    Schreibt eine portable CX2-Datei (ohne Cytoscape). Beinhaltet:
+      - nodes/edges mit Attributen (name, tooltip, color_group, interaction, all_atoms_count)
+      - Knoten-Positionen (x,y) aus 'positions'
+      - Visual Styles via visualProperties:
+          NODE_LABEL (Passthrough:name)
+          NODE_TOOLTIP (Passthrough:tooltip)
+          NODE_BACKGROUND_COLOR (Discrete: color_group -> Farbe)
+          EDGE_WIDTH (Continuous: all_atoms_count -> 1..6)
+          plus Defaults (Node-Size, Edge-Opacity, Curvature etc.)
+    """
+    import json, os
+
+    os.makedirs(run_output_path, exist_ok=True)
+    out_path = os.path.join(run_output_path, f"{network_title}.cx2")
+
+    # --- IDs abbilden (CX2 verlangt numerische ids) ---
+    node_ids = list(nodes_df["id"].astype(str))
+    nid_map = {nid: i+1 for i, nid in enumerate(node_ids)}
+
+    # --- Nodes (mit x,y + Attribute v:{}) ---
+    nodes_aspect = []
+    for _, row in nodes_df.iterrows():
+        nid = str(row["id"])
+        pos = positions.get(nid, {"x": 0.0, "y": 0.0})
+        nodes_aspect.append({
+            "id": nid_map[nid],
+            "x": float(pos["x"]),
+            "y": float(pos["y"]),
+            "v": {
+                "name": str(row.get("name", nid)),
+                "tooltip": str(row.get("tooltip", "")),
+                "color_group": str(row.get("color_group", "Unknown"))
+            }
+        })
+
+    # --- Edges (s,t numerisch + Attribute v:{}) ---
+    edges_aspect = []
+    max_w = 1
+    for _, r in edges_df_for_export.iterrows():
+        try:
+            max_w = max(max_w, int(r.get("all_atoms_count", 1)))
+        except Exception:
+            pass
+    for i, r in edges_df_for_export.iterrows():
+        s = nid_map.get(str(r["source"]))
+        t = nid_map.get(str(r["target"]))
+        if s is None or t is None or s == t:
+            continue
+        edges_aspect.append({
+            "id": i + 1,
+            "s": s,
+            "t": t,
+            "v": {
+                "interaction": str(r.get("interaction", "interacts_with")),
+                "all_atoms_count": int(r.get("all_atoms_count", 1))
+            }
+        })
+
+    # --- attributeDeclarations (Datentypen) ---
+    attr_decls = {
+        "attributeDeclarations": [{
+            "networkAttributes": { "name": { "d": "string" } },
+            "nodes": {
+                "name":        { "d": "string" },
+                "tooltip":     { "d": "string" },
+                "color_group": { "d": "string" }
+            },
+            "edges": {
+                "interaction":     { "d": "string" },
+                "all_atoms_count": { "d": "integer" }
+            }
+        }]
+    }
+
+    # --- Visual Properties (portable, CX2) ---
+    # Diskrete Farbmap aus color_map -> NODE_BACKGROUND_COLOR
+    discrete_map = [{"v": k, "vp": v} for k, v in color_map.items()]
+
+    visual_props = {
+        "visualProperties": [{
+            "default": {
+                "network": {
+                    "NETWORK_BACKGROUND_COLOR": "#FFFFFF"
+                },
+                "node": {
+                    "NODE_SHAPE": "ellipse",
+                    "NODE_WIDTH": 40.0,
+                    "NODE_HEIGHT": 40.0,
+                    "NODE_BORDER_COLOR": "#555555"
+                },
+                "edge": {
+                    "EDGE_LINE_COLOR": "#888888",
+                    "EDGE_OPACITY": 0.6,
+                    "EDGE_CURVED": True
+                }
+            },
+            "nodeMapping": {
+                "NODE_LABEL": {
+                    "type": "PASSTHROUGH",
+                    "definition": { "attribute": "name", "type": "string" }
+                },
+                "NODE_TOOLTIP": {
+                    "type": "PASSTHROUGH",
+                    "definition": { "attribute": "tooltip", "type": "string" }
+                },
+                "NODE_BACKGROUND_COLOR": {
+                    "type": "DISCRETE",
+                    "definition": {
+                        "attribute": "color_group",
+                        "type": "string",
+                        "map": discrete_map
+                    }
+                }
+            },
+            "edgeMapping": {
+                "EDGE_WIDTH": {
+                    "type": "CONTINUOUS",
+                    "definition": {
+                        "attribute": "all_atoms_count",
+                        "type": "integer",
+                        "map": [{
+                            "min": 1.0, "includeMin": True,
+                            "max": float(max_w), "includeMax": True,
+                            "minVPValue": 1.0, "maxVPValue": 6.0
+                        }]
+                    }
+                }
+            }
+        }]
+    }
+
+    # --- networkAttributes.name setzen ---
+    network_attrs = {
+        "networkAttributes": [{
+            "name": network_title
+        }]
+    }
+
+    cx = [
+        { "CXVersion": "2.0", "hasFragments": False },
+        attr_decls,
+        network_attrs,
+        { "nodes": nodes_aspect },
+        { "edges": edges_aspect },
+        visual_props,
+        { "status": [{ "error": "", "success": True }] }
+    ]
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(cx, f, ensure_ascii=False, indent=2)
+
+
 def create_cytoscape_network(results, network_title="Protein_Interaction_Network", run_output_path=".", nodes_data=None):
     import py4cytoscape as p4c
     import pandas as pd
@@ -211,6 +365,19 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
             "layout": {"name": "preset"}
         }
 
+        # === NEW: Headless CX2 export (no Cytoscape required) ===
+        try:
+            _export_cx2_headless(
+                network_title=network_title,
+                run_output_path=run_output_path,
+                nodes_df=nodes_df,
+                edges_df_for_export=edges_df_for_export,
+                color_map=color_map,
+                positions=positions
+            )
+        except Exception as _cx2e:
+            print(f"[headless-cx2] export failed: {_cx2e}")
+
         with open(network_file, "w", encoding="utf-8") as f:
             json.dump(cyjs_data, f, indent=2)
         return
@@ -221,21 +388,39 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         oldest_network = existing_networks.pop(0)
         p4c.delete_network(oldest_network)
 
-    p4c.create_network_from_data_frames(nodes_df, edges_df_for_cyto, title=network_title)
-
-    # Node-Tabellenspalten nachladen (Label/Tooltip/Farbgruppe)
+    # Netzwerk in Cytoscape erstellen
     try:
+        if edges_df_for_cyto is not None and len(edges_df_for_cyto) > 0:
+            p4c.create_network_from_data_frames(
+                nodes=nodes_df,
+                edges=edges_df_for_cyto,
+                title=network_title,
+                collection=network_title
+            )
+        else:
+            p4c.create_network_from_data_frames(
+                nodes=nodes_df,
+                edges=None,
+                title=network_title,
+                collection=network_title
+            )
+    except Exception as e:
+        print(f"Error while creating network: {e}")
+
+    # Node-Attribute (Tooltip/Name/ColorGroup) in Cytoscape-Tabelle laden
+    try:
+        if "name" in nodes_df.columns:
+            p4c.load_table_data(
+                data=nodes_df[["id", "name"]],
+                data_key_column="id",
+                table="node", table_key_column="id"
+            )
         if "color_group" in nodes_df.columns:
             p4c.load_table_data(
                 data=nodes_df[["id", "color_group"]],
                 data_key_column="id",
                 table="node", table_key_column="id"
             )
-        p4c.load_table_data(
-            data=nodes_df[["id", "name"]],
-            data_key_column="id",
-            table="node", table_key_column="id"
-        )
         if "tooltip" in nodes_df.columns:
             p4c.load_table_data(
                 data=nodes_df[["id", "tooltip"]],
@@ -266,11 +451,11 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
             "Nucleic Acid": "#9467bd"
         }
         base_color_groups = [g for g in color_groups if g not in fixed_colors and g != "Multi"]
-        cmap = cm.get_cmap('tab20', len(base_color_groups))
+        cmap = cm.get_cmap('tab20', max(1, len(base_color_groups)))
         auto_colors = {group: to_hex(cmap(i)) for i, group in enumerate(base_color_groups)}
-        if is_combined_protein and "Multi" in color_groups:
+        if "Multi" in color_groups and "Multi" not in fixed_colors:
             auto_colors["Multi"] = "#FF0000"
-        color_map = {**auto_colors, **fixed_colors}
+        color_map = {**fixed_colors, **auto_colors}
 
         if style_name not in p4c.get_visual_style_names():
             defaults = {
@@ -280,7 +465,7 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
                 "EDGE_TRANSPARENCY": 120
             }
             mappings = [
-                {"mappingType": "passthrough", "mappingColumn": "name",    "mappingColumnType": "String", "visualProperty": "NODE_LABEL"},
+                {"mappingType": "passthrough", "mappingColumn": "name", "mappingColumnType": "String", "visualProperty": "NODE_LABEL"},
                 {"mappingType": "passthrough", "mappingColumn": "tooltip", "mappingColumnType": "String", "visualProperty": "NODE_TOOLTIP"},
                 {
                     "mappingType": "discrete",
@@ -317,6 +502,7 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
                 p4c.export_network(cx2_file, type="CX")
     except Exception as e:
         print(f"Error while exporting files: {e}")
+
 
 
 def generate_nodes_from_atom_data(atom_data, pdb_id=None):

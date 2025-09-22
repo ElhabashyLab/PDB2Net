@@ -92,52 +92,6 @@ def compute_preset_positions_spring(nodes_df, edges_df, network_title, scale=100
 
     return {n: {"x": float(x), "y": float(y)} for n, (x, y) in pos.items()}
 
-
-def export_custom_cyjs(nodes_df, edges_df, network_title, run_output_path):
-    """
-    Saves a Cytoscape-compatible .cyjs file without using Cytoscape.
-    Includes molecule_name, tooltip, color_group etc. in the node attributes.
-    """
-    import json
-    os.makedirs(run_output_path, exist_ok=True)
-    network_file = os.path.join(run_output_path, f"{network_title}.cyjs")
-
-    nodes = []
-    for _, row in nodes_df.iterrows():
-        node = {
-            "data": {
-                "id": row["id"],
-                "name": row["name"],
-                "molecule_name": row.get("molecule_name", "Unknown")
-            }
-        }
-        if "color_group" in row:
-            node["data"]["color_group"] = row["color_group"]
-        if "tooltip" in row:
-            node["data"]["tooltip"] = row["tooltip"]
-        nodes.append(node)
-
-    edges = []
-    for idx, row in edges_df.iterrows():
-        edge = {
-            "data": {
-                "id": f"edge_{idx}",
-                "source": row["source"],
-                "target": row["target"],
-                "interaction": row.get("interaction", "interacts_with"),
-                "all_atoms_count": row.get("all_atoms_count", 0)
-            }
-        }
-        edges.append(edge)
-
-    cyjs_data = {
-        "data": {"name": network_title},
-        "elements": {"nodes": nodes, "edges": edges}
-    }
-
-    with open(network_file, "w") as f:
-        json.dump(cyjs_data, f, indent=2)
-
 def create_cytoscape_network(results, network_title="Protein_Interaction_Network", run_output_path=".", nodes_data=None):
     import py4cytoscape as p4c
     import pandas as pd
@@ -178,7 +132,7 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
     # === PFAD 1: Headless → schreibe .cyjs mit JS-Style + preset ===
     if not config.get("open_in_cytoscape", True):
         os.makedirs(run_output_path, exist_ok=True)
-        network_file = os.path.join(run_output_path, f"{network_title}.cyjs")
+        network_file = os.path.join(run_output_path, f"{network_title}.web.cyjs")
 
         fixed_colors = {
             "Protein": "#1f77b4",

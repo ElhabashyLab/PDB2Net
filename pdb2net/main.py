@@ -282,8 +282,7 @@ def batch_run(input_folder, timeout_minutes=10, size_limit_kb=900800):
 
 if __name__ == "__main__":
     from cytoscape import ensure_cytoscape_running
-    ensure_cytoscape_running()
+    if config.get("open_in_cytoscape", True):
+        ensure_cytoscape_running()
     INPUT_FOLDER_PATH = config["input_folder_path"]
     batch_run(INPUT_FOLDER_PATH)
-
-

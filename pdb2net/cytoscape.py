@@ -388,6 +388,16 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         oldest_network = existing_networks.pop(0)
         p4c.delete_network(oldest_network)
 
+    # --- Collection-Auswahl nach Netztyp (Chain/Protein/Combined) ---
+    title_lower = str(network_title).lower()
+    if 'combined' in title_lower:
+        collection_name = 'PDB2Net — Combined'
+    elif 'protein' in title_lower:
+        collection_name = 'PDB2Net — Protein'
+    else:
+        # Default: alles was nicht 'protein' enthält, behandeln wir als Chain (inkl. 'Chain_Interaction_Network_*')
+        collection_name = 'PDB2Net — Chain'
+
     # Netzwerk in Cytoscape erstellen
     try:
         if edges_df_for_cyto is not None and len(edges_df_for_cyto) > 0:
@@ -395,14 +405,14 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
                 nodes=nodes_df,
                 edges=edges_df_for_cyto,
                 title=network_title,
-                collection=network_title
+                collection=collection_name
             )
         else:
             p4c.create_network_from_data_frames(
                 nodes=nodes_df,
                 edges=None,
                 title=network_title,
-                collection=network_title
+                collection=collection_name
             )
     except Exception as e:
         print(f"Error while creating network: {e}")

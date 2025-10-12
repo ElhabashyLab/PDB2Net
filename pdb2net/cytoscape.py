@@ -249,6 +249,7 @@ def _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df_for_
 def create_cytoscape_network(results, network_title="Protein_Interaction_Network", run_output_path=".", nodes_data=None):
     import py4cytoscape as p4c
     import pandas as pd
+    import json, os
     from matplotlib import cm
     from matplotlib.colors import to_hex
 
@@ -274,7 +275,7 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         nodes_df["tooltip"] = nodes_df["id"]
 
     # --- Edges-DF (Export & Cytoscape) ---
-    if edges:
+    if len(edges) > 0:
         edges_df_for_export = pd.DataFrame(edges).rename(columns={"chain_a": "source", "chain_b": "target"})
         edges_df_for_export["interaction"] = "interacts_with"
         edges_df_for_cyto = edges_df_for_export
@@ -282,8 +283,10 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         edges_df_for_export = pd.DataFrame(columns=["source", "target", "interaction", "all_atoms_count"])
         edges_df_for_cyto = None
 
-    # === PFAD 1: Headless → nur CX2 exportieren (kein web.cyjs mehr) ===
+    # === PFAD 1: Headless → nur CX2 exportieren (kein web.cyjs) ===
     if not config.get("open_in_cytoscape", True):
+        os.makedirs(run_output_path, exist_ok=True)
+
         # Farbzuordnung (fixe + automatische Palette)
         fixed_colors = {
             "Protein": "#1f77b4",
@@ -317,7 +320,7 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         )
         return
 
-    # === PFAD 2: Cytoscape offen → Desktop-Workflow + Datei-Exporte (unverändert) ===
+    # === PFAD 2: Cytoscape offen → Desktop-Workflow, Export nur CX2 ===
     existing_networks = p4c.get_network_list()
     while len(existing_networks) > config["keep_last_n_networks"]:
         oldest_network = existing_networks.pop(0)
@@ -427,14 +430,10 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
     except Exception as e:
         print(f"Error while applying style: {e}")
 
-    # Desktop-Exporte unverändert: .desktop.cyjs + .cx2
+    # Export: nur CX2 (kein desktop.cyjs)
     try:
-        import os
         os.makedirs(run_output_path, exist_ok=True)
-        cyjs_desktop = os.path.join(run_output_path, f"{network_title}.desktop.cyjs")
-        cx2_file     = os.path.join(run_output_path, f"{network_title}.cx2")
-
-        p4c.export_network(cyjs_desktop, type="cyjs")
+        cx2_file = os.path.join(run_output_path, f"{network_title}.cx2")
         try:
             p4c.export_network(cx2_file, type="cx2")
         except Exception:

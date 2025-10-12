@@ -249,7 +249,6 @@ def _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df_for_
 def create_cytoscape_network(results, network_title="Protein_Interaction_Network", run_output_path=".", nodes_data=None):
     import py4cytoscape as p4c
     import pandas as pd
-    import json, os
     from matplotlib import cm
     from matplotlib.colors import to_hex
 
@@ -283,11 +282,9 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         edges_df_for_export = pd.DataFrame(columns=["source", "target", "interaction", "all_atoms_count"])
         edges_df_for_cyto = None
 
-    # === PFAD 1: Headless → schreibe .cyjs mit JS-Style + preset ===
+    # === PFAD 1: Headless → nur CX2 exportieren (kein web.cyjs mehr) ===
     if not config.get("open_in_cytoscape", True):
-        os.makedirs(run_output_path, exist_ok=True)
-        network_file = os.path.join(run_output_path, f"{network_title}.web.cyjs")
-
+        # Farbzuordnung (fixe + automatische Palette)
         fixed_colors = {
             "Protein": "#1f77b4",
             "DNA": "#ff7f0e",
@@ -304,101 +301,38 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
             auto_colors["Multi"] = "#FF0000"
         color_map = {**fixed_colors, **auto_colors}
 
-        positions = compute_preset_positions_spring(nodes_df, edges_df_for_export, network_title, scale=1000.0)
+        # Positionen deterministisch berechnen
+        positions = compute_preset_positions_spring(
+            nodes_df, edges_df_for_export, network_title, scale=1000.0
+        )
 
-        nodes_elems = []
-        for _, row in nodes_df.iterrows():
-            nid = row["id"]
-            cg = row.get("color_group", "Unknown")
-            node_color = color_map.get(cg, "#7f7f7f")
-            nodes_elems.append({
-                "data": {
-                    "id": nid,
-                    "name": row.get("name", nid),
-                    "tooltip": row.get("tooltip", ""),
-                    "color_group": cg,
-                    "node_color": node_color
-                },
-                "position": positions.get(nid, {"x": 0.0, "y": 0.0})
-            })
-
-        edges_elems = []
-        max_w = 1
-        for _, r in edges_df_for_export.iterrows():
-            try:
-                max_w = max(max_w, int(r.get("all_atoms_count", 1)))
-            except Exception:
-                pass
-        for idx, row in edges_df_for_export.iterrows():
-            edges_elems.append({
-                "data": {
-                    "id": f"edge_{idx}",
-                    "source": row["source"],
-                    "target": row["target"],
-                    "interaction": row.get("interaction", "interacts_with"),
-                    "all_atoms_count": int(row.get("all_atoms_count", 1))
-                }
-            })
-
-        style = [
-            {"selector": "node", "style": {
-                "shape": "ellipse",
-                "width": 40, "height": 40,
-                "background-color": "data(node_color)",
-                "label": "data(name)",
-                "font-size": 10,
-                "text-valign": "center", "text-halign": "center",
-                "border-width": 1, "border-color": "#555"
-            }},
-            {"selector": "edge", "style": {
-                "curve-style": "bezier",
-                "opacity": 0.6,
-                "width": f"mapData(all_atoms_count, 1, {max_w}, 1, 6)",
-                "line-color": "#888"
-            }}
-        ]
-
-        cyjs_data = {
-            "data": {"name": network_title},
-            "elements": {"nodes": nodes_elems, "edges": edges_elems},
-            "style": style,
-            "layout": {"name": "preset"}
-        }
-
-        # === NEW: Headless CX2 export (no Cytoscape required) ===
-        try:
-            _export_cx2_headless(
-                network_title=network_title,
-                run_output_path=run_output_path,
-                nodes_df=nodes_df,
-                edges_df_for_export=edges_df_for_export,
-                color_map=color_map,
-                positions=positions
-            )
-        except Exception as _cx2e:
-            print(f"[headless-cx2] export failed: {_cx2e}")
-
-        with open(network_file, "w", encoding="utf-8") as f:
-            json.dump(cyjs_data, f, indent=2)
+        # Nur CX2 schreiben (headless)
+        _export_cx2_headless(
+            network_title=network_title,
+            run_output_path=run_output_path,
+            nodes_df=nodes_df,
+            edges_df_for_export=edges_df_for_export,
+            color_map=color_map,
+            positions=positions
+        )
         return
 
-    # === PFAD 2: Cytoscape offen → Desktop-Workflow + Datei-Exporte ===
+    # === PFAD 2: Cytoscape offen → Desktop-Workflow + Datei-Exporte (unverändert) ===
     existing_networks = p4c.get_network_list()
     while len(existing_networks) > config["keep_last_n_networks"]:
         oldest_network = existing_networks.pop(0)
         p4c.delete_network(oldest_network)
 
-    # --- Collection-Auswahl nach Netztyp (Chain/Protein/Combined) ---
+    # Collection-Auswahl nach Netztyp (Chain/Protein/Combined)
     title_lower = str(network_title).lower()
     if 'combined' in title_lower:
         collection_name = 'PDB2Net — Combined'
     elif 'protein' in title_lower:
         collection_name = 'PDB2Net — Protein'
     else:
-        # Default: alles was nicht 'protein' enthält, behandeln wir als Chain (inkl. 'Chain_Interaction_Network_*')
         collection_name = 'PDB2Net — Chain'
 
-    # Netzwerk in Cytoscape erstellen
+    # Netzwerk erzeugen
     try:
         if edges_df_for_cyto is not None and len(edges_df_for_cyto) > 0:
             p4c.create_network_from_data_frames(
@@ -417,7 +351,7 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
     except Exception as e:
         print(f"Error while creating network: {e}")
 
-    # Node-Attribute (Tooltip/Name/ColorGroup) in Cytoscape-Tabelle laden
+    # Node-Attribute in Cytoscape-Tabelle laden
     try:
         if "name" in nodes_df.columns:
             p4c.load_table_data(
@@ -493,16 +427,14 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
     except Exception as e:
         print(f"Error while applying style: {e}")
 
-    # === NEU: Immer exportieren (Desktop-kompatibel) ===
+    # Desktop-Exporte unverändert: .desktop.cyjs + .cx2
     try:
+        import os
         os.makedirs(run_output_path, exist_ok=True)
         cyjs_desktop = os.path.join(run_output_path, f"{network_title}.desktop.cyjs")
         cx2_file     = os.path.join(run_output_path, f"{network_title}.cx2")
 
-        # CyJS mit angewendetem Desktop-Style
         p4c.export_network(cyjs_desktop, type="cyjs")
-
-        # Robust: CX2 (falls 'cx2' nicht akzeptiert wird, auf 'cx'/'CX' fallbacken)
         try:
             p4c.export_network(cx2_file, type="cx2")
         except Exception:

@@ -1,9 +1,19 @@
 # PDB2Net
 
-PDB2Net is a tool extracts **Protein Interaction Networks (PINs)** from **PDB/mmCIF files** and visualizes them in **Cytoscape**.  
-It utilizes **Biopython** for file parsing, **cKDTree** for efficient distance calculations, and **BLAST** for UniProt matching to also process files without PDB-ID.
+**PDB2Net** automatically extracts **Protein Interaction Networks (PINs)** from **PDB/mmCIF files** and visualizes them as **Cytoscape networks**.  
+It uses **Gemmi** for structure parsing, **SciPy cKDTree** for distance-based interaction detection, and **BLAST+** for **UniProt annotation** of unidentified chains.
 
-## System Requirements & Setup
+## Features
+
+- Automatic parsing of `.pdb`, `.cif`, and `.mmCIF` structures  
+- Distance-based chain interaction detection  
+- Protein-level and chain-level networks  
+- Full UniProt annotation via SIFTS and BLAST+  
+- Export of chain, protein, and combined networks (CX2 format)  
+
+---
+
+# System Requirements & Setup
 
 ### 1️⃣ Install Python **3.11 or 3.12** 
 - **Recommended Version:** Python **3.11**  
@@ -18,16 +28,21 @@ It utilizes **Biopython** for file parsing, **cKDTree** for efficient distance c
 
 
 ### 3️⃣ Install Cytoscape  
-- Download **Cytoscape 3.10.3**:  
+- Download **Cytoscape 3.10.4** or newer:  
   [Cytoscape Download](https://cytoscape.org/download.html)  
-- **Start Cytoscape manually** once before running the tool. After that it will start automatically when running the tool.
-  ### 4️⃣ Download pdb_chain_uniprot.tsv
-https://www.ebi.ac.uk/pdbe/docs/sifts/quick.html
+- **Start once manually**, so it can auto-launch later via PDB2Net.
+- On headless servers, Cytoscape is automatically disabled (`open_in_cytoscape = false`).
 
-### 5️⃣ Download the PDB Single FASTA File (pdb_seqres.txt)
-https://www.rcsb.org/downloads/fasta
+### 4️⃣ Reference Data (required)
 
-### 6️⃣ Setting up BLAST for UniProt Matching
+| File                    | Source                                                                                                         | Purpose                          |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `pdb_seqres.txt`        | [https://www.rcsb.org/downloads/fasta](https://www.rcsb.org/downloads/fasta)                                   | PDB single-FASTA (chains)        |
+| `pdb_chain_uniprot.tsv` | [https://www.ebi.ac.uk/pdbe/docs/sifts/quick.html](https://www.ebi.ac.uk/pdbe/docs/sifts/quick.html)           | PDB ⇄ UniProt mapping (SIFTS)    |
+| `uniprot_sprot.fasta`   | [https://www.uniprot.org/uniprotkb?query=reviewed:true](https://www.uniprot.org/uniprotkb?query=reviewed:true) | Swiss-Prot for building BLAST DB |
+
+
+### 5️⃣ Setting up BLAST for UniProt Matching
 
 #### **Download & Install BLAST+**
 1. **Go to the NCBI BLAST+ Download page:**  
@@ -44,47 +59,7 @@ https://www.rcsb.org/downloads/fasta
      sudo mv ncbi-blast-* /usr/local/bin
      ```
 
-## Run the Tool  
-Once all dependencies are installed, you can run the tool with:
-> python main.py
-
-### ** Output Files**  
-After running the tool, the following files will be generated:  
-- **Interaction Data (CSV)**
-  - Contains all atomic interactions between chains.
-- **Cytoscape Networks**
-  - **Chain Interaction Networks** → Networks where each chain is a node.
-  - **Protein-Level Networks** → Networks based on UniProt IDs.
-  - **Combined and Per-PDB Networks** (if enabled in `config.json`).
-
-
-### **User input**  
-A csv file (list) of PDB and CIF file paths in a structured table:
-
-| file_path |
-|--------|
-| C:\Users\...\101m.pdb  |
-| C:\Users\...\9jr2.cif  |
-| ...  |
-
-
-
-
-
-
-#### **Download the UniProt FASTA File**
-The BLAST database will be built from a UniProt FASTA file.
-
-1. **Download the latest UniProt Swiss-Prot database**
-   - **Manual Download**: [UniProt Swiss-Prot](https://www.uniprot.org/uniprotkb?query=reviewed:true)
-
-2. **Move the file to the BLAST database folder** (adjust the path if necessary):
-   ```bash
-   mkdir -p C:/blast_db   # Windows (Git Bash)
-   mkdir -p ~/blast_db    # Linux/MacOS
-   ```
-
-#### **Create the BLAST Database**
+### 6️⃣ **Create the BLAST Database**
 Now, generate the BLAST database from the downloaded UniProt FASTA file.
 
 1. Open a **terminal** (Linux/Mac) or **PowerShell/Git Bash** (Windows).
@@ -105,48 +80,164 @@ Now, generate the BLAST database from the downloaded UniProt FASTA file.
    ```
    This confirms that BLAST has successfully created the database.
 
-
-#### **Summary**
-✔ **BLAST+ installed**  
-✔ **UniProt FASTA downloaded**  
-✔ **BLAST database created**  
-✔ **Paths configured in `config.json`**  
-✔ **BLAST verified with a test query**  
-
 ---
 
-## ⚙️ Configuration (`config.json`)  
-Before using the tool, adjust the following paths and parameters in `config.json`:
+# ⚙️ Configuration (Multi-Layer)
 
+**PDB2Net** loads configuration in layers — later files override earlier ones:
+
+1. `configs/config.base.json` — shared defaults  
+2. `configs/config.{windows|linux|darwin}.json` — OS-specific overrides  
+3. `configs/config.local.json` — user machine settings *(git-ignored)*  
+4. **Environment variables** — highest priority  
+
+> 🗂️ Paths support `~` and `$VARS` expansion.
+
+### Core keys (by file)
+
+`config.base.json`(defaults):
 ```json
 {
-    "input_csv_path": "C:/Path/to/CSV-file.csv",
-    "pdb_fasta_path": "C:/Path/to/pdb_seqres.txt",
-    "uniprot_fasta_path": "C:/Path/to/uniprot_sprot.fasta",
-    "sifts_tsv_path": "C:/Path/to/pdb_chain_uniprot.tsv",
-    "output_path": "C:/Path/to/output-folder",
-    "cytoscape_path": "C:/Program Files/Cytoscape_v3.10.3/Cytoscape.exe",
-    "blast_db_path": "C:/blast_db",
-    "blastp_executable": "C:/Program Files/NCBI/blast-2.16.0+/bin/blastp.exe",
-
-    "networks": {
-        "chain_per_pdb": true,
-        "combined_chain_network": true,
-        "protein_per_pdb": true,
-        "combined_protein_network": true
-    },
-
-    "keep_last_n_networks": 30,
-    "export_detailed_interactions": true,
-
-    "distance_thresholds": {
-        "ca_radius": 15.0,
-        "all_atoms_radius": 5.0
-    }
+  "networks": {
+    "chain_per_pdb": true,
+    "combined_chain_network": true,
+    "protein_per_pdb": true,
+    "combined_protein_network": true
+  },
+  "distance_thresholds": { "ca_radius": 15.0, "all_atoms_radius": 5.0 },
+  "workers": { "parsing": "auto", "blast_threads": "auto" },
+  "keep_last_n_networks": 46,
+  "export_detailed_interactions": true
 }
 ```
-⚠ **Important:** Adjust paths according to your system!
+### OS examples (adjust to your system):
+- `config.windows.json`
+```json
+{
+  "input_folder_path": "E:/PDB_Files/Test500",
+  "pdb_fasta_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/pdb_seqres.txt",
+  "uniprot_fasta_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/uniprot_sprot.fasta",
+  "sifts_tsv_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/pdb_chain_uniprot.tsv",
+  "output_path": "D:/Networks",
+  "cytoscape_path": "C:/Program Files/Cytoscape_v3.10.4/Cytoscape.exe",
+  "blast_db_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/blast_db",
+  "blastp_executable": "C:/Program Files/NCBI/blast-2.17.0+/bin/blastp.exe",
+  "open_in_cytoscape": true
+}
+```
+- `config.linux.json`
+```json
+{
+  "input_folder_path": "/data/pdb_inputs",
+  "pdb_fasta_path": "/data/reference/pdb_seqres.txt",
+  "uniprot_fasta_path": "/data/reference/uniprot_sprot.fasta",
+  "sifts_tsv_path": "/data/reference/pdb_chain_uniprot.tsv",
+  "output_path": "/srv/pdb2net_outputs",
+  "blast_db_path": "/data/reference/blast_db",
+  "blastp_executable": "blastp",
+  "open_in_cytoscape": false
+}
+```
+- `config.darwin.json` (macOS)
+```json 
+{
+  "input_folder_path": "$HOME/pdb2net/pdb_inputs",
+  "pdb_fasta_path": "$HOME/pdb2net/reference/pdb_seqres.txt",
+  "uniprot_fasta_path": "$HOME/pdb2net/reference/uniprot_sprot.fasta",
+  "sifts_tsv_path": "$HOME/pdb2net/reference/pdb_chain_uniprot.tsv",
+  "output_path": "$HOME/pdb2net/outputs",
+  "blast_db_path": "$HOME/pdb2net/reference/blast_db",
+  "blastp_executable": "blastp",
+  "open_in_cytoscape": true,
+  "cytoscape_path": "/Applications/Cytoscape.app/Contents/MacOS/Cytoscape"
+}
+```
+## Environment variable overrides
+You can override individual settings via ENV:
 
+| ENV var                     | Maps to config key                            |
+| --------------------------- | --------------------------------------------- |
+| `PDB2NET_INPUT`             | `input_folder_path`                           |
+| `PDB2NET_OUTPUT`            | `output_path`                                 |
+| `PDB2NET_PDB_FASTA`         | `pdb_fasta_path`                              |
+| `PDB2NET_UNIPROT_FASTA`     | `uniprot_fasta_path`                          |
+| `PDB2NET_SIFTS_TSV`         | `sifts_tsv_path`                              |
+| `PDB2NET_CYTO_PATH`         | `cytoscape_path`                              |
+| `PDB2NET_BLAST_DB`          | `blast_db_path`                               |
+| `PDB2NET_BLASTP`            | `blastp_executable`                           |
+| `PDB2NET_OPEN_IN_CYTOSCAPE` | `open_in_cytoscape` (`true/false/1/0/yes/no`) |
+| `PDB2NET_WORKERS_PARSING`   | `workers.parsing` (`auto` or int)             |
+| `PDB2NET_WORKERS_BLAST`     | `workers.blast_threads` (`auto` or int)       |
+| `PDB2NET_CA_RADIUS`         | `distance_thresholds.ca_radius`               |
+| `PDB2NET_ALL_ATOMS_RADIUS`  | `distance_thresholds.all_atoms_radius`        |
+
+## Examples:
+
+**Windows PowerShell:**
+```
+setx PDB2NET_INPUT "E:\PDB_Files\Dataset"
+setx PDB2NET_OUTPUT "E:\Networks"
+setx PDB2NET_OPEN_IN_CYTOSCAPE "true"
+```
+**Linux/macOS:**
+```
+export PDB2NET_INPUT=~/pdb2net/pdb_inputs
+export PDB2NET_OUTPUT=~/pdb2net/outputs
+export PDB2NET_OPEN_IN_CYTOSCAPE=false
+```
+
+## Run the Tool  
+Once all dependencies are installed, you can run the tool with:
+> python main.py
+
+- Output goes to a **timestamped** subfolder in `output_path`, e.g.:
+""/…/Networks/2025-10-20_18-32-45/"
+
+## **User input**  
+Valid PDB/mmCIF files found in `input_folder_path`
+
+## Outputs
+
+| File/Folder                 | Description                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| `log.txt`                   | Timing summary (parsing, classification, BLAST, interaction, exports)          |
+| `*.cx2`                     | Cytoscape networks (Chain/Protein/Combined), portable CX2                      |
+| `detailed_interactions.csv` | Per-atom residue/atom distance pairs (if `export_detailed_interactions: true`) |
+| `logs/`                     | Batch/runtime logs                                                             |
+
+
+## Network types
+
+**PDB2Net** generates several network representations:
+
+1. **Chain Interaction Network (per PDB)** — Nodes: chains; Edges: interactions  
+2. **Combined Chain Network** — All chains across all PDBs  
+3. **Protein Network (per PDB)** — Nodes: UniProt IDs; Edges aggregated over chains  
+4. **Combined Protein Network** — UniProt nodes across all PDBs
+
+
+## Cytoscape Behavior (important)
+
+**Headless / Server** (`open_in_cytoscape: false`)  
+→ Only **CX2** files are written (no `.cyjs`).  
+→ Deterministic positions and visual mappings are embedded.
+
+**Desktop** (`open_in_cytoscape: true`)  
+→ Networks are created in **Cytoscape** via *py4cytoscape* and also exported as **CX2**.
+
+#### **Download the UniProt FASTA File**
+The BLAST database will be built from a UniProt FASTA file.
+
+1. **Download the latest UniProt Swiss-Prot database**
+   - **Manual Download**: [UniProt Swiss-Prot](https://www.uniprot.org/uniprotkb?query=reviewed:true)
+
+2. **Move the file to the BLAST database folder** (adjust the path if necessary):
+   ```bash
+   mkdir -p C:/blast_db   # Windows (Git Bash)
+   mkdir -p ~/blast_db    # Linux/MacOS
+   ```
+  
+---
 
 # Cite
 Habitzreither, G., Gautam, Lupas, A., Elhabashy, H. PDB2Net: Automated extraction of biomolecular Interaction Networks from Three-Dimensional Structures. Manuscript in preparation.

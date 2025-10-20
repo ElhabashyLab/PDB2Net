@@ -1,0 +1,11 @@
+{
+  "input_folder_path": "E:/PDB_Files/Test500",
+  "pdb_fasta_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/pdb_seqres.txt",
+  "uniprot_fasta_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/uniprot_sprot.fasta",
+  "sifts_tsv_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/pdb_chain_uniprot.tsv",
+  "output_path": "D:/Networks",
+  "cytoscape_path": "C:/Program Files/Cytoscape_v3.10.4/Cytoscape.exe",
+  "blast_db_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/blast_db",
+  "blastp_executable": "C:/Program Files/NCBI/blast-2.17.0+/bin/blastp.exe",
+  "open_in_cytoscape": true
+}

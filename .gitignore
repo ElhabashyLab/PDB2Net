@@ -14,3 +14,5 @@ blast_results_*.txt
 query_*.fasta
 
 logs/
+
+pdb2net/configs/config.local.json

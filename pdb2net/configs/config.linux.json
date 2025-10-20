@@ -1,0 +1,10 @@
+{
+  "input_folder_path": "/data/pdb_inputs",
+  "pdb_fasta_path": "/data/reference/pdb_seqres.txt",
+  "uniprot_fasta_path": "/data/reference/uniprot_sprot.fasta",
+  "sifts_tsv_path": "/data/reference/pdb_chain_uniprot.tsv",
+  "output_path": "/srv/pdb2net_outputs",
+  "blast_db_path": "/data/reference/blast_db",
+  "blastp_executable": "blastp",
+  "open_in_cytoscape": false
+}

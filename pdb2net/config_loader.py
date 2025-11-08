@@ -1,14 +1,22 @@
-# config_loader.py
-# OS-sensitiver, mehrstufiger Config-Loader mit ENV-Overrides und Headless-Erkennung.
+"""Configuration loader for PDB2Net.
+
+This module assembles configuration values in ordered layers:
+1) base file, 2) OS-specific file, 3) local overrides,
+4) an explicit file via environment variable, and 5) environment overrides.
+
+It also performs light post-processing (path expansion, defaults) and
+detects headless/container environments to disable GUI-dependent features
+(e.g., opening Cytoscape) unless explicitly enabled.
+"""
 from __future__ import annotations
 import json, os, platform
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
-# === Minimaler Log-Schalter (Standard: leise) ===
+# === Minimal logging switch (default: quiet) ===
 VERBOSE = os.environ.get("PDB2NET_VERBOSE", "").strip().lower() in {"1", "true", "yes", "on"}
 
-# Globaler Cache
+# Global cache
 _config_cache: Dict[str, Any] | None = None
 
 
@@ -18,7 +26,7 @@ def _log(msg: str) -> None:
 
 
 def _read_json(p: Path, strict: bool = False) -> Dict[str, Any]:
-    """Liest JSON-Datei. Bei strict=True führt JSON-Fehler zum Abbruch."""
+    """Read a JSON file. If strict=True, a JSON error terminates the program."""
     try:
         with p.open("r", encoding="utf-8") as f:
             return json.load(f)
@@ -40,7 +48,7 @@ def _read_json(p: Path, strict: bool = False) -> Dict[str, Any]:
 
 
 def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
-    """rekursive Merge-Strategie: override gewinnt, Dictionaries werden tief gemerged"""
+    """Recursive deep-merge strategy: values from `override` win; nested dicts are merged in place."""
     for k, v in override.items():
         if isinstance(v, dict) and isinstance(base.get(k), dict):
             _deep_merge(base[k], v)  # type: ignore[index]
@@ -55,7 +63,7 @@ def _bool_from_env(value: str) -> bool:
 
 def _normalize_path(value: Any) -> Any:
     if isinstance(value, str):
-        # ~ und $VARS expandieren; keine OS-spezifische Pfad-Konvertierung nötig
+        # Expand ~ and $VARS; no OS-specific path conversion required
         return os.path.expanduser(os.path.expandvars(value))
     return value
 
@@ -65,7 +73,7 @@ def _is_headless_linux() -> bool:
 
 
 def _is_container() -> bool:
-    # einfache Heuristik für Docker/K8s
+    # simple heuristic for Docker/K8s
     if Path("/.dockerenv").exists():
         return True
     try:
@@ -79,7 +87,7 @@ def _is_container() -> bool:
 
 
 def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
-    """ENV → Config (flache und verschachtelte Schlüssel)"""
+    """Apply environment variable overrides to the in-memory config (flat and nested keys)."""
     flat: Dict[str, Tuple[str, Any]] = {
         "PDB2NET_INPUT": ("input_folder_path", str),
         "PDB2NET_OUTPUT": ("output_path", str),
@@ -108,7 +116,7 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
         if not raw:
             continue
         cfg.setdefault(k1, {})
-        # Zahl vs. String erlauben (z. B. "auto")
+        # Allow numbers or strings (e.g., "auto")
         try:
             if raw.replace(".", "", 1).isdigit():
                 cfg[k1][k2] = float(raw) if "." in raw else int(raw)
@@ -119,7 +127,7 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
 
 
 def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
-    """Pfad-Normalisierung, Headless-Default, Fallbacks, Ausgabeverzeichnis"""
+    """Normalize paths, set headless/container defaults, provide fallbacks, and ensure output directory."""
     for key in [
         "input_folder_path",
         "pdb_fasta_path",
@@ -133,12 +141,12 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
         if key in cfg and cfg[key]:
             cfg[key] = _normalize_path(cfg[key])
 
-    # Headless/Container => Cytoscape aus (falls nicht explizit gesetzt)
+    # Headless/Container => disable Cytoscape by default (unless explicitly set)
     if "open_in_cytoscape" not in cfg or cfg["open_in_cytoscape"] is None:
         if _is_headless_linux() or _is_container():
             cfg["open_in_cytoscape"] = False
 
-    # BLAST-Fallback: Windows-Pfad vs. 'blastp' auf Unix
+    # BLAST fallback: Windows path vs. plain 'blastp' on Unix
     if not cfg.get("blastp_executable"):
         cfg["blastp_executable"] = (
             r"C:\Program Files\NCBI\blast-2.17.0+\bin\blastp.exe"
@@ -146,12 +154,12 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
             else "blastp"
         )
 
-    # Workers Defaults beibehalten; "auto" wird später im Code aufgelöst
+    # Keep worker defaults; "auto" is resolved later in the code
     cfg.setdefault("workers", {})
     cfg["workers"].setdefault("parsing", "auto")
     cfg["workers"].setdefault("blast_threads", "auto")
 
-    # Ausgabeordner vorsorglich anlegen (falls gesetzt)
+    # Create output folder proactively (if provided)
     out = cfg.get("output_path")
     if isinstance(out, str) and out:
         try:
@@ -161,7 +169,7 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
 
 
 def load_config() -> Dict[str, Any]:
-    """Lädt Config in Layern: base → os-spezifisch → local → explizite Datei → ENV."""
+    """Load configuration in layers: base → OS-specific → local → explicit file → environment variables."""
     global _config_cache
     if _config_cache is not None:
         return _config_cache
@@ -171,46 +179,34 @@ def load_config() -> Dict[str, Any]:
         platform.system(), platform.system().lower()
     )
 
-    # Konfigurationsverzeichnis (standard: ./configs)
+    # Configuration directory (default: ./configs)
     cfg_dir = Path(os.environ.get("PDB2NET_CONFIG_DIR") or (root / "configs"))
 
     candidates: list[Tuple[Path, bool]] = [
         (cfg_dir / "config.base.json", False),
         (cfg_dir / f"config.{os_key}.json", False),
-        (cfg_dir / "config.local.json", False),  # git-ignored, höchste Datei-Priorität unter configs/
+        (cfg_dir / "config.local.json", False),  # git-ignored, highest file-priority within configs/
     ]
 
-    # Legacy-Fallback (Rückwärtskompatibilität), falls in configs/ nichts greift
+    # Legacy fallback (backward compatibility) if nothing in configs/ applies
     legacy = root / "config.json"
+    if legacy.exists():
+        candidates.append((legacy, False))
 
-    # Explizite Datei per ENV (höchste Priorität & strict)
-    explicit = os.environ.get("PDB2NET_CONFIG")
-    if explicit:
-        candidates.append((Path(explicit), True))  # strict=True
+    # Explicit file override via ENV
+    env_cfg = os.environ.get("PDB2NET_CONFIG_FILE")
+    if env_cfg:
+        candidates.append((Path(env_cfg), True))
 
+    # Merge in order
     cfg: Dict[str, Any] = {}
-    loaded_any = False
-
     for path, strict in candidates:
         part = _read_json(path, strict=strict)
-        if part:
-            _deep_merge(cfg, part)
-            loaded_any = True
+        _deep_merge(cfg, part)
 
-    if not loaded_any:
-        # Letzter Fallback auf alte Struktur
-        if legacy.exists():
-            _log("Nutze legacy config.json im Projekt-Root.")
-            cfg = _read_json(legacy, strict=True)
-        else:
-            _log("Warn: Keine Konfigurationsdateien gefunden – starte mit leerer Config.")
-            cfg = {}
-
-    # ENV-Overrides anwenden
+    # Post-processing and environment overrides
+    _postprocess(cfg, os_key)
     _apply_env_overrides(cfg)
-
-    # Post-Processing: Pfade normalisieren, Headless/Container, Defaults
-    _postprocess(cfg, os_key=os_key)
 
     if VERBOSE:
         _log(f"OS={os_key} | headless={_is_headless_linux()} | container={_is_container()}")
@@ -223,7 +219,7 @@ def load_config() -> Dict[str, Any]:
     return cfg
 
 
-# Beim Import laden (lazy + Cache)
+# Load on import (lazy + cache)
 config = load_config()
 
 __all__ = ["config", "load_config"]

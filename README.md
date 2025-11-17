@@ -203,7 +203,7 @@ Valid PDB/mmCIF files found in `input_folder_path`
 | `log.txt`                   | Timing summary (parsing, classification, BLAST, interaction, exports)          |
 | `*.cx2`                     | Cytoscape networks (Chain/Protein/Combined), portable CX2                      |
 | `detailed_interactions.csv` | Per-atom residue/atom distance pairs (if `export_detailed_interactions: true`) |
-| `logs/`                     | Batch/runtime logs                                                             |
+| `error_in_batch_log/`                     | Batch/runtime logs                                                             |
 
 
 ## Network types

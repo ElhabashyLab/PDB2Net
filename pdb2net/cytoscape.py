@@ -130,7 +130,7 @@ def compute_preset_positions_spring(nodes_df, edges_df, network_title, scale=100
         iterations=iters,
         dim=2,
         center=(0.0, 0.0),
-        scale=scale * 0.5,
+        scale=scale * 0.8,
         k=None,  # let NetworkX choose a good default, works well for N < ~50
     )
 
@@ -241,7 +241,9 @@ def _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df_for_
                     "NODE_SHAPE": "ellipse",
                     "NODE_WIDTH": 40.0,
                     "NODE_HEIGHT": 40.0,
-                    "NODE_BORDER_COLOR": "#555555",
+                    "NODE_BORDER_COLOR": "#000000",
+                    "NODE_BORDER_WIDTH": 2.0,
+                    "NODE_BORDER_OPACITY": 1.0,
                 },
                 "edge": {
                     "EDGE_LINE_COLOR": "#888888",

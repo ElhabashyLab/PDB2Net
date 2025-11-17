@@ -206,7 +206,7 @@ def main(input_path_or_filelist: str | List[str]) -> None:
 
     # === Timing/logging ===
     total_time = time.time() - start_time_total
-    log_file = os.path.join(run_output_path, "log.txt")
+    log_file = os.path.join(run_output_path, "runtime_analysis.txt")
 
     with open(log_file, "w", encoding="utf-8") as f:
         f.write("===== PDB2Net Batch Log =====\n\n")
@@ -217,9 +217,6 @@ def main(input_path_or_filelist: str | List[str]) -> None:
         f.write(f"- Interaction:             {sum_times['interaction']:.1f} sec\n")
         f.write(f"- Network export:          {sum_times['networks']:.1f} sec\n")
         f.write(f"- Total:                   {total_time:.1f} sec\n")
-
-        f.write("\nDetailed parsing time (parallel):\n")
-        f.write(f"- process_single_file():   {parsing_duration:.2f} sec\n")
 
         f.write("\n===============================\n")
 
@@ -296,7 +293,7 @@ def batch_run(input_folder: str, timeout_minutes: int = 10, size_limit_kb: int =
                 yield entry.path
 
     timeout_seconds = timeout_minutes * 60
-    logs_dir = os.path.join(config["output_path"], "logs")
+    logs_dir = os.path.join(config["output_path"], "error_in_batch_log")
     os.makedirs(logs_dir, exist_ok=True)
     log_path = os.path.join(logs_dir, "skipped_batches.txt")
 

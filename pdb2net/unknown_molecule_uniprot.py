@@ -221,14 +221,14 @@ def process_molecule_info(combined_data: List[Dict[str, Any]]) -> None:
             chain["molecule_type"] = mol_type
             chain["uniprot_id"] = uniprot_id
 
-    # Optional: brief sample output for debugging/verification (limited to first ~20 structures)
-    print("\nUniProt assignments (example for up to 20 input files):")
-    for i, structure_data in enumerate(combined_data):
-        if i >= 20:
-            break
-        pdb_id = structure_data["pdb_id"]
-        for chain in structure_data["atom_data"]:
-            print(
-                f"  {pdb_id}_{chain['chain_id']}: {chain['molecule_name']} "
-                f"({chain['molecule_type']}) UniProt-ID: {chain['uniprot_id']}"
-            )
+    # # Optional: brief sample output for debugging/verification (limited to first ~20 structures)
+    # print("\nUniProt assignments (example for up to 20 input files):")
+    # for i, structure_data in enumerate(combined_data):
+    #     if i >= 20:
+    #         break
+    #     pdb_id = structure_data["pdb_id"]
+    #     for chain in structure_data["atom_data"]:
+    #         print(
+    #             f"  {pdb_id}_{chain['chain_id']}: {chain['molecule_name']} "
+    #             f"({chain['molecule_type']}) UniProt-ID: {chain['uniprot_id']}"
+    #         )

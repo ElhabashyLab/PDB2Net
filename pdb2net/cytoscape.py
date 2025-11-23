@@ -28,27 +28,60 @@ from config_loader import config
 
 
 def ensure_cytoscape_running():
-    """Ensure a Cytoscape instance is reachable.
+    """Ensure a Cytoscape instance is reachable via CyREST.
 
-    Tries to ping the Cytoscape REST API. If not available, launches Cytoscape
-    using the path configured in `config["cytoscape_path"]`, waits a short
-    period, and pings again.
-
-    Exits the program if Cytoscape could not be started.
+    - If Cytoscape is already running, return immediately.
+    - Otherwise, try to launch Cytoscape using config["cytoscape_path"].
+    - Poll CyREST until it responds or a timeout is reached.
     """
+    # Fast path: Cytoscape schon erreichbar?
     try:
         p4c.cytoscape_ping()
         print("Cytoscape is already running.")
+        return
     except Exception:
-        print("Starting Cytoscape...")
-        subprocess.Popen(config["cytoscape_path"])
-        time.sleep(40)
+        # Wir fallen unten in den Start-Flow
+        pass
+
+    cyto_path = config.get("cytoscape_path")
+    if not cyto_path:
+        print(
+            "Error: Cytoscape is not running and 'cytoscape_path' is not configured.\n"
+            "Please set 'cytoscape_path' in your config.json or via PDB2NET_CYTO_PATH."
+        )
+        raise SystemExit(1)
+
+    print(f"Starting Cytoscape using: {cyto_path!r}")
+    try:
+        # Liste statt String → funktioniert auch mit Leerzeichen im Pfad
+        subprocess.Popen([cyto_path])
+    except FileNotFoundError:
+        print(f"Error: Cytoscape executable not found at: {cyto_path}")
+        raise SystemExit(1)
+    except Exception as e:
+        print(f"Error: Failed to start Cytoscape via {cyto_path!r}: {e}")
+        raise SystemExit(1)
+
+    # Warten/pollen, bis CyREST antwortet oder Timeout erreicht ist
+    wait_total = float(config.get("cytoscape_wait_seconds", 60))  # Sekunden
+    poll_interval = 5.0
+    deadline = time.time() + wait_total
+
+    while time.time() < deadline:
         try:
             p4c.cytoscape_ping()
             print("Cytoscape started successfully.")
+            return
         except Exception:
-            print("Error: Cytoscape could not be started. Check the path in config.json.")
-            exit(1)
+            time.sleep(poll_interval)
+
+    print(
+        f"Error: Cytoscape did not respond on CyREST within "
+        f"{wait_total:.0f} seconds. "
+        "Please check your Cytoscape installation and the 'cytoscape_path' in config.json."
+    )
+    raise SystemExit(1)
+
 
 
 def compute_preset_positions_spring(nodes_df, edges_df, network_title, scale=1000.0):

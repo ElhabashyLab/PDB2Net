@@ -222,7 +222,7 @@ def main(input_path_or_filelist: str | List[str]) -> None:
 
     # Free caches/memory used by interaction stage
     tree_cache.clear()
-    coords_cache.clear
+    coords_cache.clear()
     gc.collect()
 
 

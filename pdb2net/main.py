@@ -270,7 +270,7 @@ def create_batches_streaming(file_paths: Iterable[str], max_batch_kb: int) -> It
         yield current_batch
 
 
-def batch_run(input_folder: str, timeout_minutes: int = 10, size_limit_kb: int = 900_800) -> None:
+def batch_run(input_folder: str, timeout_minutes: int = 10, size_limit_kb: int = 1000_100) -> None:
     """Run the pipeline repeatedly on streamed batches from a folder.
 
     Each batch is processed either:

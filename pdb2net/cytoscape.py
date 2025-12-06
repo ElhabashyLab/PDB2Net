@@ -85,30 +85,7 @@ def ensure_cytoscape_running():
 
 
 def compute_preset_positions_spring(nodes_df, edges_df, network_title, scale=1000.0):
-    """Compute fast, deterministic force-directed positions (Fruchterman–Reingold style).
-
-    The layout intentionally avoids post-hoc min/max normalization to preserve
-    natural spacing. Returns a mapping suitable for CX2 export:
-
-        {node_id: {"x": float, "y": float}}
-
-    Parameters
-    ----------
-    nodes_df : pandas.DataFrame
-        Must contain a column 'id' with node identifiers (strings).
-    edges_df : pandas.DataFrame | None
-        Optional DataFrame with 'source' and 'target' and optionally
-        'all_atoms_count' used as an edge-weight proxy.
-    network_title : str
-        Used to derive a stable seed so layouts are reproducible across runs.
-    scale : float, default 1000.0
-        Overall coordinate scale factor.
-
-    Returns
-    -------
-    dict[str, dict[str, float]]
-        Mapping of node id to x/y coordinates.
-    """
+    """Compute fast, deterministic force-directed positions (Fruchterman–Reingold style)."""
     import math
     import zlib
 
@@ -119,21 +96,19 @@ def compute_preset_positions_spring(nodes_df, edges_df, network_title, scale=100
     if N == 1:
         return {node_ids[0]: {"x": 0.0, "y": 0.0}}
     if N == 2:
-        d = scale * 0.35
+        d = scale * 0.08
         return {node_ids[0]: {"x": -d, "y": 0.0}, node_ids[1]: {"x": d, "y": 0.0}}
 
-    # Prefer NetworkX if available; otherwise fall back to a circle layout.
     try:
         import networkx as nx
     except Exception:
-        r = scale * 0.35
+        r = scale * (0.18 if N < 40 else 0.35)
         out = {}
         for i, nid in enumerate(node_ids):
             a = 2.0 * math.pi * i / N
             out[nid] = {"x": float(r * math.cos(a)), "y": float(r * math.sin(a))}
         return out
 
-    # Build graph with gently compressed weights to avoid extreme distortions.
     G = nx.Graph()
     G.add_nodes_from(node_ids)
 
@@ -142,20 +117,25 @@ def compute_preset_positions_spring(nodes_df, edges_df, network_title, scale=100
             s, t = e["source"], e["target"]
             if s in G and t in G and s != t:
                 w = float(e.get("all_atoms_count", 1.0))
-                w = 1.0 + math.log10(max(1.0, w))  # compress large counts
+                w = 1.0 + math.log10(max(1.0, w))
                 if G.has_edge(s, t):
                     if w > G[s][t].get("weight", 1.0):
                         G[s][t]["weight"] = w
                 else:
                     G.add_edge(s, t, weight=w)
 
-    # Stable seed derived from network title.
     seed = zlib.adler32(str(network_title).encode("utf-8")) & 0xFFFFFFFF
-
-    # Iterations: slightly higher for smaller networks to improve stability.
     iters = max(100, min(250, 8 * N))
 
-    # Let NetworkX scale; center around (0, 0); use half of the provided scale.
+    # smaller networks: tighter scale + slightly smaller k (prevents "exploded" layouts)
+    scale_used = scale * 0.8
+    if N < 40:
+        scale_used *= max(0.12, (N / 40.0))  # more aggressive than sqrt()
+
+    k = 1.0 / math.sqrt(max(N, 100))
+    if N < 40:
+        k *= 0.75
+
     pos = nx.spring_layout(
         G,
         seed=seed,
@@ -163,11 +143,13 @@ def compute_preset_positions_spring(nodes_df, edges_df, network_title, scale=100
         iterations=iters,
         dim=2,
         center=(0.0, 0.0),
-        scale=scale * 0.8,
-        k=None,  # let NetworkX choose a good default, works well for N < ~50
+        scale=scale_used,
+        k=k,
     )
 
     return {n: {"x": float(x), "y": float(y)} for n, (x, y) in pos.items()}
+
+
 
 
 def _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df_for_export, color_map, positions):

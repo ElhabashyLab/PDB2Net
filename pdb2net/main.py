@@ -6,7 +6,7 @@ This module coordinates the end-to-end pipeline:
 3) Molecule classification (SIFTS / pdb_seqres-driven; then BLAST fallback).
 4) Interaction detection (distance-based with cKDTree).
 5) Optional detailed CSV export of atom-level interactions.
-6) Network export(s): chain-level per PDB, combined chain network, and protein-level networks.
+6) Network export(s): chain-level per PDB, combined linked-identity network, and protein-level networks.
 
 Notes
 -----
@@ -18,11 +18,12 @@ Notes
 from __future__ import annotations
 
 import gc
+import hashlib
 import multiprocessing
 import os
 import time
 from datetime import datetime
-from typing import Any, Dict, Iterable, Iterator, List, Optional
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
 from config_loader import config
 from cytoscape import create_cytoscape_network, generate_nodes_from_atom_data
@@ -35,29 +36,8 @@ from uniprot_matcher import parallel_blast_search
 from unknown_molecule_uniprot import process_molecule_info
 
 
-def _resolve_workers(value: Optional[int | str], *, kind: str = "parsing") -> int:
-    """Convert a config value to a sensible worker/thread count.
-
-    Rules
-    -----
-    - If value is an int → use `max(1, value)`.
-    - If value is "auto" / None / missing → derive from CPU count:
-        * parsing: max(1, cpu - 1)
-        * blast:   max(1, cpu - 2)
-        * default: max(1, cpu - 1)
-
-    Parameters
-    ----------
-    value : int | str | None
-        Configured value, often "auto" or an integer.
-    kind : {"parsing", "blast"}
-        Hint to select the heuristic for "auto".
-
-    Returns
-    -------
-    int
-        Chosen worker count (>= 1).
-    """
+def _resolve_workers(value: Optional[Union[int, str]], *, kind: str = "parsing") -> int:
+    """Convert a config value to a sensible worker/thread count."""
     cpu = os.cpu_count() or 4
 
     if isinstance(value, int):
@@ -72,19 +52,7 @@ def _resolve_workers(value: Optional[int | str], *, kind: str = "parsing") -> in
 
 
 def process_single_file(file_path: str) -> Optional[Dict[str, Any]]:
-    """Process a single PDB/mmCIF file end-to-end for the parsing stage.
-
-    Steps
-    -----
-    - Extract PDB ID.
-    - Parse structure via Gemmi.
-    - Extract atoms/residues using `process_structure()`.
-
-    Returns
-    -------
-    dict | None
-        Structure payload compatible with downstream steps on success, else None.
-    """
+    """Process a single PDB/mmCIF file end-to-end for the parsing stage."""
     try:
         pdb_id = get_pdb_id(file_path)
         structure = parse_structure(file_path, pdb_id)
@@ -96,20 +64,115 @@ def process_single_file(file_path: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+def _get_border_color_for_uniprot(uniprot_id: Optional[str]) -> str:
+    """Generate a consistent hex color from a UniProt ID string (or return gray)."""
+    if not uniprot_id:
+        return "#555555"  # Dark gray for unknown/no ID
+    # Generate deterministic color via MD5 hash of the ID
+    hash_val = int(hashlib.md5(uniprot_id.encode('utf-8')).hexdigest(), 16)
+    # Use the lower 24 bits for RGB
+    return f"#{hash_val & 0xFFFFFF:06x}"
+
+
+def _create_linked_identity_network(results: List[Dict[str, Any]], combined_data: List[Dict[str, Any]], run_output_path: str) -> None:
+    """
+    Internal helper to build the 'Linked Identity' Combined Network.
+    
+    UPDATED: 
+    - Generates multi-line labels: "PDB:Chain \n UniProtID".
+    - Prepares border colors.
+    """
+    print("  > Building Linked Identity Network (bridging different PDBs)...")
+
+    # --- 1. Prepare Nodes & Metadata ---
+    all_chains_flat = []
+    uniprot_groups: Dict[str, List[Dict[str, Any]]] = {}
+
+    for structure in combined_data:
+        pdb_id = structure["pdb_id"]
+        for chain in structure["atom_data"]:
+            # Enrich chain dict with PDB ID for easier access later
+            chain["_parent_pdb_id"] = pdb_id
+            
+            # Add border color attribute
+            up_id = chain.get("uniprot_id")
+            chain["uniprot_border_color"] = _get_border_color_for_uniprot(up_id)
+            
+            all_chains_flat.append(chain)
+
+            # Group by UniProt for identity linking
+            if up_id:
+                uniprot_groups.setdefault(up_id, []).append(chain)
+
+    # Generate standard node data (includes id, molecule_type, etc.)
+    nodes_data = generate_nodes_from_atom_data(all_chains_flat)
+    
+    # Map back to add the border color AND update the name for the label
+    chain_lookup = {c["unique_chain_id"]: c for c in all_chains_flat}
+    
+    for node in nodes_data:
+        original = chain_lookup.get(node["id"])
+        if original:
+            # 1. Transfer Border Color
+            node["uniprot_border_color"] = original.get("uniprot_border_color", "#555555")
+            
+            # 2. Update Name for Label (PDB:Chain \n UniProtID)
+            up_id = original.get("uniprot_id")
+            if up_id:
+                node["uniprot_id"] = up_id
+                # \n erzeugt den Zeilenumbruch in Cytoscape
+                node["name"] = f"{node['id']}\n{up_id}"
+            else:
+                node["name"] = node["id"]
+
+    # --- 2. Build Edges ---
+    final_edges = []
+
+    # A) Physical Interactions (Original)
+    for res in results:
+        final_edges.append(res)
+
+    # B) Identity Interactions (New: Inter-PDB Bridges)
+    count_identity_edges = 0
+    for up_id, chains in uniprot_groups.items():
+        if len(chains) < 2:
+            continue
+
+        # Sort chains to create a deterministic path
+        chains.sort(key=lambda c: c["unique_chain_id"])
+
+        # Linear Link: i -> i+1
+        for i in range(len(chains) - 1):
+            chain_a = chains[i]
+            chain_b = chains[i+1]
+
+            pdb_a = chain_a["_parent_pdb_id"]
+            pdb_b = chain_b["_parent_pdb_id"]
+
+            # CONSTRAINT: Only connect if they are from DIFFERENT files
+            if pdb_a != pdb_b:
+                final_edges.append({
+                    "chain_a": chain_a["unique_chain_id"],
+                    "chain_b": chain_b["unique_chain_id"],
+                    "all_atoms_count": 1,  # Dummy weight
+                    "interaction_type": "identity"
+                })
+                count_identity_edges += 1
+
+    print(f"    - Added {count_identity_edges} identity bridges between files.")
+
+    # --- 3. Export ---
+    create_cytoscape_network(final_edges, "Combined_Network", run_output_path, nodes_data=nodes_data)
+
+
 def run_main(batch_files: List[str]) -> None:
     """Helper wrapper to re-enter main() for a batch (used by batch_run)."""
     from main import main  # local import to preserve original behavior
     main(batch_files)
 
 
-def main(input_path_or_filelist: str | List[str]) -> None:
-    """Entry point for processing a folder or an explicit file list.
-
-    Parameters
-    ----------
-    input_path_or_filelist : str | list[str]
-        Either a directory path containing input files, or an explicit list of file paths.
-    """
+def main(input_path_or_filelist: Union[str, List[str]]) -> None:
+    """Entry point for processing a folder or an explicit file list."""
     network_config = config["networks"]
 
     if isinstance(input_path_or_filelist, list):
@@ -190,12 +253,13 @@ def main(input_path_or_filelist: str | List[str]) -> None:
 
         sum_times["networks"] += time.time() - start_time
 
-    # === Network export: combined chain network ===
+    # === Network export: combined chain network (LINKED MODE) ===
     if network_config["combined_chain_network"]:
         start_time = time.time()
-        all_chains = [chain for structure in combined_data for chain in structure["atom_data"]]
-        nodes_data = generate_nodes_from_atom_data(all_chains)
-        create_cytoscape_network(results, "Combined_Network", run_output_path, nodes_data=nodes_data)
+        
+        # New function: Linked Identity Network (Physical edges + Inter-file Bridges)
+        _create_linked_identity_network(results, combined_data, run_output_path)
+        
         sum_times["networks"] += time.time() - start_time
 
     # === Network export: protein-based (per PDB and/or combined) ===
@@ -227,23 +291,7 @@ def main(input_path_or_filelist: str | List[str]) -> None:
 
 
 def create_batches_streaming(file_paths: Iterable[str], max_batch_kb: int) -> Iterator[List[str]]:
-    """Yield batches of files with a soft size cap, streaming over the input.
-
-    The function does not precompute sizes for the entire set; it yields
-    batches as it scans the input sequence to keep memory usage low.
-
-    Parameters
-    ----------
-    file_paths : Iterable[str]
-        Stream of file paths to be grouped.
-    max_batch_kb : int
-        Maximum accumulated size (in KB) per batch.
-
-    Yields
-    ------
-    list[str]
-        A batch of file paths whose total size is within `max_batch_kb`.
-    """
+    """Yield batches of files with a soft size cap, streaming over the input."""
     current_batch: List[str] = []
     current_size = 0
 
@@ -271,22 +319,7 @@ def create_batches_streaming(file_paths: Iterable[str], max_batch_kb: int) -> It
 
 
 def batch_run(input_folder: str, timeout_minutes: int = 10, size_limit_kb: int = 1000_100) -> None:
-    """Run the pipeline repeatedly on streamed batches from a folder.
-
-    Each batch is processed either:
-    - Inline in the main process when `open_in_cytoscape` is set (to avoid
-      concurrent access to Cytoscape/py4cytoscape logging), or
-    - In a subprocess with a timeout (default) to protect against stuck runs.
-
-    Parameters
-    ----------
-    input_folder : str
-        Folder to scan for valid input files.
-    timeout_minutes : int, default 10
-        Per-batch timeout for the subprocess mode.
-    size_limit_kb : int, default 900_800
-        Soft limit for total batch size.
-    """
+    """Run the pipeline repeatedly on streamed batches from a folder."""
     def stream_valid_files(folder: str) -> Iterator[str]:
         for entry in os.scandir(folder):
             if entry.is_file() and is_valid_file(entry.path):
@@ -305,18 +338,15 @@ def batch_run(input_folder: str, timeout_minutes: int = 10, size_limit_kb: int =
     for i, batch_files in enumerate(create_batches_streaming(file_stream, size_limit_kb), start=1):
         print(f"\n--- Processing batch {i} ({len(batch_files)} files) ---")
 
-        # If Cytoscape/py4cytoscape is used, do not fork a subprocess to
-        # avoid concurrent rotation/access of the Cytoscape log files.
         if config.get("open_in_cytoscape", False):
             start_time_batch = time.time()
-            run_main(batch_files)  # run in the main process
+            run_main(batch_files)
             duration = time.time() - start_time_batch
             total_done += len(batch_files)
             print(f"Batch {i} finished in {duration:.1f} seconds.")
             print(f"Processed so far: {total_done} files.")
             continue
 
-        # Default path: run the batch in a subprocess with a timeout.
         start_time_batch = time.time()
         process = multiprocessing.Process(target=run_main, args=(batch_files,))
         process.start()

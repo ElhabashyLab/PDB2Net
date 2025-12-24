@@ -302,24 +302,89 @@ def _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df_for_
 
 def create_cytoscape_network(results, network_title="Protein_Interaction_Network", run_output_path=".", nodes_data=None):
     """Create a network either headlessly (CX2 only) or inside Cytoscape, then export CX2."""
-    
+
+    def _verbose_enabled() -> bool:
+        return os.environ.get("PDB2NET_VERBOSE", "").strip().lower() in {"1", "true", "yes", "on"}
+
+    def _compute_edge_name(source: str, target: str, interaction: str) -> str:
+        return f"{source} ({interaction}) {target}"
+
+    def _style_signature(color_map: dict, extra_tag: str = "") -> str:
+        """
+        Deterministic short signature so Combined styles do not go stale
+        and we do NOT need to delete shared styles.
+        """
+        import zlib
+        keys = sorted([str(k) for k in color_map.keys()])
+        payload = (extra_tag + "|" + "|".join(keys)).encode("utf-8")
+        return f"{zlib.adler32(payload) & 0xFFFFFFFF:08x}"
+
+    def _ensure_style(style_name: str, mappings: list, defaults: dict) -> None:
+        """Create visual style if it doesn't exist. Never delete shared styles."""
+        try:
+            existing = set(p4c.get_visual_style_names())
+        except Exception:
+            existing = set()
+
+        if style_name not in existing:
+            p4c.create_visual_style(style_name, mappings=mappings, defaults=defaults)
+
+    def _load_edge_attributes_by_name(network_suid: int, edges_full_df: pd.DataFrame) -> None:
+        """Load edge attributes keyed by edge 'name' (stable), avoiding SUID join issues."""
+        if edges_full_df is None or edges_full_df.empty:
+            return
+
+        base_cols = {"source", "target", "interaction"}
+        extra_cols = [c for c in edges_full_df.columns if c not in base_cols]
+        if not extra_cols:
+            return
+
+        df = edges_full_df.copy()
+        df["name"] = [
+            _compute_edge_name(str(s), str(t), str(i))
+            for s, t, i in zip(df["source"], df["target"], df["interaction"])
+        ]
+        load_df = df[["name"] + extra_cols].copy()
+
+        last_exc = None
+        for _ in range(8):
+            try:
+                p4c.load_table_data(
+                    load_df,
+                    data_key_column="name",
+                    table="edge",
+                    table_key_column="name",
+                    network=network_suid,
+                )
+                return
+            except Exception as e:
+                last_exc = e
+                time.sleep(0.25)
+
+        if _verbose_enabled() and last_exc is not None:
+            print(f"[cytoscape] Edge attribute import failed (non-fatal): {last_exc}")
+
     # --- Prepare Data ---
     unique_nodes = set()
     edges = []
     for entry in results:
         if entry.get("all_atoms_count", 0) > 0:
             a, b = entry["chain_a"], entry["chain_b"]
-            unique_nodes.add(a); unique_nodes.add(b)
+            unique_nodes.add(a)
+            unique_nodes.add(b)
             edges.append({
-                "chain_a": a, "chain_b": b, 
+                "chain_a": a,
+                "chain_b": b,
                 "all_atoms_count": entry["all_atoms_count"],
-                "interaction": entry.get("interaction_type", "interacts_with")
+                "interaction": entry.get("interaction_type", "interacts_with"),
             })
 
     if nodes_data:
         nodes_df = pd.DataFrame(nodes_data).copy()
-        if "name" not in nodes_df.columns: nodes_df["name"] = nodes_df["id"]
-        if "tooltip" not in nodes_df.columns: nodes_df["tooltip"] = nodes_df.get("molecule_name", nodes_df["name"])
+        if "name" not in nodes_df.columns:
+            nodes_df["name"] = nodes_df["id"]
+        if "tooltip" not in nodes_df.columns:
+            nodes_df["tooltip"] = nodes_df.get("molecule_name", nodes_df["name"])
     else:
         nodes_df = pd.DataFrame({"id": list(unique_nodes)})
         nodes_df["name"] = nodes_df["id"]
@@ -330,24 +395,32 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
 
     if len(edges) > 0:
         edges_df = pd.DataFrame(edges).rename(columns={"chain_a": "source", "chain_b": "target"})
-        if "interaction" not in edges_df.columns: 
+        if "interaction" not in edges_df.columns:
             edges_df["interaction"] = "interacts_with"
     else:
         edges_df = pd.DataFrame(columns=["source", "target", "interaction", "all_atoms_count"])
 
     # --- Setup Colors ---
-    fixed_colors = {"Protein": "#1f77b4", "DNA": "#ff7f0e", "RNA": "#2ca02c", "DNA/RNA": "#a2a200", "Nucleic Acid": "#9467bd", "Unknown": "#7f7f7f"}
+    fixed_colors = {
+        "Protein": "#1f77b4",
+        "DNA": "#ff7f0e",
+        "RNA": "#2ca02c",
+        "DNA/RNA": "#a2a200",
+        "Nucleic Acid": "#9467bd",
+        "Unknown": "#7f7f7f",
+    }
     color_groups = sorted(nodes_df["color_group"].dropna().unique()) if "color_group" in nodes_df.columns else []
     base_color_groups = [g for g in color_groups if g not in fixed_colors and g != "Multi"]
     cmap = cm.get_cmap("tab20", max(1, len(base_color_groups)))
     auto_colors = {group: to_hex(cmap(i)) for i, group in enumerate(base_color_groups)}
-    if "Multi" in color_groups and "Multi" not in fixed_colors: auto_colors["Multi"] = "#FF0000"
+    if "Multi" in color_groups and "Multi" not in fixed_colors:
+        auto_colors["Multi"] = "#FF0000"
+
     color_map = {**fixed_colors, **auto_colors}
 
     # === PATH 1: Headless ===
     if not config.get("open_in_cytoscape", True):
-        # Deterministic packing calculation
-        positions = compute_preset_positions_spring(nodes_df, edges_df, network_title) 
+        positions = compute_preset_positions_spring(nodes_df, edges_df, network_title)
         _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df, color_map, positions)
         return
 
@@ -365,58 +438,98 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
     else:
         collection_name = "PDB2Net — Chain"
 
-    try:
-        p4c.create_network_from_data_frames(nodes=nodes_df, edges=edges_df, title=network_title, collection=collection_name)
-    except Exception as e: print(f"Error creating network: {e}")
+    # Create network WITHOUT extra edge attribute columns to avoid py4c SUID-join noise
+    edges_df_for_create = None
+    if edges_df is not None and not edges_df.empty:
+        edges_df_for_create = edges_df[["source", "target", "interaction"]].copy()
 
     try:
-        cols = ["id", "name", "color_group", "tooltip", "uniprot_border_color", "uniprot_id"]
-        load_cols = [c for c in cols if c in nodes_df.columns]
-        p4c.load_table_data(nodes_df[load_cols], data_key_column="id", table="node", table_key_column="id")
-    except Exception as e: print(f"Error loading data: {e}")
+        network_suid = p4c.create_network_from_data_frames(
+            nodes=nodes_df,
+            edges=edges_df_for_create,
+            title=network_title,
+            collection=collection_name,
+        )
+    except Exception as e:
+        if _verbose_enabled():
+            print(f"[cytoscape] Error creating network: {e}")
+        return
 
-    # --- Style Logic ---
+    # Load edge attributes after creation (stable)
+    _load_edge_attributes_by_name(network_suid, edges_df)
+
+    # --- Style Naming Strategy (THIS FIXES YOUR NEW PROBLEM) ---
+    # Keep per-PDB networks on a stable shared style.
+    # Give combined networks a unique style signature so discrete mappings include all current PDB IDs,
+    # without deleting/replacing the shared style used by earlier networks.
     is_linked_identity_network = (network_title == "Combined_Network")
-    style_name = "PDB2Net_Linked_Identity" if is_linked_identity_network else "PDB2Net_Standard"
+    is_combined_protein_network = (network_title == "Combined_Protein_Network")
 
-    if style_name not in p4c.get_visual_style_names():
-        defaults = {
-            "NODE_SHAPE": "ELLIPSE",
-            "NODE_SIZE": 45,
-            "NODE_LABEL_POSITION": "C,C,c,0.00,0.00",
-            "EDGE_TRANSPARENCY": 120,
-            "NODE_BORDER_WIDTH": 5.0 if is_linked_identity_network else 2.0,
-            "NODE_BORDER_PAINT": "#555555" if is_linked_identity_network else "#000000"
-        }
-
-        mappings = [
-            {"mappingType": "passthrough", "mappingColumn": "name", "mappingColumnType": "String", "visualProperty": "NODE_LABEL"},
-            {"mappingType": "passthrough", "mappingColumn": "tooltip", "mappingColumnType": "String", "visualProperty": "NODE_TOOLTIP"},
-            {"mappingType": "discrete", "mappingColumn": "color_group", "mappingColumnType": "String", "visualProperty": "NODE_FILL_COLOR", "map": [{"key": k, "value": v} for k, v in color_map.items()]},
-        ]
-
-        if is_linked_identity_network:
-            mappings.append({"mappingType": "passthrough", "mappingColumn": "uniprot_border_color", "mappingColumnType": "String", "visualProperty": "NODE_BORDER_PAINT"})
-            mappings.append({"mappingType": "discrete", "mappingColumn": "interaction", "mappingColumnType": "String", "visualProperty": "EDGE_LINE_TYPE", "map": [{"key": "identity", "value": "LONG_DASH"}, {"key": "interacts_with", "value": "SOLID"}]})
-        
-        p4c.create_visual_style(style_name, mappings=mappings, defaults=defaults)
-
-    p4c.set_visual_style(style_name)
-    
-    # === Layout Strategy for Live Cytoscape ===
     if is_linked_identity_network:
-        # Use a layout that handles disconnected graphs better if possible, 
-        # or stick to force-directed. Unfortunately Py4Cytoscape only triggers standard layouts.
-        # "force-directed" usually handles islands okay-ish in GUI, but "prefuse-force-directed" might be better.
-        # However, to be consistent with headless, we rely on standard behavior.
-        p4c.layout_network(layout_name="force-directed")
+        base_style = "PDB2Net_Linked_Identity"
+        style_name = f"{base_style}_{_style_signature(color_map, extra_tag='linked')}"
+    elif is_combined_protein_network:
+        base_style = "PDB2Net_Combined_Protein"
+        style_name = f"{base_style}_{_style_signature(color_map, extra_tag='combined_protein')}"
     else:
-        p4c.layout_network(layout_name="force-directed")
+        # per-PDB chain/protein networks keep stable style name
+        style_name = "PDB2Net_Standard"
 
+    # Defaults: keep your current look; only ensure Combined defaults are not "all red" when unmapped
+    defaults = {
+        "NODE_SHAPE": "ELLIPSE",
+        "NODE_SIZE": 45,
+        "NODE_LABEL_POSITION": "C,C,c,0.00,0.00",
+        "EDGE_TRANSPARENCY": 120,
+        "NODE_BORDER_WIDTH": 5.0 if is_linked_identity_network else 2.0,
+        "NODE_BORDER_PAINT": "#555555" if is_linked_identity_network else "#000000",
+    }
+
+    if is_linked_identity_network or is_combined_protein_network:
+        # Neutral default for Combined so unmapped values do not appear "all red"
+        defaults["NODE_FILL_COLOR"] = "#BDBDBD"
+
+    mappings = [
+        {"mappingType": "passthrough", "mappingColumn": "name", "mappingColumnType": "String", "visualProperty": "NODE_LABEL"},
+        {"mappingType": "passthrough", "mappingColumn": "tooltip", "mappingColumnType": "String", "visualProperty": "NODE_TOOLTIP"},
+        {
+            "mappingType": "discrete",
+            "mappingColumn": "color_group",
+            "mappingColumnType": "String",
+            "visualProperty": "NODE_FILL_COLOR",
+            "map": [{"key": k, "value": v} for k, v in color_map.items()],
+        },
+    ]
+
+    if is_linked_identity_network:
+        mappings.append({
+            "mappingType": "passthrough",
+            "mappingColumn": "uniprot_border_color",
+            "mappingColumnType": "String",
+            "visualProperty": "NODE_BORDER_PAINT",
+        })
+        mappings.append({
+            "mappingType": "discrete",
+            "mappingColumn": "interaction",
+            "mappingColumnType": "String",
+            "visualProperty": "EDGE_LINE_TYPE",
+            "map": [{"key": "identity", "value": "LONG_DASH"}, {"key": "interacts_with", "value": "SOLID"}],
+        })
+
+    _ensure_style(style_name, mappings=mappings, defaults=defaults)
+    p4c.set_visual_style(style_name)
+
+    # Layout
+    p4c.layout_network(layout_name="force-directed")
+
+    # Export
     try:
         os.makedirs(run_output_path, exist_ok=True)
         p4c.export_network(os.path.join(run_output_path, f"{network_title}.cx2"), type="cx2")
-    except Exception as e: print(f"Error exporting: {e}")
+    except Exception as e:
+        if _verbose_enabled():
+            print(f"[cytoscape] Error exporting: {e}")
+
 
 
 def generate_nodes_from_atom_data(atom_data, pdb_id=None):

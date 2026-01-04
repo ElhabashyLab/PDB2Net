@@ -197,7 +197,7 @@ def _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df_for_
     for _, row in nodes_df.iterrows():
         nid = str(row["id"])
         pos = positions.get(nid, {"x": 0.0, "y": 0.0})
-        
+
         # Border Color Logic
         if is_linked_identity_network:
             border_color = str(row.get("uniprot_border_color", "#555555"))
@@ -220,13 +220,16 @@ def _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df_for_
     edges_aspect = []
     max_w = 1
     for _, r in edges_df_for_export.iterrows():
-        try: max_w = max(max_w, int(r.get("all_atoms_count", 1)))
-        except: pass
+        try:
+            max_w = max(max_w, int(r.get("all_atoms_count", 1)))
+        except Exception:
+            pass
 
     for i, r in edges_df_for_export.iterrows():
         s = nid_map.get(str(r["source"]))
         t = nid_map.get(str(r["target"]))
-        if s is None or t is None or s == t: continue
+        if s is None or t is None or s == t:
+            continue
         edges_aspect.append({
             "id": i + 1, "s": s, "t": t,
             "v": {
@@ -241,13 +244,22 @@ def _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df_for_
     if is_linked_identity_network:
         # Style: Linked Identity
         border_width = 5.0
-        border_paint_mapping = {"type": "PASSTHROUGH", "definition": {"attribute": "uniprot_border_color", "type": "string"}}
-        edge_style_mapping = {"type": "DISCRETE", "definition": {"attribute": "interaction", "type": "string", "map": [{"v": "identity", "vp": "DOT"}, {"v": "interacts_with", "vp": "SOLID"}]}}
+        border_paint_mapping = {
+            "type": "PASSTHROUGH",
+            "definition": {"attribute": "uniprot_border_color", "type": "string"}
+        }
+        edge_style_mapping = {
+            "type": "DISCRETE",
+            "definition": {
+                "attribute": "interaction", "type": "string",
+                "map": [{"v": "identity", "vp": "DOT"}, {"v": "interacts_with", "vp": "SOLID"}]
+            }
+        }
     else:
         # Style: Standard
         border_width = 2.0
         border_paint_mapping = None
-        edge_style_mapping = None 
+        edge_style_mapping = None
 
     visual_props = {
         "visualProperties": [{
@@ -261,26 +273,42 @@ def _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df_for_
                     "NODE_BORDER_COLOR": "#000000" if not is_linked_identity_network else "#555555"
                 },
                 "edge": {
-                    "EDGE_LINE_COLOR": "#888888", "EDGE_OPACITY": 0.6, "EDGE_CURVED": True, "EDGE_LINE_STYLE": "SOLID"
+                    "EDGE_LINE_COLOR": "#888888",
+                    "EDGE_OPACITY": 0.6,
+                    "EDGE_CURVED": True,
+                    "EDGE_LINE_STYLE": "SOLID"
                 },
             },
             "nodeMapping": {
-                "NODE_LABEL": { "type": "PASSTHROUGH", "definition": {"attribute": "name", "type": "string"} },
-                "NODE_TOOLTIP": { "type": "PASSTHROUGH", "definition": {"attribute": "tooltip", "type": "string"} },
-                "NODE_BACKGROUND_COLOR": { "type": "DISCRETE", "definition": { "attribute": "color_group", "type": "string", "map": discrete_map } }
+                "NODE_LABEL": {
+                    "type": "PASSTHROUGH",
+                    "definition": {"attribute": "name", "type": "string"}
+                },
+                "NODE_TOOLTIP": {
+                    "type": "PASSTHROUGH",
+                    "definition": {"attribute": "tooltip", "type": "string"}
+                },
+                "NODE_BACKGROUND_COLOR": {
+                    "type": "DISCRETE",
+                    "definition": {"attribute": "color_group", "type": "string", "map": discrete_map}
+                }
             },
             "edgeMapping": {
                 "EDGE_WIDTH": {
                     "type": "CONTINUOUS",
                     "definition": {
                         "attribute": "all_atoms_count", "type": "integer",
-                        "map": [{"min": 1.0, "includeMin": True, "max": float(max_w), "includeMax": True, "minVPValue": 1.0, "maxVPValue": 6.0}],
+                        "map": [{
+                            "min": 1.0, "includeMin": True,
+                            "max": float(max_w), "includeMax": True,
+                            "minVPValue": 1.0, "maxVPValue": 6.0
+                        }],
                     },
                 },
             },
         }]
     }
-    
+
     if border_paint_mapping:
         visual_props["visualProperties"][0]["nodeMapping"]["NODE_BORDER_COLOR"] = border_paint_mapping
     if edge_style_mapping:
@@ -289,15 +317,44 @@ def _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df_for_
     attr_decls = {
         "attributeDeclarations": [{
             "networkAttributes": {"name": {"d": "string"}},
-            "nodes": {"name": {"d": "string"}, "tooltip": {"d": "string"}, "color_group": {"d": "string"}, "uniprot_border_color": {"d": "string"}},
-            "edges": {"interaction": {"d": "string"}, "all_atoms_count": {"d": "integer"}},
+            "nodes": {
+                "name": {"d": "string"},
+                "tooltip": {"d": "string"},
+                "color_group": {"d": "string"},
+                "uniprot_border_color": {"d": "string"}
+            },
+            "edges": {
+                "interaction": {"d": "string"},
+                "all_atoms_count": {"d": "integer"}
+            },
         }]
     }
 
-    cx = [{"CXVersion": "2.0", "hasFragments": False}, attr_decls, {"networkAttributes": [{"name": network_title}]}, {"nodes": nodes_aspect}, {"edges": edges_aspect}, visual_props, {"status": [{"error": "", "success": True}]}]
-    
+    # --- NEW: Pre-metaData block (some viewers require it even though it's optional in the spec) ---
+    meta = {
+        "metaData": [
+            {"name": "attributeDeclarations", "elementCount": 1},
+            {"name": "networkAttributes", "elementCount": 1},
+            {"name": "nodes", "elementCount": len(nodes_aspect)},
+            {"name": "edges", "elementCount": len(edges_aspect)},
+            {"name": "visualProperties", "elementCount": len(visual_props.get("visualProperties", []))},
+        ]
+    }
+
+    cx = [
+        {"CXVersion": "2.0", "hasFragments": False},
+        meta,  # <-- inserted
+        attr_decls,
+        {"networkAttributes": [{"name": network_title}]},
+        {"nodes": nodes_aspect},
+        {"edges": edges_aspect},
+        visual_props,
+        {"status": [{"error": "", "success": True}]},
+    ]
+
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(cx, f, ensure_ascii=False, indent=2)
+
 
 
 def create_cytoscape_network(results, network_title="Protein_Interaction_Network", run_output_path=".", nodes_data=None):

@@ -34,32 +34,26 @@ def create_protein_network(
     combined_data: List[Dict[str, Any]],
     run_output_path: str,
     network_config: Dict[str, Any],
+    *,
+    per_pdb_output_path: Optional[str] = None,
+    combined_output_path: Optional[str] = None,
 ) -> None:
     """Create protein-level networks (per PDB and/or combined).
 
-    Parameters
-    ----------
-    results : list[dict]
-        Chain-level interaction records with at least:
-        - "chain_a": "PDB:Chain"
-        - "chain_b": "PDB:Chain"
-        - "all_atoms_count": int
-    combined_data : list[dict]
-        Per-structure payloads as emitted by the parsing/processing stage.
-        Each entry includes "pdb_id" and "atom_data" (list of chain dicts with
-        "molecule_type", "molecule_name", "residues", and optional "uniprot_id").
-    run_output_path : str
-        Output directory passed through to Cytoscape export.
-    network_config : dict
-        Contains booleans:
-        - "protein_per_pdb": build per-PDB protein networks
-        - "combined_protein_network": build one combined protein network
+    per_pdb_output_path:
+        Output folder for Protein_Network_<pdb>.cx2
+    combined_output_path:
+        Output folder for Combined_Protein_Network.cx2
     """
     make_per_pdb = network_config.get("protein_per_pdb", False)
     make_combined = network_config.get("combined_protein_network", False)
     if not make_per_pdb and not make_combined:
         print("Protein network creation is disabled.")
         return
+
+    # Default fallbacks (backward compatible)
+    per_pdb_out = per_pdb_output_path or run_output_path
+    combined_out = combined_output_path or run_output_path
 
     # --- Residue classes for quick length annotations in tooltips ---
     dna_set = {"DA", "DT", "DG", "DC", "DI"}
@@ -71,7 +65,6 @@ def create_protein_network(
     }
 
     def count_lengths(res_list: Optional[List[Dict[str, Any]]]) -> Tuple[int, int]:
-        """Return (aa_len, nt_len) for a residue list."""
         aa = nt = 0
         for res in (res_list or []):
             rn = (res.get("residue_name") or "").upper()
@@ -82,12 +75,12 @@ def create_protein_network(
         return aa, nt
 
     # --- Collect chain/protein metadata ---
-    chain_to_uniprot: Dict[str, str] = {}            # "PDB:Chain" -> UniProt
-    uniprot_to_pdb_ids: Dict[str, Set[str]] = {}     # UniProt -> {PDBs}
-    uniprot_to_name: Dict[str, str] = {}             # UniProt -> display name
-    pdb_to_uniprots: Dict[str, Set[str]] = {}        # PDB -> {UniProt-IDs}
-    chain_info: Dict[str, Dict[str, Any]] = {}       # "PDB:Chain" -> info dict
-    uniprot_pdb_to_chains: Dict[Tuple[str, str], Set[str]] = {}  # (UniProt, PDB) -> {ChainIDs}
+    chain_to_uniprot: Dict[str, str] = {}
+    uniprot_to_pdb_ids: Dict[str, Set[str]] = {}
+    uniprot_to_name: Dict[str, str] = {}
+    pdb_to_uniprots: Dict[str, Set[str]] = {}
+    chain_info: Dict[str, Dict[str, Any]] = {}
+    uniprot_pdb_to_chains: Dict[Tuple[str, str], Set[str]] = {}
 
     for structure in combined_data:
         pdb_id = structure["pdb_id"]
@@ -111,20 +104,11 @@ def create_protein_network(
                 pdb_to_uniprots.setdefault(pdb_id, set()).add(up)
                 uniprot_pdb_to_chains.setdefault((up, pdb_id), set()).add(chain_id)
 
-    # --- Color-group logic for the combined network ---
     def get_color_group_for_combined(up_id: str) -> str:
         pdbs = uniprot_to_pdb_ids.get(up_id, set())
         return "Multi" if len(pdbs) != 1 else next(iter(pdbs))
 
-    # --- Tooltips ---
     def protein_tooltip(up_id: str, pdb_scope: Optional[str]) -> str:
-        """Format a tooltip for a protein node.
-
-        pdb_scope = None
-            Combined network: show number/examples of PDBs.
-        pdb_scope = "1TUP"
-            Per-PDB: show PDB, chains, and summed AA length across chains.
-        """
         lines = [str(uniprot_to_name.get(up_id, up_id))]
         lines.append("Type: Protein")
         lines.append(f"UniProt: {up_id}")
@@ -151,7 +135,6 @@ def create_protein_network(
         return "\n".join(lines)
 
     def na_tooltip(na_uid: str) -> str:
-        """Format a tooltip for a nucleic-acid chain node."""
         info = chain_info.get(na_uid, {})
         name = info.get("molecule_name", "Unknown")
         mtype = info.get("molecule_type", "Unknown")
@@ -170,12 +153,12 @@ def create_protein_network(
         return "\n".join(lines)
 
     # --- Aggregate edges ---
-    pp_edges_by_pdb: Dict[str, Dict[Tuple[str, str], int]] = {}  # pdb_id -> {(up_a, up_b): weight}
-    pp_edges_combined: Dict[Tuple[str, str], int] = {}           # (up_a, up_b) -> weight
+    pp_edges_by_pdb: Dict[str, Dict[Tuple[str, str], int]] = {}
+    pp_edges_combined: Dict[Tuple[str, str], int] = {}
 
     na_types = {"DNA", "RNA", "DNA/RNA", "Nucleic Acid"}
-    na_edges_by_pdb: Dict[str, Dict[Tuple[str, str], int]] = {}  # pdb_id -> {(uniprot, na_uid): weight}
-    na_nodes_by_pdb: Dict[str, Dict[str, Dict[str, Any]]] = {}   # pdb_id -> {na_uid: node_dict}
+    na_edges_by_pdb: Dict[str, Dict[Tuple[str, str], int]] = {}
+    na_nodes_by_pdb: Dict[str, Dict[str, Dict[str, Any]]] = {}
 
     for entry in results:
         cnt = entry.get("all_atoms_count", 0)
@@ -193,14 +176,12 @@ def create_protein_network(
         up_a = chain_to_uniprot.get(a)
         up_b = chain_to_uniprot.get(b)
 
-        # Protein–Protein
         if up_a and up_b and up_a != up_b:
             key = tuple(sorted((up_a, up_b)))
             pp_edges_combined[key] = pp_edges_combined.get(key, 0) + cnt
             pp_edges_by_pdb.setdefault(pdb_id, {})
             pp_edges_by_pdb[pdb_id][key] = pp_edges_by_pdb[pdb_id].get(key, 0) + cnt
 
-        # Protein–NA (exactly one protein + one NA)
         up = None
         na_uid = None
         na_type = None
@@ -222,7 +203,6 @@ def create_protein_network(
             k = (up, na_uid)
             na_edges_by_pdb[pdb_id][k] = na_edges_by_pdb[pdb_id].get(k, 0) + cnt
 
-    # --- Node builders ---
     def nodes_from_uniprots(
         uniprot_ids: Iterable[str],
         force_protein_color: bool = False,
@@ -236,7 +216,6 @@ def create_protein_network(
                 "color_group": cg,
                 "molecule_name": uniprot_to_name.get(up, up),
                 "tooltip": protein_tooltip(up, pdb_scope=pdb_scope),
-                # No explicit "name": create_cytoscape_network uses 'id' as label (legacy style)
             })
         return nodes
 
@@ -244,42 +223,38 @@ def create_protein_network(
     if make_per_pdb:
         pdbs_with_edges = set(pp_edges_by_pdb.keys()) | set(na_edges_by_pdb.keys())
 
-        # 1) PDBs WITH edges
         for pdb_id in sorted(pdbs_with_edges):
             prot_set = pdb_to_uniprots.get(pdb_id, set())
             if not prot_set:
                 continue
 
-            edges_pp = [
-                {"chain_a": up1, "chain_b": up2, "all_atoms_count": w}
-                for (up1, up2), w in pp_edges_by_pdb.get(pdb_id, {}).items()
-            ]
-            edges_pna = [
-                {"chain_a": up, "chain_b": na_uid, "all_atoms_count": w}
-                for (up, na_uid), w in na_edges_by_pdb.get(pdb_id, {}).items()
-            ]
+            edges_pp = [{"chain_a": up1, "chain_b": up2, "all_atoms_count": w}
+                        for (up1, up2), w in pp_edges_by_pdb.get(pdb_id, {}).items()]
+            edges_pna = [{"chain_a": up, "chain_b": na_uid, "all_atoms_count": w}
+                         for (up, na_uid), w in na_edges_by_pdb.get(pdb_id, {}).items()]
             edges = edges_pp + edges_pna
             if not edges:
                 continue
 
             nodes = nodes_from_uniprots(prot_set, force_protein_color=True, pdb_scope=pdb_id)
             nodes.extend(list(na_nodes_by_pdb.get(pdb_id, {}).values()))
-            create_cytoscape_network(edges, f"Protein_Network_{pdb_id}", run_output_path, nodes_data=nodes)
+            # NEW: protein per-PDB folder
+            create_cytoscape_network(edges, f"Protein_Network_{pdb_id}", per_pdb_out, nodes_data=nodes)
 
-        # 2) PDBs WITHOUT edges → nodes-only protein graphs
         for pdb_id in sorted(set(pdb_to_uniprots.keys()) - pdbs_with_edges):
             prot_set = pdb_to_uniprots.get(pdb_id, set())
             if not prot_set:
                 continue
             nodes = nodes_from_uniprots(prot_set, force_protein_color=True, pdb_scope=pdb_id)
-            create_cytoscape_network([], f"Protein_Network_{pdb_id}", run_output_path, nodes_data=nodes)
+            # NEW: protein per-PDB folder
+            create_cytoscape_network([], f"Protein_Network_{pdb_id}", per_pdb_out, nodes_data=nodes)
 
     # --- Combined protein network ---
     if make_combined:
-        combined_edges = [
-            {"chain_a": up1, "chain_b": up2, "all_atoms_count": w}
-            for (up1, up2), w in pp_edges_combined.items()
-        ]
+        combined_edges = [{"chain_a": up1, "chain_b": up2, "all_atoms_count": w}
+                          for (up1, up2), w in pp_edges_combined.items()]
         all_uniprots = set(uniprot_to_name.keys())
         nodes = nodes_from_uniprots(all_uniprots, force_protein_color=False, pdb_scope=None)
-        create_cytoscape_network(combined_edges, "Combined_Protein_Network", run_output_path, nodes_data=nodes)
+        # NEW: combined folder
+        create_cytoscape_network(combined_edges, "Combined_Protein_Network", combined_out, nodes_data=nodes)
+

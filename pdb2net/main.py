@@ -187,6 +187,14 @@ def main(input_path_or_filelist: Union[str, List[str]]) -> None:
     run_output_path = os.path.join(config["output_path"], timestamp)
     os.makedirs(run_output_path, exist_ok=True)
 
+    # --- NEW: fixed subfolders per run ---
+    combined_dir = os.path.join(run_output_path, "combined")
+    protein_dir = os.path.join(run_output_path, "protein")
+    chain_dir = os.path.join(run_output_path, "chain")
+    distances_dir = os.path.join(run_output_path, "distances")
+    for d in (combined_dir, protein_dir, chain_dir, distances_dir):
+        os.makedirs(d, exist_ok=True)
+
     start_time_total = time.time()
     sum_times = {"parsing": 0.0, "sifts": 0.0, "blast": 0.0, "interaction": 0.0, "networks": 0.0}
 
@@ -224,7 +232,8 @@ def main(input_path_or_filelist: Union[str, List[str]]) -> None:
         for structure_data in combined_data:
             pdb_id = structure_data["pdb_id"]
             pdb_interactions = [res for res in results if res["chain_a"].startswith(pdb_id)]
-            export_detailed_interactions(structure_data, pdb_interactions, run_output_path)
+            # NEW: write all distance outputs into one shared folder
+            export_detailed_interactions(structure_data, pdb_interactions, distances_dir)
 
     # === Network exports: chain-level per PDB ===
     if network_config["chain_per_pdb"]:
@@ -234,14 +243,15 @@ def main(input_path_or_filelist: Union[str, List[str]]) -> None:
             pdb_id = entry["chain_a"].split(":")[0]
             results_by_pdb.setdefault(pdb_id, []).append(entry)
 
-        # 1) PDBs with interactions (as before)
+        # 1) PDBs with interactions
         for pdb_id, pdb_results in results_by_pdb.items():
             structure = next((s for s in combined_data if s["pdb_id"] == pdb_id), None)
             if not structure:
                 continue
             nodes_data = generate_nodes_from_atom_data(structure["atom_data"], pdb_id)
             network_title = f"Chain_Interaction_Network_{pdb_id}"
-            create_cytoscape_network(pdb_results, network_title, run_output_path, nodes_data=nodes_data)
+            # NEW: chain networks folder
+            create_cytoscape_network(pdb_results, network_title, chain_dir, nodes_data=nodes_data)
 
         # 2) PDBs without interactions → nodes-only networks
         for structure in combined_data:
@@ -249,23 +259,30 @@ def main(input_path_or_filelist: Union[str, List[str]]) -> None:
             if pdb_id not in results_by_pdb:
                 nodes_data = generate_nodes_from_atom_data(structure["atom_data"], pdb_id)
                 network_title = f"Chain_Interaction_Network_{pdb_id}"
-                create_cytoscape_network([], network_title, run_output_path, nodes_data=nodes_data)
+                # NEW: chain networks folder
+                create_cytoscape_network([], network_title, chain_dir, nodes_data=nodes_data)
 
         sum_times["networks"] += time.time() - start_time
 
     # === Network export: combined chain network (LINKED MODE) ===
     if network_config["combined_chain_network"]:
         start_time = time.time()
-        
-        # New function: Linked Identity Network (Physical edges + Inter-file Bridges)
-        _create_linked_identity_network(results, combined_data, run_output_path)
-        
+        # NEW: combined networks folder
+        _create_linked_identity_network(results, combined_data, combined_dir)
         sum_times["networks"] += time.time() - start_time
 
     # === Network export: protein-based (per PDB and/or combined) ===
     if network_config["protein_per_pdb"] or network_config["combined_protein_network"]:
         start_time = time.time()
-        create_protein_network(results, combined_data, run_output_path, network_config)
+        # NEW: split per-PDB vs combined outputs
+        create_protein_network(
+            results,
+            combined_data,
+            run_output_path,  # kept for backward-compat, but no longer used for exports
+            network_config,
+            per_pdb_output_path=protein_dir,
+            combined_output_path=combined_dir,
+        )
         sum_times["networks"] += time.time() - start_time
 
     # === Timing/logging ===
@@ -281,13 +298,13 @@ def main(input_path_or_filelist: Union[str, List[str]]) -> None:
         f.write(f"- Interaction:             {sum_times['interaction']:.1f} sec\n")
         f.write(f"- Network export:          {sum_times['networks']:.1f} sec\n")
         f.write(f"- Total:                   {total_time:.1f} sec\n")
-
         f.write("\n===============================\n")
 
     # Free caches/memory used by interaction stage
     tree_cache.clear()
     coords_cache.clear()
     gc.collect()
+
 
 
 def create_batches_streaming(file_paths: Iterable[str], max_batch_kb: int) -> Iterator[List[str]]:

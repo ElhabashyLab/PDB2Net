@@ -18,7 +18,7 @@ import json
 import time
 import subprocess
 import re
-import math 
+import math
 import zlib
 
 import pandas as pd
@@ -27,6 +27,13 @@ from matplotlib import cm
 from matplotlib.colors import to_hex
 
 from config_loader import config
+
+
+# Shared style constants for the Linked Identity Combined Network
+LINKED_IDENTITY_BORDER_WIDTH = 12.0
+
+# Unique tag per Python run so styles are always fresh across runs
+STYLE_RUN_TAG = f"{int(time.time() * 1000)}_{os.getpid()}"
 
 
 def ensure_cytoscape_running():
@@ -72,10 +79,12 @@ def compute_preset_positions_spring(nodes_df, edges_df, network_title, scale=100
 
     node_ids = list(nodes_df["id"]) if len(nodes_df) else []
     N = len(node_ids)
-    
-    if N == 0: return {}
-    if N == 1: return {node_ids[0]: {"x": 0.0, "y": 0.0}}
-    
+
+    if N == 0:
+        return {}
+    if N == 1:
+        return {node_ids[0]: {"x": 0.0, "y": 0.0}}
+
     # 1. Build Graph
     G = nx.Graph()
     G.add_nodes_from(node_ids)
@@ -90,7 +99,7 @@ def compute_preset_positions_spring(nodes_df, edges_df, network_title, scale=100
 
     # 2. Determine Strategy
     is_combined = "combined" in str(network_title).lower()
-    
+
     # Deterministic Seed
     seed = zlib.adler32(str(network_title).encode("utf-8")) & 0xFFFFFFFF
 
@@ -100,55 +109,55 @@ def compute_preset_positions_spring(nodes_df, edges_df, network_title, scale=100
         components = list(nx.connected_components(G))
         # Sort components: largest first to anchor the grid
         components.sort(key=len, reverse=True)
-        
+
         # Grid Setup
         num_comps = len(components)
         grid_cols = math.ceil(math.sqrt(num_comps))
-        
+
         final_pos = {}
-        
+
         # Spacing parameters
         # We assume a base size per node to calculate cell offsets
-        base_padding = 150.0 
-        
+        base_padding = 150.0
+
         for i, comp in enumerate(components):
             sub_G = G.subgraph(comp)
             sub_N = len(comp)
-            
+
             # Local layout for this island
             # Scale depends on island size to keep edge lengths consistent
             # Small islands get small space, big ones get more
             sub_scale = 100.0 + (math.sqrt(sub_N) * 60.0)
-            
+
             sub_seed = (seed + i) & 0xFFFFFFFF
             sub_pos = nx.spring_layout(
-                sub_G, 
-                seed=sub_seed, 
-                weight="weight", 
-                scale=sub_scale, 
-                center=(0,0), # Center at 0,0 relative to cell
-                k=None # Let nx decide optimal k locally
+                sub_G,
+                seed=sub_seed,
+                weight="weight",
+                scale=sub_scale,
+                center=(0, 0),  # Center at 0,0 relative to cell
+                k=None,  # Let nx decide optimal k locally
             )
-            
+
             # Calculate Grid Cell Position
             row = i // grid_cols
             col = i % grid_cols
-            
+
             # We use a fixed stride for simplicity, assuming the largest component defines the stride.
             # (A refined version would do bin-packing, but grid is robust enough)
             # We assume a "max cell size" based on the overall N roughly
-            stride = 600.0 + (math.sqrt(N/grid_cols) * 50.0) 
-            
+            stride = 600.0 + (math.sqrt(N / grid_cols) * 50.0)
+
             offset_x = col * stride
             offset_y = row * stride
-            
+
             # Apply offset
             for node, coords in sub_pos.items():
                 final_pos[node] = {
                     "x": float(coords[0] + offset_x),
-                    "y": float(coords[1] + offset_y)
+                    "y": float(coords[1] + offset_y),
                 }
-                
+
         return final_pos
 
     # === STRATEGY B: ORIGINAL LOGIC (For Standard Networks) ===
@@ -156,10 +165,13 @@ def compute_preset_positions_spring(nodes_df, edges_df, network_title, scale=100
     else:
         if N == 2:
             d = scale * 0.08
-            return {node_ids[0]: {"x": -d, "y": 0.0}, node_ids[1]: {"x": d, "y": 0.0}}
+            return {
+                node_ids[0]: {"x": -d, "y": 0.0},
+                node_ids[1]: {"x": d, "y": 0.0},
+            }
 
         iters = max(100, min(250, 8 * N))
-        
+
         scale_used = scale * 0.8
         if N < 40:
             scale_used *= max(0.12, (N / 40.0))
@@ -181,13 +193,15 @@ def compute_preset_positions_spring(nodes_df, edges_df, network_title, scale=100
         return {n: {"x": float(x), "y": float(y)} for n, (x, y) in pos.items()}
 
 
-def _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df_for_export, color_map, positions):
+def _export_cx2_headless(
+    network_title, run_output_path, nodes_df, edges_df_for_export, color_map, positions
+):
     """Write a portable CX2 file without requiring a running Cytoscape session."""
     os.makedirs(run_output_path, exist_ok=True)
     out_path = os.path.join(run_output_path, f"{network_title}.cx2")
 
     # Only "Combined_Network" gets the special Linked Identity style
-    is_linked_identity_network = (network_title == "Combined_Network")
+    is_linked_identity_network = network_title == "Combined_Network"
 
     # --- Node Mapping ---
     node_ids = list(nodes_df["id"].astype(str))
@@ -204,17 +218,19 @@ def _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df_for_
         else:
             border_color = "#000000"
 
-        nodes_aspect.append({
-            "id": nid_map[nid],
-            "x": float(pos["x"]),
-            "y": float(pos["y"]),
-            "v": {
-                "name": str(row.get("name", nid)),
-                "tooltip": str(row.get("tooltip", "")),
-                "color_group": str(row.get("color_group", "Unknown")),
-                "uniprot_border_color": border_color
-            },
-        })
+        nodes_aspect.append(
+            {
+                "id": nid_map[nid],
+                "x": float(pos["x"]),
+                "y": float(pos["y"]),
+                "v": {
+                    "name": str(row.get("name", nid)),
+                    "tooltip": str(row.get("tooltip", "")),
+                    "color_group": str(row.get("color_group", "Unknown")),
+                    "uniprot_border_color": border_color,
+                },
+            }
+        )
 
     # --- Edge Mapping ---
     edges_aspect = []
@@ -230,30 +246,38 @@ def _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df_for_
         t = nid_map.get(str(r["target"]))
         if s is None or t is None or s == t:
             continue
-        edges_aspect.append({
-            "id": i + 1, "s": s, "t": t,
-            "v": {
-                "interaction": str(r.get("interaction", "interacts_with")),
-                "all_atoms_count": int(r.get("all_atoms_count", 1)),
-            },
-        })
+        edges_aspect.append(
+            {
+                "id": i + 1,
+                "s": s,
+                "t": t,
+                "v": {
+                    "interaction": str(r.get("interaction", "interacts_with")),
+                    "all_atoms_count": int(r.get("all_atoms_count", 1)),
+                },
+            }
+        )
 
     # --- Visual Properties ---
     discrete_map = [{"v": k, "vp": v} for k, v in color_map.items()]
 
     if is_linked_identity_network:
         # Style: Linked Identity
-        border_width = 5.0
+        border_width = LINKED_IDENTITY_BORDER_WIDTH
         border_paint_mapping = {
             "type": "PASSTHROUGH",
-            "definition": {"attribute": "uniprot_border_color", "type": "string"}
+            "definition": {"attribute": "uniprot_border_color", "type": "string"},
         }
         edge_style_mapping = {
             "type": "DISCRETE",
             "definition": {
-                "attribute": "interaction", "type": "string",
-                "map": [{"v": "identity", "vp": "DOT"}, {"v": "interacts_with", "vp": "SOLID"}]
-            }
+                "attribute": "interaction",
+                "type": "string",
+                "map": [
+                    {"v": "identity", "vp": "DOT"},
+                    {"v": "interacts_with", "vp": "SOLID"},
+                ],
+            },
         }
     else:
         # Style: Standard
@@ -262,88 +286,112 @@ def _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df_for_
         edge_style_mapping = None
 
     visual_props = {
-        "visualProperties": [{
-            "default": {
-                "network": {"NETWORK_BACKGROUND_COLOR": "#FFFFFF"},
-                "node": {
-                    "NODE_SHAPE": "ellipse",
-                    "NODE_WIDTH": 40.0, "NODE_HEIGHT": 40.0,
-                    "NODE_BORDER_WIDTH": border_width,
-                    "NODE_BORDER_OPACITY": 1.0,
-                    "NODE_BORDER_COLOR": "#000000" if not is_linked_identity_network else "#555555"
-                },
-                "edge": {
-                    "EDGE_LINE_COLOR": "#888888",
-                    "EDGE_OPACITY": 0.6,
-                    "EDGE_CURVED": True,
-                    "EDGE_LINE_STYLE": "SOLID"
-                },
-            },
-            "nodeMapping": {
-                "NODE_LABEL": {
-                    "type": "PASSTHROUGH",
-                    "definition": {"attribute": "name", "type": "string"}
-                },
-                "NODE_TOOLTIP": {
-                    "type": "PASSTHROUGH",
-                    "definition": {"attribute": "tooltip", "type": "string"}
-                },
-                "NODE_BACKGROUND_COLOR": {
-                    "type": "DISCRETE",
-                    "definition": {"attribute": "color_group", "type": "string", "map": discrete_map}
-                }
-            },
-            "edgeMapping": {
-                "EDGE_WIDTH": {
-                    "type": "CONTINUOUS",
-                    "definition": {
-                        "attribute": "all_atoms_count", "type": "integer",
-                        "map": [{
-                            "min": 1.0, "includeMin": True,
-                            "max": float(max_w), "includeMax": True,
-                            "minVPValue": 1.0, "maxVPValue": 6.0
-                        }],
+        "visualProperties": [
+            {
+                "default": {
+                    "network": {"NETWORK_BACKGROUND_COLOR": "#FFFFFF"},
+                    "node": {
+                        "NODE_SHAPE": "ellipse",
+                        "NODE_WIDTH": 40.0,
+                        "NODE_HEIGHT": 40.0,
+                        "NODE_BORDER_WIDTH": border_width,
+                        "NODE_BORDER_OPACITY": 1.0,
+                        "NODE_BORDER_COLOR": "#000000"
+                        if not is_linked_identity_network
+                        else "#555555",
+                    },
+                    "edge": {
+                        "EDGE_LINE_COLOR": "#888888",
+                        "EDGE_OPACITY": 0.6,
+                        "EDGE_CURVED": True,
+                        "EDGE_LINE_STYLE": "SOLID",
                     },
                 },
-            },
-        }]
+                "nodeMapping": {
+                    "NODE_LABEL": {
+                        "type": "PASSTHROUGH",
+                        "definition": {"attribute": "name", "type": "string"},
+                    },
+                    "NODE_TOOLTIP": {
+                        "type": "PASSTHROUGH",
+                        "definition": {"attribute": "tooltip", "type": "string"},
+                    },
+                    "NODE_BACKGROUND_COLOR": {
+                        "type": "DISCRETE",
+                        "definition": {
+                            "attribute": "color_group",
+                            "type": "string",
+                            "map": discrete_map,
+                        },
+                    },
+                },
+                "edgeMapping": {
+                    "EDGE_WIDTH": {
+                        "type": "CONTINUOUS",
+                        "definition": {
+                            "attribute": "all_atoms_count",
+                            "type": "integer",
+                            "map": [
+                                {
+                                    "min": 1.0,
+                                    "includeMin": True,
+                                    "max": float(max_w),
+                                    "includeMax": True,
+                                    "minVPValue": 1.0,
+                                    "maxVPValue": 6.0,
+                                }
+                            ],
+                        },
+                    },
+                },
+            }
+        ]
     }
 
     if border_paint_mapping:
-        visual_props["visualProperties"][0]["nodeMapping"]["NODE_BORDER_COLOR"] = border_paint_mapping
+        visual_props["visualProperties"][0]["nodeMapping"][
+            "NODE_BORDER_COLOR"
+        ] = border_paint_mapping
     if edge_style_mapping:
-        visual_props["visualProperties"][0]["edgeMapping"]["EDGE_LINE_STYLE"] = edge_style_mapping
+        visual_props["visualProperties"][0]["edgeMapping"][
+            "EDGE_LINE_STYLE"
+        ] = edge_style_mapping
 
     attr_decls = {
-        "attributeDeclarations": [{
-            "networkAttributes": {"name": {"d": "string"}},
-            "nodes": {
-                "name": {"d": "string"},
-                "tooltip": {"d": "string"},
-                "color_group": {"d": "string"},
-                "uniprot_border_color": {"d": "string"}
-            },
-            "edges": {
-                "interaction": {"d": "string"},
-                "all_atoms_count": {"d": "integer"}
-            },
-        }]
+        "attributeDeclarations": [
+            {
+                "networkAttributes": {"name": {"d": "string"}},
+                "nodes": {
+                    "name": {"d": "string"},
+                    "tooltip": {"d": "string"},
+                    "color_group": {"d": "string"},
+                    "uniprot_border_color": {"d": "string"},
+                },
+                "edges": {
+                    "interaction": {"d": "string"},
+                    "all_atoms_count": {"d": "integer"},
+                },
+            }
+        ]
     }
 
-    # --- NEW: Pre-metaData block (some viewers require it even though it's optional in the spec) ---
+    # Some viewers require this even though it is optional in the spec
     meta = {
         "metaData": [
             {"name": "attributeDeclarations", "elementCount": 1},
             {"name": "networkAttributes", "elementCount": 1},
             {"name": "nodes", "elementCount": len(nodes_aspect)},
             {"name": "edges", "elementCount": len(edges_aspect)},
-            {"name": "visualProperties", "elementCount": len(visual_props.get("visualProperties", []))},
+            {
+                "name": "visualProperties",
+                "elementCount": len(visual_props.get("visualProperties", [])),
+            },
         ]
     }
 
     cx = [
         {"CXVersion": "2.0", "hasFragments": False},
-        meta,  # <-- inserted
+        meta,
         attr_decls,
         {"networkAttributes": [{"name": network_title}]},
         {"nodes": nodes_aspect},
@@ -356,28 +404,41 @@ def _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df_for_
         json.dump(cx, f, ensure_ascii=False, indent=2)
 
 
-
-def create_cytoscape_network(results, network_title="Protein_Interaction_Network", run_output_path=".", nodes_data=None):
+def create_cytoscape_network(
+    results, network_title="Protein_Interaction_Network", run_output_path=".", nodes_data=None
+):
     """Create a network either headlessly (CX2 only) or inside Cytoscape, then export CX2."""
 
     def _verbose_enabled() -> bool:
-        return os.environ.get("PDB2NET_VERBOSE", "").strip().lower() in {"1", "true", "yes", "on"}
+        return os.environ.get("PDB2NET_VERBOSE", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
 
     def _compute_edge_name(source: str, target: str, interaction: str) -> str:
         return f"{source} ({interaction}) {target}"
 
-    def _style_signature(color_map: dict, extra_tag: str = "") -> str:
+    def _style_signature(
+        color_map: dict, extra_tag: str = "", border_width: float | None = None
+    ) -> str:
         """
-        Deterministic short signature so Combined styles do not go stale
-        and we do NOT need to delete shared styles.
+        Deterministic short signature for the current visual mapping/config.
         """
         import zlib
+
         keys = sorted([str(k) for k in color_map.keys()])
-        payload = (extra_tag + "|" + "|".join(keys)).encode("utf-8")
+        bw = "" if border_width is None else f"|bw={border_width}"
+        payload = (extra_tag + bw + "|" + "|".join(keys)).encode("utf-8")
         return f"{zlib.adler32(payload) & 0xFFFFFFFF:08x}"
 
     def _ensure_style(style_name: str, mappings: list, defaults: dict) -> None:
-        """Create visual style if it doesn't exist. Never delete shared styles."""
+        """
+        Create the style if it does not already exist in the current Cytoscape session.
+        Because STYLE_RUN_TAG is unique per Python run, styles are fresh across runs,
+        while still avoiding duplicate-creation errors within the same run.
+        """
         try:
             existing = set(p4c.get_visual_style_names())
         except Exception:
@@ -429,12 +490,14 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
             a, b = entry["chain_a"], entry["chain_b"]
             unique_nodes.add(a)
             unique_nodes.add(b)
-            edges.append({
-                "chain_a": a,
-                "chain_b": b,
-                "all_atoms_count": entry["all_atoms_count"],
-                "interaction": entry.get("interaction_type", "interacts_with"),
-            })
+            edges.append(
+                {
+                    "chain_a": a,
+                    "chain_b": b,
+                    "all_atoms_count": entry["all_atoms_count"],
+                    "interaction": entry.get("interaction_type", "interacts_with"),
+                }
+            )
 
     if nodes_data:
         nodes_df = pd.DataFrame(nodes_data).copy()
@@ -455,7 +518,9 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         if "interaction" not in edges_df.columns:
             edges_df["interaction"] = "interacts_with"
     else:
-        edges_df = pd.DataFrame(columns=["source", "target", "interaction", "all_atoms_count"])
+        edges_df = pd.DataFrame(
+            columns=["source", "target", "interaction", "all_atoms_count"]
+        )
 
     # --- Setup Colors ---
     fixed_colors = {
@@ -466,7 +531,11 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         "Nucleic Acid": "#9467bd",
         "Unknown": "#7f7f7f",
     }
-    color_groups = sorted(nodes_df["color_group"].dropna().unique()) if "color_group" in nodes_df.columns else []
+    color_groups = (
+        sorted(nodes_df["color_group"].dropna().unique())
+        if "color_group" in nodes_df.columns
+        else []
+    )
     base_color_groups = [g for g in color_groups if g not in fixed_colors and g != "Multi"]
     cmap = cm.get_cmap("tab20", max(1, len(base_color_groups)))
     auto_colors = {group: to_hex(cmap(i)) for i, group in enumerate(base_color_groups)}
@@ -515,30 +584,33 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
     # Load edge attributes after creation (stable)
     _load_edge_attributes_by_name(network_suid, edges_df)
 
-    # --- Style Naming Strategy (THIS FIXES YOUR NEW PROBLEM) ---
-    # Keep per-PDB networks on a stable shared style.
-    # Give combined networks a unique style signature so discrete mappings include all current PDB IDs,
-    # without deleting/replacing the shared style used by earlier networks.
-    is_linked_identity_network = (network_title == "Combined_Network")
-    is_combined_protein_network = (network_title == "Combined_Protein_Network")
+    # --- Style Naming Strategy ---
+    is_linked_identity_network = network_title == "Combined_Network"
+    is_combined_protein_network = network_title == "Combined_Protein_Network"
 
     if is_linked_identity_network:
-        base_style = "PDB2Net_Linked_Identity"
-        style_name = f"{base_style}_{_style_signature(color_map, extra_tag='linked')}"
+        style_name = (
+            f"PDB2Net_Linked_Identity_{STYLE_RUN_TAG}_"
+            f"{_style_signature(color_map, extra_tag='linked', border_width=LINKED_IDENTITY_BORDER_WIDTH)}"
+        )
     elif is_combined_protein_network:
-        base_style = "PDB2Net_Combined_Protein"
-        style_name = f"{base_style}_{_style_signature(color_map, extra_tag='combined_protein')}"
+        style_name = (
+            f"PDB2Net_Combined_Protein_{STYLE_RUN_TAG}_"
+            f"{_style_signature(color_map, extra_tag='combined_protein')}"
+        )
     else:
-        # per-PDB chain/protein networks keep stable style name
-        style_name = "PDB2Net_Standard"
+        style_name = (
+            f"PDB2Net_Standard_{STYLE_RUN_TAG}_"
+            f"{_style_signature(color_map, extra_tag='standard')}"
+        )
 
-    # Defaults: keep your current look; only ensure Combined defaults are not "all red" when unmapped
+    # Defaults
     defaults = {
         "NODE_SHAPE": "ELLIPSE",
         "NODE_SIZE": 45,
         "NODE_LABEL_POSITION": "C,C,c,0.00,0.00",
         "EDGE_TRANSPARENCY": 120,
-        "NODE_BORDER_WIDTH": 5.0 if is_linked_identity_network else 2.0,
+        "NODE_BORDER_WIDTH": LINKED_IDENTITY_BORDER_WIDTH if is_linked_identity_network else 2.0,
         "NODE_BORDER_PAINT": "#555555" if is_linked_identity_network else "#000000",
     }
 
@@ -547,8 +619,18 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
         defaults["NODE_FILL_COLOR"] = "#BDBDBD"
 
     mappings = [
-        {"mappingType": "passthrough", "mappingColumn": "name", "mappingColumnType": "String", "visualProperty": "NODE_LABEL"},
-        {"mappingType": "passthrough", "mappingColumn": "tooltip", "mappingColumnType": "String", "visualProperty": "NODE_TOOLTIP"},
+        {
+            "mappingType": "passthrough",
+            "mappingColumn": "name",
+            "mappingColumnType": "String",
+            "visualProperty": "NODE_LABEL",
+        },
+        {
+            "mappingType": "passthrough",
+            "mappingColumn": "tooltip",
+            "mappingColumnType": "String",
+            "visualProperty": "NODE_TOOLTIP",
+        },
         {
             "mappingType": "discrete",
             "mappingColumn": "color_group",
@@ -559,19 +641,26 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
     ]
 
     if is_linked_identity_network:
-        mappings.append({
-            "mappingType": "passthrough",
-            "mappingColumn": "uniprot_border_color",
-            "mappingColumnType": "String",
-            "visualProperty": "NODE_BORDER_PAINT",
-        })
-        mappings.append({
-            "mappingType": "discrete",
-            "mappingColumn": "interaction",
-            "mappingColumnType": "String",
-            "visualProperty": "EDGE_LINE_TYPE",
-            "map": [{"key": "identity", "value": "LONG_DASH"}, {"key": "interacts_with", "value": "SOLID"}],
-        })
+        mappings.append(
+            {
+                "mappingType": "passthrough",
+                "mappingColumn": "uniprot_border_color",
+                "mappingColumnType": "String",
+                "visualProperty": "NODE_BORDER_PAINT",
+            }
+        )
+        mappings.append(
+            {
+                "mappingType": "discrete",
+                "mappingColumn": "interaction",
+                "mappingColumnType": "String",
+                "visualProperty": "EDGE_LINE_TYPE",
+                "map": [
+                    {"key": "identity", "value": "LONG_DASH"},
+                    {"key": "interacts_with", "value": "SOLID"},
+                ],
+            }
+        )
 
     _ensure_style(style_name, mappings=mappings, defaults=defaults)
     p4c.set_visual_style(style_name)
@@ -588,23 +677,43 @@ def create_cytoscape_network(results, network_title="Protein_Interaction_Network
             print(f"[cytoscape] Error exporting: {e}")
 
 
-
 def generate_nodes_from_atom_data(atom_data, pdb_id=None):
     """Create Cytoscape chain nodes from parsed atom/chain data."""
     dna_set = {"DA", "DT", "DG", "DC", "DI"}
     rna_set = {"A", "U", "G", "C", "I"}
     protein_set = {
-        "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS",
-        "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP",
-        "TYR", "VAL", "SEC", "PYL",
+        "ALA",
+        "ARG",
+        "ASN",
+        "ASP",
+        "CYS",
+        "GLN",
+        "GLU",
+        "GLY",
+        "HIS",
+        "ILE",
+        "LEU",
+        "LYS",
+        "MET",
+        "PHE",
+        "PRO",
+        "SER",
+        "THR",
+        "TRP",
+        "TYR",
+        "VAL",
+        "SEC",
+        "PYL",
     }
 
     def count_lengths(res_list):
         aa = nt = 0
-        for res in (res_list or []):
+        for res in res_list or []:
             rn = (res.get("residue_name") or "").upper()
-            if rn in protein_set: aa += 1
-            elif rn in dna_set or rn in rna_set: nt += 1
+            if rn in protein_set:
+                aa += 1
+            elif rn in dna_set or rn in rna_set:
+                nt += 1
         return aa, nt
 
     nodes = []
@@ -617,18 +726,24 @@ def generate_nodes_from_atom_data(atom_data, pdb_id=None):
 
         details = [str(mol_name_full)]
         details.append(f"Type: {mol_type}")
-        if aa_len: details.append(f"Length: {aa_len} aa")
-        if nt_len: details.append(f"Length: {nt_len} nt")
-        if uid: details.append(f"PDB: {uid}")
-        if up_id: details.append(f"UniProt: {up_id}")
+        if aa_len:
+            details.append(f"Length: {aa_len} aa")
+        if nt_len:
+            details.append(f"Length: {nt_len} nt")
+        if uid:
+            details.append(f"PDB: {uid}")
+        if up_id:
+            details.append(f"UniProt: {up_id}")
         tooltip = "\n".join(details)
 
-        nodes.append({
-            "id": uid,
-            "name": uid,
-            "tooltip": tooltip,
-            "color_group": mol_type or "Unknown",
-            "molecule_name": mol_name_full,
-        })
+        nodes.append(
+            {
+                "id": uid,
+                "name": uid,
+                "tooltip": tooltip,
+                "color_group": mol_type or "Unknown",
+                "molecule_name": mol_name_full,
+            }
+        )
 
     return nodes

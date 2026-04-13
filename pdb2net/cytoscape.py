@@ -87,7 +87,7 @@ STYLE_RUN_TAG = f"{int(time.time() * 1000)}_{os.getpid()}"
 
 
 def _is_linked_identity_network(network_title: str) -> bool:
-    return network_title == "Combined_Network"
+    return str(network_title).startswith("Combined_Network")
 
 
 def _is_combined_protein_network(network_title: str) -> bool:

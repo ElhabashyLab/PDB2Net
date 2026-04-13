@@ -76,18 +76,16 @@ def _get_border_color_for_uniprot(uniprot_id: Optional[str]) -> str:
 
 def _create_linked_identity_network(results: List[Dict[str, Any]], combined_data: List[Dict[str, Any]], run_output_path: str) -> None:
     """
-    Internal helper to build the 'Linked Identity' Combined Network.
+    Internal helper to build separate linked-identity combined networks.
 
     Updated behavior:
-    - Create Combined_Network only if at least one true inter-file identity edge exists.
-    - Keep only components that are actually connected to such identity edges.
-    - Exclude isolated per-file chain subnetworks without interlink.
-    - Keeps the existing multi-line labels: "PDB:Chain \\n UniProtID".
-    - Keeps the existing UniProt border color logic.
+    - Builds identity bridges only between chains from different files.
+    - Splits the dataset into connected interlinked components.
+    - Exports one Combined_Network per interlinked component.
+    - Names each network using the UniProt IDs present in that component.
     """
     print("  > Building Linked Identity Network (bridging different PDBs)...")
 
-    # --- 1. Prepare chain metadata ---
     all_chains_flat = []
     uniprot_groups: Dict[str, List[Dict[str, Any]]] = {}
 
@@ -106,7 +104,6 @@ def _create_linked_identity_network(results: List[Dict[str, Any]], combined_data
 
     chain_lookup = {c["unique_chain_id"]: c for c in all_chains_flat}
 
-    # --- 2. Build identity edges first ---
     identity_edges = []
     count_identity_edges = 0
 
@@ -128,18 +125,16 @@ def _create_linked_identity_network(results: List[Dict[str, Any]], combined_data
                     "chain_a": chain_a["unique_chain_id"],
                     "chain_b": chain_b["unique_chain_id"],
                     "all_atoms_count": 1000,
-                    "interaction_type": "identity"
+                    "interaction_type": "identity",
                 })
                 count_identity_edges += 1
 
     print(f"    - Added {count_identity_edges} identity bridges between files.")
 
-    # No inter-file identity edges -> no Combined_Network
     if not identity_edges:
-        print("    - No interlinked components found. Skipping Combined_Network.")
+        print("    - No interlinked components found. Skipping Combined_Network export.")
         return
 
-    # --- 3. Build graph adjacency from physical + identity edges ---
     adjacency: Dict[str, set[str]] = {}
 
     def add_edge_to_adjacency(a: str, b: str) -> None:
@@ -147,70 +142,113 @@ def _create_linked_identity_network(results: List[Dict[str, Any]], combined_data
         adjacency.setdefault(b, set()).add(a)
 
     for res in results:
-        chain_a = res["chain_a"]
-        chain_b = res["chain_b"]
-        add_edge_to_adjacency(chain_a, chain_b)
+        add_edge_to_adjacency(res["chain_a"], res["chain_b"])
 
     for edge in identity_edges:
         add_edge_to_adjacency(edge["chain_a"], edge["chain_b"])
 
-    # --- 4. Start from nodes that participate in identity edges and collect only their components ---
-    seed_nodes = set()
+    identity_nodes = set()
     for edge in identity_edges:
-        seed_nodes.add(edge["chain_a"])
-        seed_nodes.add(edge["chain_b"])
+        identity_nodes.add(edge["chain_a"])
+        identity_nodes.add(edge["chain_b"])
 
-    included_nodes = set()
-    stack = list(seed_nodes)
+    visited = set()
+    component_node_sets: List[set[str]] = []
 
-    while stack:
-        node = stack.pop()
-        if node in included_nodes:
+    for start_node in sorted(identity_nodes):
+        if start_node in visited:
             continue
-        included_nodes.add(node)
-        for neighbor in adjacency.get(node, set()):
-            if neighbor not in included_nodes:
-                stack.append(neighbor)
 
-    # --- 5. Filter nodes to only included components ---
-    filtered_chains = [
-        chain_lookup[node_id]
-        for node_id in sorted(included_nodes)
-        if node_id in chain_lookup
-    ]
+        stack = [start_node]
+        component_nodes = set()
 
-    if not filtered_chains:
-        print("    - No nodes remained after filtering. Skipping Combined_Network.")
-        return
+        while stack:
+            node = stack.pop()
+            if node in visited:
+                continue
 
-    nodes_data = generate_nodes_from_atom_data(filtered_chains)
+            visited.add(node)
+            component_nodes.add(node)
 
-    for node in nodes_data:
-        original = chain_lookup.get(node["id"])
-        if original:
-            node["uniprot_border_color"] = original.get("uniprot_border_color", "#555555")
+            for neighbor in adjacency.get(node, set()):
+                if neighbor not in visited:
+                    stack.append(neighbor)
 
-            up_id = original.get("uniprot_id")
-            if up_id:
-                node["uniprot_id"] = up_id
-                node["name"] = f"{node['id']}\n{up_id}"
+        if component_nodes:
+            component_node_sets.append(component_nodes)
+
+    def _sanitize_filename_part(text: str) -> str:
+        allowed = []
+        for ch in str(text):
+            if ch.isalnum() or ch in {"-", "_"}:
+                allowed.append(ch)
             else:
-                node["name"] = node["id"]
+                allowed.append("_")
+        sanitized = "".join(allowed).strip("_")
+        return sanitized or "Unknown"
 
-    # --- 6. Filter edges to only included components ---
-    final_edges = []
+    def _make_component_network_title(component_nodes: set[str]) -> str:
+        component_uniprots = sorted({
+            chain_lookup[node_id].get("uniprot_id")
+            for node_id in component_nodes
+            if node_id in chain_lookup and chain_lookup[node_id].get("uniprot_id")
+        })
 
-    for res in results:
-        if res["chain_a"] in included_nodes and res["chain_b"] in included_nodes:
-            final_edges.append(res)
+        if not component_uniprots:
+            return "Combined_Network_Unknown"
 
-    final_edges.extend(identity_edges)
+        sanitized_ids = [_sanitize_filename_part(up_id) for up_id in component_uniprots]
+        preview = "_".join(sanitized_ids[:5])
+        if len(sanitized_ids) > 5:
+            digest_source = "|".join(sanitized_ids).encode("utf-8")
+            digest = hashlib.md5(digest_source).hexdigest()[:8]
+            return f"Combined_Network_{preview}__{digest}"
+        return f"Combined_Network_{preview}"
 
-    print(f"    - Keeping {len(filtered_chains)} chains in interlinked component(s).")
+    print(f"    - Found {len(component_node_sets)} interlinked component(s).")
 
-    # --- 7. Export ---
-    create_cytoscape_network(final_edges, "Combined_Network", run_output_path, nodes_data=nodes_data)
+    for idx, component_nodes in enumerate(component_node_sets, start=1):
+        filtered_chains = [
+            chain_lookup[node_id]
+            for node_id in sorted(component_nodes)
+            if node_id in chain_lookup
+        ]
 
+        if not filtered_chains:
+            continue
+
+        nodes_data = generate_nodes_from_atom_data(filtered_chains)
+
+        for node in nodes_data:
+            original = chain_lookup.get(node["id"])
+            if original:
+                node["uniprot_border_color"] = original.get("uniprot_border_color", "#555555")
+
+                up_id = original.get("uniprot_id")
+                if up_id:
+                    node["uniprot_id"] = up_id
+                    node["name"] = f"{node['id']}\n{up_id}"
+                else:
+                    node["name"] = node["id"]
+
+        final_edges = []
+
+        for res in results:
+            if res["chain_a"] in component_nodes and res["chain_b"] in component_nodes:
+                final_edges.append(res)
+
+        for edge in identity_edges:
+            if edge["chain_a"] in component_nodes and edge["chain_b"] in component_nodes:
+                final_edges.append(edge)
+
+        network_title = _make_component_network_title(component_nodes)
+
+        print(
+            f"    - Exporting component {idx}/{len(component_node_sets)}: "
+            f"{network_title} ({len(filtered_chains)} chains, {len(final_edges)} edges)"
+        )
+
+        create_cytoscape_network(final_edges, network_title, run_output_path, nodes_data=nodes_data)
 
 def run_main(batch_files: List[str]) -> None:
     """Helper wrapper to re-enter main() for a batch (used by batch_run)."""

@@ -91,8 +91,13 @@ def _create_linked_identity_network(results: List[Dict[str, Any]], combined_data
 
     for structure in combined_data:
         pdb_id = structure["pdb_id"]
+        file_path = structure.get("file_path", "")
+        file_label = os.path.basename(file_path) if file_path else pdb_id
+
         for chain in structure["atom_data"]:
             chain["_parent_pdb_id"] = pdb_id
+            chain["_parent_file_path"] = file_path
+            chain["_parent_file_label"] = file_label
 
             up_id = chain.get("uniprot_id")
             chain["uniprot_border_color"] = _get_border_color_for_uniprot(up_id)
@@ -223,6 +228,7 @@ def _create_linked_identity_network(results: List[Dict[str, Any]], combined_data
             original = chain_lookup.get(node["id"])
             if original:
                 node["uniprot_border_color"] = original.get("uniprot_border_color", "#555555")
+                node["color_group"] = original.get("_parent_file_path") or original.get("_parent_pdb_id") or "Unknown"
 
                 up_id = original.get("uniprot_id")
                 if up_id:

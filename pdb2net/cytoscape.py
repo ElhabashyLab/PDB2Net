@@ -45,6 +45,19 @@ NODE_COLOR_FIXED = {
 }
 MULTI_NODE_COLOR = "#FF0000"
 
+COMBINED_FILE_PALETTE = [
+    "#FF8DA1",
+    "#a8e953",
+    "#50caec",
+    "#bec0c0",
+    "#EE4E6A",  
+    "#6ae771",  
+    "#6593ec",
+    "#a4b1a0",
+    "#E359c2",
+    "#cded64",
+]
+
 VISUAL_TUNING = {
     "network_background_color": "#FFFFFF",
     "combined_default_node_fill": "#BDBDBD",
@@ -64,14 +77,22 @@ VISUAL_TUNING = {
         "edge_style": "SOLID",
     },
     "linked_identity": {
-        "node_border_width": 8.0,
+        "node_border_width": 13.0,
         "node_border_color": "#555555",
+        "node_border_transparency_headless": 110,
+        "node_border_transparency_identity_headless": 245,
+        "node_border_transparency_live": 110,
+        "node_border_transparency_identity_live": 245,
         "edge_width_standard": 2.5,
-        "edge_width_identity": 10.0,
+        "edge_width_identity": 6.0,
         "edge_color_standard": "#888888",
         "edge_color_identity": "#FF0000",
         "edge_style_standard": "SOLID",
-        "edge_style_identity": "LONG_DASH",
+        "edge_style_standard_headless": "solid",
+        "edge_style_identity_headless": "dotted",
+        "edge_style_identity_live": "DOT",
+        "edge_opacity_identity_headless": 1.0,
+        "edge_opacity_identity_live": 255,
     },
 }
 
@@ -79,7 +100,7 @@ VISUAL_TUNING = {
 LINKED_IDENTITY_BORDER_WIDTH = VISUAL_TUNING["linked_identity"]["node_border_width"]
 LINKED_IDENTITY_EDGE_WIDTH = VISUAL_TUNING["linked_identity"]["edge_width_identity"]
 STANDARD_EDGE_WIDTH = VISUAL_TUNING["standard"]["edge_width"]
-LINKED_IDENTITY_EDGE_STYLE = VISUAL_TUNING["linked_identity"]["edge_style_identity"]
+LINKED_IDENTITY_EDGE_STYLE = VISUAL_TUNING["linked_identity"]["edge_style_identity_live"]
 STANDARD_EDGE_STYLE = VISUAL_TUNING["standard"]["edge_style"]
 
 # Unique tag per Python run so styles are always fresh across runs
@@ -108,12 +129,18 @@ def _get_network_visual_profile(network_title: str) -> dict:
             "is_combined_network": True,
             "node_border_width": linked_identity["node_border_width"],
             "node_border_color": linked_identity["node_border_color"],
+            "node_border_transparency_headless": linked_identity["node_border_transparency_headless"],
+            "node_border_transparency_live": linked_identity["node_border_transparency_live"],
             "default_edge_width": linked_identity["edge_width_standard"],
             "default_edge_color": linked_identity["edge_color_standard"],
             "default_edge_style": linked_identity["edge_style_standard"],
+            "default_edge_style_headless": linked_identity["edge_style_standard_headless"],
             "identity_edge_width": linked_identity["edge_width_identity"],
             "identity_edge_color": linked_identity["edge_color_identity"],
-            "identity_edge_style": linked_identity["edge_style_identity"],
+            "identity_edge_style": linked_identity["edge_style_identity_live"],
+            "identity_edge_style_headless": linked_identity["edge_style_identity_headless"],
+            "default_edge_opacity_headless": VISUAL_TUNING["edge_opacity_headless"],
+            "identity_edge_opacity_headless": linked_identity["edge_opacity_identity_headless"],
             "combined_default_node_fill": VISUAL_TUNING["combined_default_node_fill"],
         }
 
@@ -123,23 +150,64 @@ def _get_network_visual_profile(network_title: str) -> dict:
         "is_combined_network": combined_protein,
         "node_border_width": standard["node_border_width"],
         "node_border_color": standard["node_border_color"],
+        "node_border_transparency_headless": 255,
+        "node_border_transparency_live": 255,
         "default_edge_width": standard["edge_width"],
         "default_edge_color": standard["edge_color"],
         "default_edge_style": standard["edge_style"],
+        "default_edge_style_headless": standard["edge_style"].lower(),
         "identity_edge_width": standard["edge_width"],
         "identity_edge_color": standard["edge_color"],
         "identity_edge_style": standard["edge_style"],
+        "identity_edge_style_headless": standard["edge_style"].lower(),
+        "default_edge_opacity_headless": VISUAL_TUNING["edge_opacity_headless"],
+        "identity_edge_opacity_headless": VISUAL_TUNING["edge_opacity_headless"],
         "combined_default_node_fill": VISUAL_TUNING["combined_default_node_fill"],
     }
 
 
-def _build_color_map(color_groups) -> dict:
+def _build_color_map(color_groups, network_title: str = "") -> dict:
+    if _is_linked_identity_network(network_title):
+        ordered_groups = [str(g) for g in color_groups]
+        return {
+            group: COMBINED_FILE_PALETTE[i % len(COMBINED_FILE_PALETTE)]
+            for i, group in enumerate(ordered_groups)
+        }
+
     base_color_groups = [g for g in color_groups if g not in NODE_COLOR_FIXED and g != "Multi"]
     cmap = cm.get_cmap("tab20", max(1, len(base_color_groups)))
     auto_colors = {group: to_hex(cmap(i)) for i, group in enumerate(base_color_groups)}
     if "Multi" in color_groups:
         auto_colors["Multi"] = MULTI_NODE_COLOR
     return {**NODE_COLOR_FIXED, **auto_colors}
+
+
+def _annotate_linked_identity_node_borders(nodes_df: pd.DataFrame, edges_df: pd.DataFrame) -> pd.DataFrame:
+    """Mark only true identity-bridge endpoints with a red, less transparent border."""
+    if nodes_df is None or nodes_df.empty:
+        return nodes_df
+
+    df = nodes_df.copy()
+
+    if "uniprot_border_color" not in df.columns:
+        df["uniprot_border_color"] = "#555555"
+
+    identity_nodes = set()
+    if edges_df is not None and not edges_df.empty and "interaction" in edges_df.columns:
+        identity_rows = edges_df[edges_df["interaction"].astype(str) == "identity"]
+        if not identity_rows.empty:
+            identity_nodes.update(identity_rows["source"].astype(str).tolist())
+            identity_nodes.update(identity_rows["target"].astype(str).tolist())
+
+    df["linked_identity_border_color"] = df["uniprot_border_color"].fillna("#555555").astype(str)
+    df["linked_identity_border_transparency"] = VISUAL_TUNING["linked_identity"]["node_border_transparency_headless"]
+
+    if identity_nodes:
+        identity_mask = df["id"].astype(str).isin(identity_nodes)
+        df.loc[identity_mask, "linked_identity_border_color"] = VISUAL_TUNING["linked_identity"]["edge_color_identity"]
+        df.loc[identity_mask, "linked_identity_border_transparency"] = VISUAL_TUNING["linked_identity"]["node_border_transparency_identity_headless"]
+
+    return df
 
 
 def ensure_cytoscape_running():
@@ -308,9 +376,14 @@ def _export_cx2_headless(
         nid = str(row["id"])
         pos = positions.get(nid, {"x": 0.0, "y": 0.0})
         border_color = (
-            str(row.get("uniprot_border_color", profile["node_border_color"]))
+            str(row.get("linked_identity_border_color", row.get("uniprot_border_color", profile["node_border_color"])))
             if profile["is_linked_identity_network"]
             else profile["node_border_color"]
+        )
+        border_transparency = (
+            int(row.get("linked_identity_border_transparency", profile["node_border_transparency_headless"]))
+            if profile["is_linked_identity_network"]
+            else profile["node_border_transparency_headless"]
         )
 
         nodes_aspect.append(
@@ -322,7 +395,9 @@ def _export_cx2_headless(
                     "name": str(row.get("name", nid)),
                     "tooltip": str(row.get("tooltip", "")),
                     "color_group": str(row.get("color_group", "Unknown")),
-                    "uniprot_border_color": border_color,
+                    "uniprot_border_color": str(row.get("uniprot_border_color", border_color)),
+                    "linked_identity_border_color": border_color,
+                    "linked_identity_border_transparency": border_transparency,
                 },
             }
         )
@@ -360,14 +435,14 @@ def _export_cx2_headless(
                         "NODE_WIDTH": VISUAL_TUNING["node_width"],
                         "NODE_HEIGHT": VISUAL_TUNING["node_height"],
                         "NODE_BORDER_WIDTH": profile["node_border_width"],
-                        "NODE_BORDER_OPACITY": VISUAL_TUNING["node_border_opacity"],
+                        "NODE_BORDER_TRANSPARENCY": profile["node_border_transparency_headless"],
                         "NODE_BORDER_COLOR": profile["node_border_color"],
                     },
                     "edge": {
                         "EDGE_LINE_COLOR": profile["default_edge_color"],
-                        "EDGE_OPACITY": VISUAL_TUNING["edge_opacity_headless"],
+                        "EDGE_OPACITY": profile["default_edge_opacity_headless"],
                         "EDGE_CURVED": True,
-                        "EDGE_LINE_STYLE": profile["default_edge_style"],
+                        "EDGE_LINE_STYLE": profile["default_edge_style_headless"],
                         "EDGE_WIDTH": profile["default_edge_width"],
                     },
                 },
@@ -397,7 +472,11 @@ def _export_cx2_headless(
     if profile["is_linked_identity_network"]:
         visual_props["visualProperties"][0]["nodeMapping"]["NODE_BORDER_COLOR"] = {
             "type": "PASSTHROUGH",
-            "definition": {"attribute": "uniprot_border_color", "type": "string"},
+            "definition": {"attribute": "linked_identity_border_color", "type": "string"},
+        }
+        visual_props["visualProperties"][0]["nodeMapping"]["NODE_BORDER_TRANSPARENCY"] = {
+            "type": "PASSTHROUGH",
+            "definition": {"attribute": "linked_identity_border_transparency", "type": "integer"},
         }
         visual_props["visualProperties"][0]["edgeMapping"]["EDGE_LINE_STYLE"] = {
             "type": "DISCRETE",
@@ -405,8 +484,8 @@ def _export_cx2_headless(
                 "attribute": "interaction",
                 "type": "string",
                 "map": [
-                    {"v": "identity", "vp": profile["identity_edge_style"]},
-                    {"v": "interacts_with", "vp": profile["default_edge_style"]},
+                    {"v": "identity", "vp": profile["identity_edge_style_headless"]},
+                    {"v": "interacts_with", "vp": profile["default_edge_style_headless"]},
                 ],
             },
         }
@@ -432,6 +511,17 @@ def _export_cx2_headless(
                 ],
             },
         }
+        visual_props["visualProperties"][0]["edgeMapping"]["EDGE_OPACITY"] = {
+            "type": "DISCRETE",
+            "definition": {
+                "attribute": "interaction",
+                "type": "string",
+                "map": [
+                    {"v": "identity", "vp": profile["identity_edge_opacity_headless"]},
+                    {"v": "interacts_with", "vp": profile["default_edge_opacity_headless"]},
+                ],
+            },
+        }
 
     attr_decls = {
         "attributeDeclarations": [
@@ -442,6 +532,8 @@ def _export_cx2_headless(
                     "tooltip": {"d": "string"},
                     "color_group": {"d": "string"},
                     "uniprot_border_color": {"d": "string"},
+                    "linked_identity_border_color": {"d": "string"},
+                    "linked_identity_border_transparency": {"d": "integer"},
                 },
                 "edges": {
                     "interaction": {"d": "string"},
@@ -556,8 +648,8 @@ def create_cytoscape_network(
         if _verbose_enabled() and last_exc is not None:
             print(f"[cytoscape] Edge attribute import failed (non-fatal): {last_exc}")
 
-    def _apply_identity_edge_width_bypass(network_suid: int, edges_full_df: pd.DataFrame) -> None:
-        """Make identity edges thicker without relying on EDGE_WIDTH style mapping."""
+    def _apply_identity_edge_live_bypasses(network_suid: int, edges_full_df: pd.DataFrame) -> None:
+        """Make identity edges thick, dotted, and fully opaque in Cytoscape live mode."""
         if edges_full_df is None or edges_full_df.empty:
             return
 
@@ -574,21 +666,35 @@ def create_cytoscape_network(
             for s, t in zip(identity_rows["source"], identity_rows["target"])
         ]
         widths = [LINKED_IDENTITY_EDGE_WIDTH] * len(edge_names)
+        styles = [LINKED_IDENTITY_EDGE_STYLE] * len(edge_names)
+        opacities = [VISUAL_TUNING["linked_identity"]["edge_opacity_identity_live"]] * len(edge_names)
 
         try:
             p4c.set_edge_line_width_bypass(edge_names, widths, network=network_suid)
-            return
         except Exception:
-            pass
+            try:
+                p4c.set_edge_line_width_bypass(edge_names, widths)
+            except Exception:
+                if _verbose_enabled():
+                    print("[cytoscape] Identity width bypass could not be applied; continuing without it.")
 
         try:
-            p4c.set_edge_line_width_bypass(edge_names, widths)
-            return
+            p4c.set_edge_line_style_bypass(edge_names, styles, network=network_suid)
         except Exception:
-            pass
+            try:
+                p4c.set_edge_line_style_bypass(edge_names, styles)
+            except Exception:
+                if _verbose_enabled():
+                    print("[cytoscape] Identity line-style bypass could not be applied; continuing without it.")
 
-        if _verbose_enabled():
-            print("[cytoscape] Identity width bypass could not be applied; continuing without it.")
+        try:
+            p4c.set_edge_opacity_bypass(edge_names, opacities, network=network_suid)
+        except Exception:
+            try:
+                p4c.set_edge_opacity_bypass(edge_names, opacities)
+            except Exception:
+                if _verbose_enabled():
+                    print("[cytoscape] Identity opacity bypass could not be applied; continuing without it.")
 
     # --- Prepare Data ---
     unique_nodes = set()
@@ -630,12 +736,15 @@ def create_cytoscape_network(
             columns=["source", "target", "interaction", "all_atoms_count"]
         )
 
+    if _is_linked_identity_network(network_title):
+        nodes_df = _annotate_linked_identity_node_borders(nodes_df, edges_df)
+
     color_groups = (
         sorted(nodes_df["color_group"].dropna().unique())
         if "color_group" in nodes_df.columns
         else []
     )
-    color_map = _build_color_map(color_groups)
+    color_map = _build_color_map(color_groups, network_title)
     profile = _get_network_visual_profile(network_title)
 
     positions = compute_preset_positions_spring(nodes_df, edges_df, network_title)
@@ -704,6 +813,7 @@ def create_cytoscape_network(
         "EDGE_WIDTH": profile["default_edge_width"],
         "NODE_BORDER_WIDTH": profile["node_border_width"],
         "NODE_BORDER_PAINT": profile["node_border_color"],
+        "NODE_BORDER_TRANSPARENCY": profile["node_border_transparency_live"],
     }
 
     if is_linked_identity_network or is_combined_protein_network:
@@ -735,21 +845,17 @@ def create_cytoscape_network(
         mappings.append(
             {
                 "mappingType": "passthrough",
-                "mappingColumn": "uniprot_border_color",
+                "mappingColumn": "linked_identity_border_color",
                 "mappingColumnType": "String",
                 "visualProperty": "NODE_BORDER_PAINT",
             }
         )
         mappings.append(
             {
-                "mappingType": "discrete",
-                "mappingColumn": "interaction",
-                "mappingColumnType": "String",
-                "visualProperty": "EDGE_LINE_TYPE",
-                "map": [
-                    {"key": "identity", "value": profile["identity_edge_style"]},
-                    {"key": "interacts_with", "value": profile["default_edge_style"]},
-                ],
+                "mappingType": "passthrough",
+                "mappingColumn": "linked_identity_border_transparency",
+                "mappingColumnType": "Integer",
+                "visualProperty": "NODE_BORDER_TRANSPARENCY",
             }
         )
         mappings.append(
@@ -769,7 +875,7 @@ def create_cytoscape_network(
     p4c.set_visual_style(style_name)
 
     if is_linked_identity_network:
-        _apply_identity_edge_width_bypass(network_suid, edges_df)
+        _apply_identity_edge_live_bypasses(network_suid, edges_df)
 
     if is_combined_network:
         try:

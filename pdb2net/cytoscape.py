@@ -19,6 +19,7 @@ import time
 import subprocess
 import math
 import zlib
+import colorsys
 
 import pandas as pd
 import py4cytoscape as p4c
@@ -182,8 +183,44 @@ def _build_color_map(color_groups, network_title: str = "") -> dict:
     return {**NODE_COLOR_FIXED, **auto_colors}
 
 
+def _normalize_uniprot_id(value) -> str | None:
+    if pd.isna(value):
+        return None
+    text = str(value).strip()
+    if not text or text.lower() == "nan":
+        return None
+    return text
+
+
+
+def _hex_from_hsv(h: float, s: float, v: float) -> str:
+    r, g, b = colorsys.hsv_to_rgb(h, s, v)
+    return f"#{int(round(r * 255)):02x}{int(round(g * 255)):02x}{int(round(b * 255)):02x}"
+
+
+
+def _build_linked_identity_uniprot_color_map(uniprot_ids) -> dict:
+    ordered_ids = sorted({_normalize_uniprot_id(uid) for uid in uniprot_ids if _normalize_uniprot_id(uid)})
+    if not ordered_ids:
+        return {}
+
+    if len(ordered_ids) == 1:
+        return {ordered_ids[0]: _hex_from_hsv(0.60, 0.72, 0.82)}
+
+    hue_start = 0.10
+    hue_end = 0.82
+    span = hue_end - hue_start
+
+    color_map = {}
+    for i, up_id in enumerate(ordered_ids):
+        hue = hue_start + (span * i / (len(ordered_ids) - 1))
+        color_map[up_id] = _hex_from_hsv(hue, 0.72, 0.82)
+    return color_map
+
+
+
 def _annotate_linked_identity_node_borders(nodes_df: pd.DataFrame, edges_df: pd.DataFrame) -> pd.DataFrame:
-    """Mark only true identity-bridge endpoints with a red, less transparent border."""
+    """Color all linked-relevant UniProt groups red and assign distinct colors to the remaining UniProt groups."""
     if nodes_df is None or nodes_df.empty:
         return nodes_df
 
@@ -192,20 +229,33 @@ def _annotate_linked_identity_node_borders(nodes_df: pd.DataFrame, edges_df: pd.
     if "uniprot_border_color" not in df.columns:
         df["uniprot_border_color"] = "#555555"
 
-    identity_nodes = set()
+    if "uniprot_id" in df.columns:
+        df["uniprot_id"] = df["uniprot_id"].apply(_normalize_uniprot_id)
+    else:
+        df["uniprot_id"] = None
+
+    regular_uniprot_color_map = _build_linked_identity_uniprot_color_map(df["uniprot_id"].dropna().tolist())
+
+    df["linked_identity_border_color"] = df["uniprot_id"].map(regular_uniprot_color_map).fillna("#555555")
+    df["linked_identity_border_transparency"] = VISUAL_TUNING["linked_identity"]["node_border_transparency_headless"]
+
+    linked_uniprot_ids = set()
     if edges_df is not None and not edges_df.empty and "interaction" in edges_df.columns:
         identity_rows = edges_df[edges_df["interaction"].astype(str) == "identity"]
         if not identity_rows.empty:
-            identity_nodes.update(identity_rows["source"].astype(str).tolist())
-            identity_nodes.update(identity_rows["target"].astype(str).tolist())
+            id_to_uniprot = {
+                str(node_id): up_id
+                for node_id, up_id in zip(df["id"].astype(str), df["uniprot_id"])
+            }
+            for node_id in pd.concat([identity_rows["source"], identity_rows["target"]]).astype(str):
+                up_id = id_to_uniprot.get(node_id)
+                if up_id:
+                    linked_uniprot_ids.add(up_id)
 
-    df["linked_identity_border_color"] = df["uniprot_border_color"].fillna("#555555").astype(str)
-    df["linked_identity_border_transparency"] = VISUAL_TUNING["linked_identity"]["node_border_transparency_headless"]
-
-    if identity_nodes:
-        identity_mask = df["id"].astype(str).isin(identity_nodes)
-        df.loc[identity_mask, "linked_identity_border_color"] = VISUAL_TUNING["linked_identity"]["edge_color_identity"]
-        df.loc[identity_mask, "linked_identity_border_transparency"] = VISUAL_TUNING["linked_identity"]["node_border_transparency_identity_headless"]
+    if linked_uniprot_ids:
+        linked_mask = df["uniprot_id"].isin(linked_uniprot_ids)
+        df.loc[linked_mask, "linked_identity_border_color"] = VISUAL_TUNING["linked_identity"]["edge_color_identity"]
+        df.loc[linked_mask, "linked_identity_border_transparency"] = VISUAL_TUNING["linked_identity"]["node_border_transparency_identity_headless"]
 
     return df
 

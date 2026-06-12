@@ -20,11 +20,11 @@ It uses **Gemmi** for structure parsing, **SciPy cKDTree** for distance-based in
 - [Download Python](https://www.python.org/downloads/)  
 - Ensure that **pip** is installed:
 
->  python -m ensurepip --default-pip
+>  python3 -m ensurepip --default-pip
 
 
 ### 2️⃣ Install Required Libraries  
-> pip install -r requirements.txt
+> python3 -m pip install -r requirements.txt
 
 
 ### 3️⃣ Install Cytoscape  
@@ -188,7 +188,7 @@ export PDB2NET_OPEN_IN_CYTOSCAPE=false
 
 ## Run the Tool  
 Once all dependencies are installed, you can run the tool with:
-> python main.py
+> python3 pdb2net/main.py
 
 - Output goes to a **timestamped** subfolder in `output_path`, e.g.:
 ""/…/Networks/2025-10-20_18-32-45/"
@@ -251,7 +251,6 @@ If you have any questions or inquiries, please feel free to contact Hadeer Elhab
 
 # License
 - The **PDB2NET code** in this repository is licensed under the [MIT License](./LICENSE).
-
 
 
 

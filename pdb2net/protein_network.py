@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
-from cytoscape import create_cytoscape_network
+from .cytoscape import create_cytoscape_network
 
 
 def create_protein_network(
@@ -257,4 +257,3 @@ def create_protein_network(
         nodes = nodes_from_uniprots(all_uniprots, force_protein_color=False, pdb_scope=None)
         # NEW: combined folder
         create_cytoscape_network(combined_edges, "Combined_Protein_Network", combined_out, nodes_data=nodes)
-

@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 
 import gemmi
 
-from config_loader import config
+from .config_loader import config
 
 # --- Allowed file extensions for structural inputs ---
 ALLOWED_EXTENSIONS = {".pdb", ".cif", ".mmcif"}

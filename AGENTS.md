@@ -11,7 +11,7 @@ PDB2Net extracts protein interaction networks from PDB/mmCIF structure files and
 - The current script entry point is:
 
 ```bash
-python3 pdb2net/main.py
+python3 -m pdb2net.main
 ```
 
 - Keep Cytoscape optional for automated work. Prefer `open_in_cytoscape: false` for checks, fixtures, and headless runs.
@@ -45,6 +45,7 @@ Use `config.local.json` or environment variables for machine-specific paths. Do 
 
 ## Good First Verification Targets
 
+- `python3 scripts/check_environment.py`
 - Config loading with a temporary config directory or `PDB2NET_CONFIG_FILE`.
 - File extension and PDB ID parsing.
 - Distance detection on small synthetic atom data.

@@ -28,7 +28,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 import numpy as np
 from scipy.spatial import cKDTree
 
-from config_loader import config
+from .config_loader import config
 
 # Caches for KD-Trees and extracted coordinates
 tree_cache: Dict[Tuple[str, str], cKDTree] = {}

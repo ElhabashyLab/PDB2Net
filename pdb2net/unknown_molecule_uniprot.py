@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from Bio import SeqIO
 
-from config_loader import config
+from .config_loader import config
 
 # --- Paths from configuration ---
 PDB_FASTA_PATH: str = config["pdb_fasta_path"]

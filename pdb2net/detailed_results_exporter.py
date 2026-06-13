@@ -33,7 +33,7 @@ def export_detailed_interactions(
     atom_data = structure_data["atom_data"]
 
     # NEW: use the same cutoff as the interaction detection
-    from config_loader import config
+    from .config_loader import config
     radius = float(config["distance_thresholds"]["all_atoms_radius"])
 
     residues_atoms_lookup: Dict[str, Dict[str, Any]] = {}

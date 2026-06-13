@@ -53,7 +53,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 from Bio.Data import IUPACData
-from config_loader import config
+from .config_loader import config
 
 # --- Paths from configuration ---
 BLAST_DB_PATH: str = config["blast_db_path"]

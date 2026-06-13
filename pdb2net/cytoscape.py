@@ -20,13 +20,16 @@ import subprocess
 import math
 import zlib
 import colorsys
+import tempfile
+
+os.environ.setdefault("MPLCONFIGDIR", os.path.join(tempfile.gettempdir(), "pdb2net-matplotlib"))
 
 import pandas as pd
 import py4cytoscape as p4c
-from matplotlib import cm
+from matplotlib import cm, colormaps
 from matplotlib.colors import to_hex
 
-from config_loader import config
+from .config_loader import config
 
 
 # ---------------------------------------------------------------------------
@@ -176,7 +179,11 @@ def _build_color_map(color_groups, network_title: str = "") -> dict:
         }
 
     base_color_groups = [g for g in color_groups if g not in NODE_COLOR_FIXED and g != "Multi"]
-    cmap = cm.get_cmap("tab20", max(1, len(base_color_groups)))
+    color_count = max(1, len(base_color_groups))
+    try:
+        cmap = colormaps.get_cmap("tab20").resampled(color_count)
+    except AttributeError:
+        cmap = cm.get_cmap("tab20", color_count)
     auto_colors = {group: to_hex(cmap(i)) for i, group in enumerate(base_color_groups)}
     if "Multi" in color_groups:
         auto_colors["Multi"] = MULTI_NODE_COLOR

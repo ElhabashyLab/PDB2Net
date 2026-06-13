@@ -25,15 +25,15 @@ import time
 from datetime import datetime
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
-from config_loader import config
-from cytoscape import create_cytoscape_network, generate_nodes_from_atom_data
-from data_processor import process_structure
-from detailed_results_exporter import export_detailed_interactions
-from distances import calculate_distances_with_ckdtree, tree_cache, coords_cache
-from file_parser import get_pdb_id, is_valid_file, parse_structure
-from protein_network import create_protein_network
-from uniprot_matcher import parallel_blast_search
-from unknown_molecule_uniprot import process_molecule_info
+from .config_loader import config
+from .cytoscape import create_cytoscape_network, generate_nodes_from_atom_data
+from .data_processor import process_structure
+from .detailed_results_exporter import export_detailed_interactions
+from .distances import calculate_distances_with_ckdtree, tree_cache, coords_cache
+from .file_parser import get_pdb_id, is_valid_file, parse_structure
+from .protein_network import create_protein_network
+from .uniprot_matcher import parallel_blast_search
+from .unknown_molecule_uniprot import process_molecule_info
 
 
 def _resolve_workers(value: Optional[Union[int, str]], *, kind: str = "parsing") -> int:
@@ -258,7 +258,6 @@ def _create_linked_identity_network(results: List[Dict[str, Any]], combined_data
 
 def run_main(batch_files: List[str]) -> None:
     """Helper wrapper to re-enter main() for a batch (used by batch_run)."""
-    from main import main  # local import to preserve original behavior
     main(batch_files)
 
 
@@ -479,7 +478,7 @@ def batch_run(input_folder: str, timeout_minutes: int = 10, size_limit_kb: int =
 
 
 if __name__ == "__main__":
-    from cytoscape import ensure_cytoscape_running
+    from .cytoscape import ensure_cytoscape_running
 
     if config.get("open_in_cytoscape", True):
         ensure_cytoscape_running()

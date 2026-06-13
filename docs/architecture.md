@@ -26,7 +26,10 @@ PDB2Net is a batch pipeline for turning PDB/mmCIF structure files into protein a
 - `pdb2net/cx2_export.py`: headless CX2 JSON generation.
 - `pdb2net/cytoscape.py`: live Cytoscape/py4cytoscape integration and the public network export entry point.
 - `pdb2net/protein_network.py`: aggregation from chain interactions to protein-level networks.
-- `pdb2net/main.py`: orchestration, batching, timeouts, output folder layout, and runtime logging.
+- `pdb2net/outputs.py`: per-run output folder creation and runtime summary logs.
+- `pdb2net/batching.py`: streamed batch sizing, timeout handling, and skipped-batch logging.
+- `pdb2net/pipeline.py`: single-run orchestration, worker selection, parsing, annotation, interaction detection, and export sequencing.
+- `pdb2net/main.py`: stable public entry points for single-run and batch execution.
 
 ## External Inputs
 

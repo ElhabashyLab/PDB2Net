@@ -30,7 +30,7 @@ PYTHON_IMPORTS = {
     "scipy": "scipy",
 }
 
-EXTERNAL_COMMANDS = ["blastp", "makeblastdb", "cytoscape"]
+EXTERNAL_COMMANDS = ["blastp", "makeblastdb", "java", "cytoscape"]
 
 PATH_KEYS = [
     "input_folder_path",
@@ -126,7 +126,7 @@ def main() -> int:
     missing_external = []
     for command in EXTERNAL_COMMANDS:
         found = shutil.which(command)
-        if not found and command != "cytoscape":
+        if not found and command not in {"cytoscape", "java"}:
             missing_external.append(command)
         detail = found if found else "missing"
         print(f"  {command}: {detail}")

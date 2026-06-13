@@ -2,7 +2,6 @@
 
 This module handles:
 - Launching/connecting to Cytoscape (via py4cytoscape).
-- Computing deterministic node coordinates for headless exports.
 - Building a portable CX2 file without requiring a running Cytoscape UI.
 - Creating and styling networks in Cytoscape when a UI session is available.
 - Generating node data dictionaries from parsed atom data.
@@ -17,7 +16,6 @@ import os
 import json
 import time
 import subprocess
-import math
 import zlib
 import colorsys
 import tempfile
@@ -25,11 +23,11 @@ import tempfile
 os.environ.setdefault("MPLCONFIGDIR", os.path.join(tempfile.gettempdir(), "pdb2net-matplotlib"))
 
 import pandas as pd
-import py4cytoscape as p4c
 from matplotlib import cm, colormaps
 from matplotlib.colors import to_hex
 
 from .config_loader import config
+from .layout_engine import calculate_positions
 
 
 # ---------------------------------------------------------------------------
@@ -109,6 +107,12 @@ STANDARD_EDGE_STYLE = VISUAL_TUNING["standard"]["edge_style"]
 
 # Unique tag per Python run so styles are always fresh across runs
 STYLE_RUN_TAG = f"{int(time.time() * 1000)}_{os.getpid()}"
+
+
+def _get_py4cytoscape():
+    import py4cytoscape as p4c
+
+    return p4c
 
 
 def _is_linked_identity_network(network_title: str) -> bool:
@@ -269,6 +273,7 @@ def _annotate_linked_identity_node_borders(nodes_df: pd.DataFrame, edges_df: pd.
 
 def ensure_cytoscape_running():
     """Ensure a Cytoscape instance is reachable via CyREST."""
+    p4c = _get_py4cytoscape()
     try:
         p4c.cytoscape_ping()
         print("Cytoscape is already running.")
@@ -300,121 +305,6 @@ def ensure_cytoscape_running():
 
     print("Error: Cytoscape did not respond within timeout.")
     raise SystemExit(1)
-
-
-def compute_preset_positions_spring(nodes_df, edges_df, network_title, scale=1000.0):
-    """
-    Compute positions using specific strategies for different network types.
-    """
-    import networkx as nx
-
-    node_ids = list(nodes_df["id"]) if len(nodes_df) else []
-    N = len(node_ids)
-
-    if N == 0:
-        return {}
-    if N == 1:
-        return {node_ids[0]: {"x": 0.0, "y": 0.0}}
-
-    # 1. Build Graph
-    G = nx.Graph()
-    G.add_nodes_from(node_ids)
-    if edges_df is not None and len(edges_df) > 0:
-        for _, e in edges_df.iterrows():
-            s, t = e["source"], e["target"]
-            if s != t:
-                # Logarithmic weight
-                w = float(e.get("all_atoms_count", 1.0))
-                w = 1.0 + math.log10(max(1.0, w))
-                G.add_edge(s, t, weight=w)
-
-    # 2. Determine Strategy
-    is_combined = "combined" in str(network_title).lower()
-
-    # Deterministic Seed
-    seed = zlib.adler32(str(network_title).encode("utf-8")) & 0xFFFFFFFF
-
-    # === STRATEGY A: GRID PACKING (For Combined Networks) ===
-    # Solves the "Exploded Graph" problem by packing components tightly.
-    if is_combined:
-        components = list(nx.connected_components(G))
-        # Sort components: largest first to anchor the grid
-        components.sort(key=len, reverse=True)
-
-        # Grid Setup
-        num_comps = len(components)
-        grid_cols = math.ceil(math.sqrt(num_comps))
-
-        final_pos = {}
-
-        for i, comp in enumerate(components):
-            sub_G = G.subgraph(comp)
-            sub_N = len(comp)
-
-            # Local layout for this island
-            sub_scale = 100.0 + (math.sqrt(sub_N) * 60.0)
-
-            sub_seed = (seed + i) & 0xFFFFFFFF
-            sub_pos = nx.spring_layout(
-                sub_G,
-                seed=sub_seed,
-                weight="weight",
-                scale=sub_scale,
-                center=(0, 0),  # Center at 0,0 relative to cell
-                k=None,  # Let nx decide optimal k locally
-            )
-
-            # Calculate Grid Cell Position
-            row = i // grid_cols
-            col = i % grid_cols
-
-            # Approximate stride
-            stride = 600.0 + (math.sqrt(N / grid_cols) * 50.0)
-
-            offset_x = col * stride
-            offset_y = row * stride
-
-            # Apply offset
-            for node, coords in sub_pos.items():
-                final_pos[node] = {
-                    "x": float(coords[0] + offset_x),
-                    "y": float(coords[1] + offset_y),
-                }
-
-        return final_pos
-
-    # === STRATEGY B: ORIGINAL LOGIC (For Standard Networks) ===
-    else:
-        if N == 2:
-            d = scale * 0.08
-            return {
-                node_ids[0]: {"x": -d, "y": 0.0},
-                node_ids[1]: {"x": d, "y": 0.0},
-            }
-
-        iters = max(100, min(250, 8 * N))
-
-        scale_used = scale * 0.8
-        if N < 40:
-            scale_used *= max(0.12, (N / 40.0))
-
-        k = 1.0 / math.sqrt(max(N, 100))
-        if N < 40:
-            k *= 0.75
-
-        pos = nx.spring_layout(
-            G,
-            seed=seed,
-            weight="weight",
-            iterations=iters,
-            dim=2,
-            center=(0.0, 0.0),
-            scale=scale_used,
-            k=k,
-        )
-        return {n: {"x": float(x), "y": float(y)} for n, (x, y) in pos.items()}
-
-
 
 def _export_cx2_headless(
     network_title, run_output_path, nodes_df, edges_df_for_export, color_map, positions
@@ -804,12 +694,19 @@ def create_cytoscape_network(
     color_map = _build_color_map(color_groups, network_title)
     profile = _get_network_visual_profile(network_title)
 
-    positions = compute_preset_positions_spring(nodes_df, edges_df, network_title)
+    positions = calculate_positions(
+        nodes_df=nodes_df,
+        edges_df=edges_df,
+        network_title=network_title,
+        layout_mode=config.get("layout_mode", "python_fast"),
+        config=config,
+    )
 
     if not config.get("open_in_cytoscape", True):
         _export_cx2_headless(network_title, run_output_path, nodes_df, edges_df, color_map, positions)
         return
 
+    p4c = _get_py4cytoscape()
     is_linked_identity_network = profile["is_linked_identity_network"]
     is_combined_protein_network = profile["is_combined_protein_network"]
     is_combined_network = profile["is_combined_network"]

@@ -84,3 +84,29 @@ python3 -m pdb2net.main
 ```
 
 Do not run full batch jobs on large datasets during routine development. Use tiny fixtures or a small local input folder first.
+
+## Goldstandard CX2 Regression Check
+
+Use the accepted CX2 output directory as a semantic goldstandard. The check
+compares graph semantics, annotations, visual style semantics, and layout
+metrics without relying on byte-for-byte CX2 equality.
+
+Compare an existing output directory:
+
+```bash
+python3 scripts/run_goldstandard_check.py \
+  --actual /mnt/e/Networks/2026-06-13_14-44-59 \
+  --expected /mnt/e/Goldstandard/6m17_6w41/expected
+```
+
+Run the configured headless pipeline first, then compare the newest output:
+
+```bash
+python3 scripts/run_goldstandard_check.py \
+  --expected /mnt/e/Goldstandard/6m17_6w41/expected
+```
+
+Reports are written to `/tmp/pdb2net-goldstandard` by default. A `FAIL` status
+means graph semantics, annotations, required style semantics, or expected files
+changed. A `WARN` status is acceptable for intentional layout-only differences
+unless `--fail-on-warn` is used.

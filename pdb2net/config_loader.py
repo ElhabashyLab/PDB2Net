@@ -137,6 +137,7 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
         "cytoscape_path",
         "blast_db_path",
         "blastp_executable",
+        "layout_engine_path",
     ]:
         if key in cfg and cfg[key]:
             cfg[key] = _normalize_path(cfg[key])
@@ -158,6 +159,9 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
     cfg.setdefault("workers", {})
     cfg["workers"].setdefault("parsing", "auto")
     cfg["workers"].setdefault("blast_threads", "auto")
+    cfg.setdefault("layout_mode", "python_fast")
+    cfg.setdefault("layout_engine_path", "")
+    cfg.setdefault("layout_keep_temp_files", False)
 
     # Create output folder proactively (if provided)
     out = cfg.get("output_path")

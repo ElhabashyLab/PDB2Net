@@ -17,6 +17,7 @@ dependencies = [
   "biopython==1.84",
   "gemmi",
   "matplotlib",
+  "networkx",
   "numpy==2.2.4",
   "pandas==2.2.3",
   "py4cytoscape==1.11.0",

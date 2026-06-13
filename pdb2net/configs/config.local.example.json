@@ -6,6 +6,9 @@
   "output_path": "$HOME/pdb2net/outputs",
   "blast_db_path": "$HOME/pdb2net/reference/blast_db",
   "blastp_executable": "blastp",
+  "layout_mode": "python_fast",
+  "layout_engine_path": "",
+  "layout_keep_temp_files": false,
   "open_in_cytoscape": false,
   "workers": {
     "parsing": 1,

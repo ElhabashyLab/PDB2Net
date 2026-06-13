@@ -35,6 +35,55 @@ EDGE_VALUE_FIELDS = [
     "count",
 ]
 
+STYLE_DEFAULT_PROPERTIES = {
+    "network": [
+        "NETWORK_BACKGROUND_COLOR",
+    ],
+    "node": [
+        "NODE_BACKGROUND_COLOR",
+        "NODE_FILL_COLOR",
+        "NODE_BORDER_COLOR",
+        "NODE_BORDER_PAINT",
+        "NODE_BORDER_WIDTH",
+        "NODE_BORDER_OPACITY",
+        "NODE_BORDER_TRANSPARENCY",
+        "NODE_SHAPE",
+        "NODE_WIDTH",
+        "NODE_HEIGHT",
+    ],
+    "edge": [
+        "EDGE_LINE_COLOR",
+        "EDGE_STROKE_UNSELECTED_PAINT",
+        "EDGE_WIDTH",
+        "EDGE_LINE_WIDTH",
+        "EDGE_OPACITY",
+        "EDGE_TRANSPARENCY",
+        "EDGE_LINE_STYLE",
+        "EDGE_CURVED",
+    ],
+}
+
+STYLE_MAPPING_PROPERTIES = {
+    "node": [
+        "NODE_BACKGROUND_COLOR",
+        "NODE_FILL_COLOR",
+        "NODE_BORDER_COLOR",
+        "NODE_BORDER_PAINT",
+        "NODE_BORDER_TRANSPARENCY",
+        "NODE_LABEL",
+        "NODE_TOOLTIP",
+    ],
+    "edge": [
+        "EDGE_LINE_COLOR",
+        "EDGE_STROKE_UNSELECTED_PAINT",
+        "EDGE_WIDTH",
+        "EDGE_LINE_WIDTH",
+        "EDGE_OPACITY",
+        "EDGE_TRANSPARENCY",
+        "EDGE_LINE_STYLE",
+    ],
+}
+
 NODE_COLOR_FIELDS = [
     "node_color",
     "color",
@@ -200,6 +249,84 @@ def _extract_visual_properties(aspects: dict[str, list[Any]]) -> list[Any]:
     return sorted(styles, key=lambda item: json.dumps(item, sort_keys=True))
 
 
+def _mapping_attribute(mapping: dict[str, Any]) -> str | None:
+    definition = mapping.get("definition")
+    if isinstance(definition, dict):
+        return _stringify(definition.get("attribute") or definition.get("mappingColumn"))
+    return _stringify(mapping.get("mappingColumn") or mapping.get("attribute"))
+
+
+def _mapping_rows(mapping: dict[str, Any]) -> list[Any]:
+    definition = mapping.get("definition")
+    if isinstance(definition, dict) and isinstance(definition.get("map"), list):
+        return definition["map"]
+    if isinstance(mapping.get("map"), list):
+        return mapping["map"]
+    return []
+
+
+def _extract_discrete_mapping(mapping: Any) -> dict[str, Any] | None:
+    """Return a canonical discrete mapping, or None for passthrough/unsupported mappings."""
+    if not isinstance(mapping, dict):
+        return None
+
+    mapping_kind = _stringify(mapping.get("type") or mapping.get("mappingType"))
+    if mapping_kind and mapping_kind.lower() not in {"discrete"}:
+        return None
+
+    rows = _mapping_rows(mapping)
+    if not rows:
+        return None
+
+    values: dict[str, Any] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        key = row.get("v", row.get("key"))
+        value = row.get("vp", row.get("value"))
+        if key is None:
+            continue
+        values[str(key)] = _clean_value(value)
+
+    return {
+        "attribute": _mapping_attribute(mapping),
+        "values": dict(sorted(values.items())),
+    }
+
+
+def _extract_style_semantics(aspects: dict[str, list[Any]]) -> dict[str, Any]:
+    """Extract style defaults and mappings that carry visual semantics."""
+    semantics: dict[str, Any] = {
+        "defaults": {"network": {}, "node": {}, "edge": {}},
+        "mappings": {"node": {}, "edge": {}},
+    }
+
+    for style in aspects.get("visualProperties", []):
+        if not isinstance(style, dict):
+            continue
+
+        defaults = style.get("default")
+        if isinstance(defaults, dict):
+            for scope, properties in STYLE_DEFAULT_PROPERTIES.items():
+                scoped_defaults = defaults.get(scope)
+                if not isinstance(scoped_defaults, dict):
+                    continue
+                for prop in properties:
+                    if prop in scoped_defaults:
+                        semantics["defaults"][scope][prop] = _clean_value(scoped_defaults[prop])
+
+        for scope in ("node", "edge"):
+            mapping_block = style.get(f"{scope}Mapping")
+            if not isinstance(mapping_block, dict):
+                continue
+            for prop in STYLE_MAPPING_PROPERTIES[scope]:
+                mapping = _extract_discrete_mapping(mapping_block.get(prop))
+                if mapping is not None:
+                    semantics["mappings"][scope][prop] = mapping
+
+    return semantics
+
+
 def _apply_layout_aspects(
     positions: dict[str, dict[str, float]],
     aspects: dict[str, list[Any]],
@@ -330,6 +457,7 @@ def extract_canonical_network(cx2_data: Any) -> dict[str, Any]:
         "edges": dict(sorted(edges.items())),
         "positions": dict(sorted(positions.items())),
         "styles": _extract_visual_properties(aspects),
+        "style_semantics": _extract_style_semantics(aspects),
     }
 
 
@@ -410,6 +538,68 @@ def _field_status(actual_value: Any, expected_value: Any) -> str:
     return "FAIL"
 
 
+def _format_style_path(path: tuple[str, ...]) -> str:
+    return ".".join(path)
+
+
+def _compare_style_values(
+    actual_value: Any,
+    expected_value: Any,
+    path: tuple[str, ...],
+    differences: list[dict[str, Any]],
+) -> None:
+    """Compare nested style semantics and record every meaningful difference as FAIL."""
+    if isinstance(actual_value, dict) and isinstance(expected_value, dict):
+        actual_keys = set(actual_value)
+        expected_keys = set(expected_value)
+        for key in sorted(expected_keys - actual_keys):
+            style_path = path + (str(key),)
+            differences.append({
+                "status": "FAIL",
+                "path": _format_style_path(style_path),
+                "actual": None,
+                "expected": expected_value[key],
+                "message": f"Missing expected style semantic {_format_style_path(style_path)!r}",
+            })
+        for key in sorted(actual_keys - expected_keys):
+            style_path = path + (str(key),)
+            differences.append({
+                "status": "FAIL",
+                "path": _format_style_path(style_path),
+                "actual": actual_value[key],
+                "expected": None,
+                "message": f"Extra actual style semantic {_format_style_path(style_path)!r}",
+            })
+        for key in sorted(actual_keys & expected_keys):
+            _compare_style_values(
+                actual_value[key],
+                expected_value[key],
+                path + (str(key),),
+                differences,
+            )
+        return
+
+    if actual_value != expected_value:
+        style_path = _format_style_path(path)
+        differences.append({
+            "status": "FAIL",
+            "path": style_path,
+            "actual": actual_value,
+            "expected": expected_value,
+            "message": f"Style semantic {style_path!r} changed",
+        })
+
+
+def _compare_style_semantics(
+    actual_styles: dict[str, Any],
+    expected_styles: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Compare visual semantics such as color mappings, widths, and line styles."""
+    differences: list[dict[str, Any]] = []
+    _compare_style_values(actual_styles, expected_styles, ("style_semantics",), differences)
+    return differences
+
+
 def compare_networks(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
     """Compare two canonical networks and classify semantic differences."""
     result: dict[str, Any] = {
@@ -480,7 +670,15 @@ def compare_networks(actual: dict[str, Any], expected: dict[str, Any]) -> dict[s
             else:
                 result["warnings"].append(f"Edge {edge_key!r} has one-sided {field!r}")
 
-    if actual.get("styles") != expected.get("styles"):
+    style_differences = _compare_style_semantics(
+        actual.get("style_semantics", {}),
+        expected.get("style_semantics", {}),
+    )
+    for diff in style_differences:
+        result["style_differences"].append(diff)
+        result["failures"].append(diff["message"])
+
+    if actual.get("styles") != expected.get("styles") and not style_differences:
         result["style_differences"].append({
             "status": "WARN",
             "message": "Visual properties differ",
@@ -667,6 +865,38 @@ def write_markdown_report(report: dict[str, Any], path: str | Path) -> None:
         edges = inspected["canonical"]["edges"]
         for edge_key, edge in list(edges.items())[:20]:
             lines.append(f"- `{edge_key}` values={edge.get('values')}")
+        lines.append("")
+        lines.append("## Style Semantics")
+        style_semantics = inspected["canonical"].get("style_semantics", {})
+        node_color_mapping = (
+            style_semantics
+            .get("mappings", {})
+            .get("node", {})
+            .get("NODE_BACKGROUND_COLOR")
+            or style_semantics
+            .get("mappings", {})
+            .get("node", {})
+            .get("NODE_FILL_COLOR")
+        )
+        edge_style_mappings = style_semantics.get("mappings", {}).get("edge", {})
+        node_defaults = style_semantics.get("defaults", {}).get("node", {})
+        edge_defaults = style_semantics.get("defaults", {}).get("edge", {})
+        if node_color_mapping:
+            lines.append("- Node color mapping:")
+            for key, value in node_color_mapping.get("values", {}).items():
+                lines.append(f"  - `{key}` -> `{value}`")
+        elif node_defaults:
+            lines.append(f"- Node defaults: `{node_defaults}`")
+        else:
+            lines.append("- Node color mapping: n/a")
+        if edge_style_mappings:
+            lines.append("- Edge style mappings:")
+            for prop, mapping in sorted(edge_style_mappings.items()):
+                lines.append(f"  - `{prop}` via `{mapping.get('attribute')}`: `{mapping.get('values')}`")
+        elif edge_defaults:
+            lines.append(f"- Edge defaults: `{edge_defaults}`")
+        else:
+            lines.append("- Edge style mappings: n/a")
     else:
         lines.append("# CX2 Compare Report")
         lines.append("")

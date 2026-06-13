@@ -432,6 +432,12 @@ def batch_run(input_folder: str, timeout_minutes: int = 10, size_limit_kb: int =
             if entry.is_file() and is_valid_file(entry.path):
                 yield entry.path
 
+    def log_skipped_batch(batch_files: List[str], reason: str) -> None:
+        with open(log_path, "a", encoding="utf-8") as log_file:
+            for file_path in batch_files:
+                pdb_id = get_pdb_id(file_path)
+                log_file.write(f"{pdb_id}\t{reason}\n")
+
     timeout_seconds = timeout_minutes * 60
     logs_dir = os.path.join(config["output_path"], "error_in_batch_log")
     os.makedirs(logs_dir, exist_ok=True)
@@ -463,15 +469,18 @@ def batch_run(input_folder: str, timeout_minutes: int = 10, size_limit_kb: int =
             print(f"Batch {i} exceeded {timeout_minutes} minutes. Terminating.")
             process.terminate()
             process.join()
-            with open(log_path, "a", encoding="utf-8") as log_file:
-                for file_path in batch_files:
-                    pdb_id = get_pdb_id(file_path)
-                    log_file.write(f"{pdb_id}\n")
-        else:
-            duration = time.time() - start_time_batch
-            total_done += len(batch_files)
-            print(f"Batch {i} finished in {duration:.1f} seconds.")
-            print(f"Processed so far: {total_done} files.")
+            log_skipped_batch(batch_files, f"timeout>{timeout_minutes}min")
+            continue
+
+        duration = time.time() - start_time_batch
+        if process.exitcode != 0:
+            print(f"Batch {i} failed after {duration:.1f} seconds (exit code {process.exitcode}).")
+            log_skipped_batch(batch_files, f"exitcode={process.exitcode}")
+            continue
+
+        total_done += len(batch_files)
+        print(f"Batch {i} finished in {duration:.1f} seconds.")
+        print(f"Processed so far: {total_done} files.")
 
     total_time_all = time.time() - start_time_all
     print(f"\nTotal time for all batches: {total_time_all:.2f} seconds")

@@ -22,7 +22,9 @@ PDB2Net is a batch pipeline for turning PDB/mmCIF structure files into protein a
 - `pdb2net/uniprot_matcher.py`: BLAST database creation, BLAST lookup, diagnostics, and SQLite-backed BLAST result caching.
 - `pdb2net/distances.py`: chain interaction detection using configurable CA and all-atom distance thresholds.
 - `pdb2net/detailed_results_exporter.py`: optional atom-level distance CSV export.
-- `pdb2net/cytoscape.py`: headless CX2 generation and live Cytoscape/py4cytoscape integration.
+- `pdb2net/visual_style.py`: shared visual profiles, color maps, and linked-identity border annotation.
+- `pdb2net/cx2_export.py`: headless CX2 JSON generation.
+- `pdb2net/cytoscape.py`: live Cytoscape/py4cytoscape integration and the public network export entry point.
 - `pdb2net/protein_network.py`: aggregation from chain interactions to protein-level networks.
 - `pdb2net/main.py`: orchestration, batching, timeouts, output folder layout, and runtime logging.
 

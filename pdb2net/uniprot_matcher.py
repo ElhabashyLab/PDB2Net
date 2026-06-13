@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import tempfile
 import threading
 import uuid
 import hashlib
@@ -233,6 +234,7 @@ def _cache_init() -> None:
                 ")"
             )
             conn.execute("CREATE INDEX IF NOT EXISTS idx_blast_cache_seq_key ON blast_cache(seq_key)")
+            conn.commit()
             _CACHE_CONN = conn
             _CACHE_DB_SIG = _db_signature()
         except Exception:
@@ -250,11 +252,14 @@ def _cache_get(seq_key: str) -> Tuple[bool, Optional["BlastHit"]]:
         if _CACHE_CONN is None or _CACHE_DB_SIG is None:
             return (False, None)
 
-        row = _CACHE_CONN.execute(
-            "SELECT has_hit, accession, reviewed, bitscore, evalue, qcov, pident, title "
-            "FROM blast_cache WHERE db_sig=? AND seq_key=?",
-            (_CACHE_DB_SIG, seq_key),
-        ).fetchone()
+        with _CACHE_LOCK:
+            if _CACHE_CONN is None or _CACHE_DB_SIG is None:
+                return (False, None)
+            row = _CACHE_CONN.execute(
+                "SELECT has_hit, accession, reviewed, bitscore, evalue, qcov, pident, title "
+                "FROM blast_cache WHERE db_sig=? AND seq_key=?",
+                (_CACHE_DB_SIG, seq_key),
+            ).fetchone()
 
         if row is None:
             return (False, None)
@@ -291,30 +296,34 @@ def _cache_put(seq_key: str, hit: Optional["BlastHit"]) -> None:
 
         now = datetime.utcnow().isoformat(timespec="seconds") + "Z"
 
-        if hit is None:
-            _CACHE_CONN.execute(
-                "INSERT OR REPLACE INTO blast_cache (db_sig, seq_key, has_hit, updated_at) VALUES (?,?,0,?)",
-                (_CACHE_DB_SIG, seq_key, now),
-            )
-        else:
-            _CACHE_CONN.execute(
-                "INSERT OR REPLACE INTO blast_cache "
-                "(db_sig, seq_key, has_hit, accession, reviewed, bitscore, evalue, qcov, pident, title, updated_at) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                (
-                    _CACHE_DB_SIG,
-                    seq_key,
-                    1,
-                    hit.accession,
-                    int(bool(hit.reviewed)),
-                    float(hit.bitscore),
-                    float(hit.evalue),
-                    float(hit.qcov),
-                    float(hit.pident),
-                    hit.title or "",
-                    now,
-                ),
-            )
+        with _CACHE_LOCK:
+            if _CACHE_CONN is None or _CACHE_DB_SIG is None:
+                return
+            if hit is None:
+                _CACHE_CONN.execute(
+                    "INSERT OR REPLACE INTO blast_cache (db_sig, seq_key, has_hit, updated_at) VALUES (?,?,0,?)",
+                    (_CACHE_DB_SIG, seq_key, now),
+                )
+            else:
+                _CACHE_CONN.execute(
+                    "INSERT OR REPLACE INTO blast_cache "
+                    "(db_sig, seq_key, has_hit, accession, reviewed, bitscore, evalue, qcov, pident, title, updated_at) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                    (
+                        _CACHE_DB_SIG,
+                        seq_key,
+                        1,
+                        hit.accession,
+                        int(bool(hit.reviewed)),
+                        float(hit.bitscore),
+                        float(hit.evalue),
+                        float(hit.qcov),
+                        float(hit.pident),
+                        hit.title or "",
+                        now,
+                    ),
+                )
+            _CACHE_CONN.commit()
         _diag_inc("blast_cache_store")
     except Exception:
         _diag_inc("blast_cache_error")
@@ -473,264 +482,257 @@ def run_blast_search(query_sequence: str, label: str = "", debug: bool = False) 
     unique_id = str(uuid.uuid4())[:8]
     prefix = f"[BLASTDBG][{label or unique_id}]"
 
-    query_file = f"query_{unique_id}.fasta"
-    output_file = f"blast_results_{unique_id}.txt"
-
     try:
-        if debug:
-            print(
-                f"{prefix} qlen={qlen0} thr: evalue<={max_evalue:g}, "
-                f"qcov>={min_query_coverage:.2f}, pident>={min_pident:.1f}, bitscore>={min_bitscore:.1f}, "
-                f"max_targets={max_targets}"
-            )
+        with tempfile.TemporaryDirectory(prefix="pdb2net-blast-") as temp_dir:
+            query_file = os.path.join(temp_dir, f"query_{unique_id}.fasta")
+            output_file = os.path.join(temp_dir, f"blast_results_{unique_id}.txt")
 
-        with open(query_file, "w", encoding="utf-8") as f:
-            f.write(f">query\n{query_sequence}\n")
-
-        db_prefix = os.path.join(BLAST_DB_PATH, "uniprot_db")
-        if debug and not os.path.exists(db_prefix + ".pin"):
-            print(f"{prefix} WARNING: BLAST DB seems missing: {db_prefix}.pin not found")
-
-        # Preferred coverage signal: qcovs (query coverage per subject, reported by BLAST)
-        # Fallback: compute qcov from qstart/qend span if qcovs is unsupported.
-        outfmt_with_qcovs = "6 qseqid sseqid pident length qstart qend qlen qcovs evalue bitscore stitle"
-        outfmt_span_only = "6 qseqid sseqid pident length qstart qend qlen evalue bitscore stitle"
-
-        def _run_blast(outfmt: str) -> subprocess.CompletedProcess[str]:
-            blast_cmd = [
-                BLAST_EXECUTABLE,
-                "-query", query_file,
-                "-db", db_prefix,
-                "-out", output_file,
-                "-evalue", str(max_evalue),
-                "-max_target_seqs", str(max_targets),
-                "-outfmt", outfmt,
-            ]
-            return subprocess.run(blast_cmd, capture_output=True, text=True)
-
-        use_qcovs = True
-        result = _run_blast(outfmt_with_qcovs)
-        if result.returncode != 0:
-            stderr = (result.stderr or "").lower()
-            if "qcovs" in stderr or "outfmt" in stderr or "unknown" in stderr or "unrecognized" in stderr:
-                use_qcovs = False
-                result = _run_blast(outfmt_span_only)
-
-        if result.returncode != 0:
-            _diag_inc("blast_error")
-            if debug:
-                stderr = (result.stderr or "").strip()
-                print(f"{prefix} BLAST ERROR returncode={result.returncode} stderr={stderr[:400]}")
-            return None
-
-        if not os.path.exists(output_file):
-            _diag_inc("blast_no_output")
-            if debug:
-                print(f"{prefix} No BLAST output file produced.")
-            return None
-
-        seen_any = False
-        seen_pass_evalue = False
-        seen_pass_qcov = False
-        seen_pass_pident = False
-        seen_pass_bitscore = False
-
-        # Best hit per DISTINCT accession:
-        # (reviewed, bitscore, evalue, qcov, pident, accession, title)
-        best_per_accession: Dict[str, Tuple[int, float, float, float, float, str, str]] = {}
-
-        # For debug on why nothing passed thresholds
-        raw_top: List[Tuple[str, str, float, float, float, float, float]] = []  # (dbtag, acc, pident, qcov, evalue, bitscore, qcov_thr)
-
-        with open(output_file, "r", encoding="utf-8") as f:
-            for i, line in enumerate(f):
-                cols = line.rstrip("\n").split("\t")
-                if (use_qcovs and len(cols) < 11) or ((not use_qcovs) and len(cols) < 10):
-                    continue
-
-                sseqid = cols[1].strip()
-                dbtag, accession = _extract_dbtag_and_accession(sseqid)
-
-                try:
-                    pident = float(cols[2])
-                    qstart = int(float(cols[4]))
-                    qend = int(float(cols[5]))
-                    qlen = int(float(cols[6]))
-                    evalue = float(cols[8] if use_qcovs else cols[7])
-                    bitscore = float(cols[9] if use_qcovs else cols[8])
-                    title = cols[10] if use_qcovs else cols[9]
-                except Exception:
-                    continue
-
-                if qlen <= 0:
-                    continue
-
-                if use_qcovs:
-                    try:
-                        qcov = float(cols[7]) / 100.0
-                    except Exception:
-                        qcov = max(0.0, min(1.0, abs(qend - qstart) + 1) / float(qlen))
-                else:
-                    qcov = max(0.0, min(1.0, abs(qend - qstart) + 1) / float(qlen))
-
-                seen_any = True
-                reviewed = 1 if dbtag == "sp" else 0
-
-                if i < 5:
-                    raw_top.append((dbtag, accession, pident, qcov, evalue, bitscore, min_query_coverage))
-
-                if evalue <= max_evalue:
-                    seen_pass_evalue = True
-                if qcov >= min_query_coverage:
-                    seen_pass_qcov = True
-                if pident >= min_pident:
-                    seen_pass_pident = True
-                if bitscore >= min_bitscore:
-                    seen_pass_bitscore = True
-
-                if evalue > max_evalue:
-                    continue
-
-                # qcov slack for clearly strong hits
-                qcov_thr = min_query_coverage
-                if bitscore >= (min_bitscore + strong_bitscore_bonus) and pident >= (min_pident + strong_pident_bonus):
-                    qcov_thr = max(0.0, qcov_thr - qcov_slack)
-
-                if qcov < qcov_thr:
-                    continue
-                if pident < min_pident:
-                    continue
-                if bitscore < min_bitscore:
-                    continue
-
-                prev = best_per_accession.get(accession)
-                cur = (reviewed, bitscore, evalue, qcov, pident, accession, title)
-                if prev is None:
-                    best_per_accession[accession] = cur
-                else:
-                    # Keep the better one (prefer reviewed, higher bitscore, lower evalue, higher qcov/pident)
-                    if cur[:5] > prev[:5]:
-                        best_per_accession[accession] = cur
-
-        if not seen_any:
-            _diag_inc("fail_no_hits")
-            if debug:
-                print(f"{prefix} NO_HITS: BLAST returned no rows.")
-            return None
-
-        if not best_per_accession:
-            # Diagnostics: understand what failed
-            if not seen_pass_evalue:
-                _diag_inc("fail_evalue")
-            elif not seen_pass_qcov:
-                _diag_inc("fail_qcov")
-            elif not seen_pass_pident:
-                _diag_inc("fail_pident")
-            elif not seen_pass_bitscore:
-                _diag_inc("fail_bitscore")
-            else:
-                _diag_inc("fail_thresholds_other")
-
-            if debug:
-                print(f"{prefix} NO_PASS: no accession passed thresholds.")
-                for dbtag, acc, pid, qcov, ev, bs, qthr in raw_top:
-                    print(f"{prefix}   top: {dbtag}|{acc} pid={pid:.1f} qcov={qcov:.2f} ev={ev:.2g} bs={bs:.1f} (qthr={qthr:.2f})")
-            return None
-
-        # Rank hits by (reviewed, bitscore, -evalue, qcov, pident)
-        ranked = sorted(best_per_accession.values(), key=lambda x: (x[0], x[1], -x[2], x[3], x[4]), reverse=True)
-        best = ranked[0]
-
-        best_reviewed, best_bitscore, best_evalue, best_qcov, best_pident, best_acc, best_title = best
-
-        # Compute dynamic bitscore margin
-        dynamic_margin = best_bitscore * margin_fraction_of_best
-        dynamic_margin = max(margin_floor, min(min_bitscore_margin_cap, dynamic_margin))
-
-        # Relax margin slightly if best is reviewed or clearly better in coverage/identity
-        relax = 0.0
-        if best_reviewed == 1:
-            relax += margin_relax
-        # If best is significantly higher in coverage/identity than runner-up, relax a bit
-        if len(ranked) > 1:
-            rb = ranked[1]
-            if (best_qcov - rb[3]) >= 0.10 or (best_pident - rb[4]) >= 10.0:
-                relax += margin_relax
-
-        effective_margin = max(min_margin_after_relax, dynamic_margin - relax)
-
-        # Ambiguity rule: reject if there is another accession close in bitscore
-        ambiguous = False
-        ties = []
-        for cand in ranked[1:]:
-            _, cand_bitscore, _, cand_qcov, cand_pident, cand_acc, cand_title = cand
-            if (best_bitscore - cand_bitscore) <= effective_margin:
-                ambiguous = True
-                ties.append((cand_acc, cand_bitscore, cand_qcov, cand_pident, cand_title))
-            else:
-                break
-
-        # Escape hatch: accept perfect ties for longer queries if both are near-perfect
-        if ambiguous and qlen0 >= allow_perfect_tie_if_qlen_at_least and ties:
-            # Identify top contender among ties (prefer reviewed)
-            contender = ranked[1]
-            cont_reviewed, cont_bitscore, cont_evalue, cont_qcov, cont_pident, cont_acc, cont_title = contender
-
-            if (
-                best_pident >= perfect_min_pident
-                and best_qcov >= perfect_min_qcov
-                and cont_pident >= perfect_min_pident
-                and cont_qcov >= perfect_min_qcov
-            ):
-                # deterministically pick reviewed if different
-                if best_reviewed != cont_reviewed:
-                    chosen = best if best_reviewed > cont_reviewed else contender
-                else:
-                    # otherwise pick best bitscore, then lexicographic accession
-                    if best_bitscore != cont_bitscore:
-                        chosen = best if best_bitscore > cont_bitscore else contender
-                    else:
-                        chosen = best if best_acc <= cont_acc else contender
-
-                best_reviewed, best_bitscore, best_evalue, best_qcov, best_pident, best_acc, best_title = chosen
-                _diag_inc("accepted_perfect_tie")
-                ambiguous = False
-
-        if ambiguous:
-            _diag_inc("fail_ambiguous_margin")
             if debug:
                 print(
-                    f"{prefix} AMBIGUOUS: best={('sp' if best_reviewed else 'tr')}|{best_acc} "
-                    f"bitscore={best_bitscore:.1f} margin={effective_margin:.1f} ties={len(ties)}"
+                    f"{prefix} qlen={qlen0} thr: evalue<={max_evalue:g}, "
+                    f"qcov>={min_query_coverage:.2f}, pident>={min_pident:.1f}, bitscore>={min_bitscore:.1f}, "
+                    f"max_targets={max_targets}"
                 )
-                for acc, bs, qc, pid, tt in ties[:5]:
-                    print(f"{prefix}   tie: {acc} bs={bs:.1f} qcov={qc:.2f} pid={pid:.1f}")
-            return None
 
-        _diag_inc("accepted")
-        return BlastHit(
-            accession=best_acc,
-            reviewed=bool(best_reviewed),
-            bitscore=best_bitscore,
-            evalue=best_evalue,
-            qcov=best_qcov,
-            pident=best_pident,
-            title=best_title,
-        )
+            with open(query_file, "w", encoding="utf-8") as f:
+                f.write(f">query\n{query_sequence}\n")
+
+            db_prefix = os.path.join(BLAST_DB_PATH, "uniprot_db")
+            if debug and not os.path.exists(db_prefix + ".pin"):
+                print(f"{prefix} WARNING: BLAST DB seems missing: {db_prefix}.pin not found")
+
+            # Preferred coverage signal: qcovs (query coverage per subject, reported by BLAST)
+            # Fallback: compute qcov from qstart/qend span if qcovs is unsupported.
+            outfmt_with_qcovs = "6 qseqid sseqid pident length qstart qend qlen qcovs evalue bitscore stitle"
+            outfmt_span_only = "6 qseqid sseqid pident length qstart qend qlen evalue bitscore stitle"
+
+            def _run_blast(outfmt: str) -> subprocess.CompletedProcess[str]:
+                blast_cmd = [
+                    BLAST_EXECUTABLE,
+                    "-query", query_file,
+                    "-db", db_prefix,
+                    "-out", output_file,
+                    "-evalue", str(max_evalue),
+                    "-max_target_seqs", str(max_targets),
+                    "-outfmt", outfmt,
+                ]
+                return subprocess.run(blast_cmd, capture_output=True, text=True)
+
+            use_qcovs = True
+            result = _run_blast(outfmt_with_qcovs)
+            if result.returncode != 0:
+                stderr = (result.stderr or "").lower()
+                if "qcovs" in stderr or "outfmt" in stderr or "unknown" in stderr or "unrecognized" in stderr:
+                    use_qcovs = False
+                    result = _run_blast(outfmt_span_only)
+
+            if result.returncode != 0:
+                _diag_inc("blast_error")
+                if debug:
+                    stderr = (result.stderr or "").strip()
+                    print(f"{prefix} BLAST ERROR returncode={result.returncode} stderr={stderr[:400]}")
+                return None
+
+            if not os.path.exists(output_file):
+                _diag_inc("blast_no_output")
+                if debug:
+                    print(f"{prefix} No BLAST output file produced.")
+                return None
+
+            seen_any = False
+            seen_pass_evalue = False
+            seen_pass_qcov = False
+            seen_pass_pident = False
+            seen_pass_bitscore = False
+
+            # Best hit per DISTINCT accession:
+            # (reviewed, bitscore, evalue, qcov, pident, accession, title)
+            best_per_accession: Dict[str, Tuple[int, float, float, float, float, str, str]] = {}
+
+            # For debug on why nothing passed thresholds
+            raw_top: List[Tuple[str, str, float, float, float, float, float]] = []  # (dbtag, acc, pident, qcov, evalue, bitscore, qcov_thr)
+
+            with open(output_file, "r", encoding="utf-8") as f:
+                for i, line in enumerate(f):
+                    cols = line.rstrip("\n").split("\t")
+                    if (use_qcovs and len(cols) < 11) or ((not use_qcovs) and len(cols) < 10):
+                        continue
+
+                    sseqid = cols[1].strip()
+                    dbtag, accession = _extract_dbtag_and_accession(sseqid)
+
+                    try:
+                        pident = float(cols[2])
+                        qstart = int(float(cols[4]))
+                        qend = int(float(cols[5]))
+                        qlen = int(float(cols[6]))
+                        evalue = float(cols[8] if use_qcovs else cols[7])
+                        bitscore = float(cols[9] if use_qcovs else cols[8])
+                        title = cols[10] if use_qcovs else cols[9]
+                    except Exception:
+                        continue
+
+                    if qlen <= 0:
+                        continue
+
+                    if use_qcovs:
+                        try:
+                            qcov = float(cols[7]) / 100.0
+                        except Exception:
+                            qcov = max(0.0, min(1.0, abs(qend - qstart) + 1) / float(qlen))
+                    else:
+                        qcov = max(0.0, min(1.0, abs(qend - qstart) + 1) / float(qlen))
+
+                    seen_any = True
+                    reviewed = 1 if dbtag == "sp" else 0
+
+                    if i < 5:
+                        raw_top.append((dbtag, accession, pident, qcov, evalue, bitscore, min_query_coverage))
+
+                    if evalue <= max_evalue:
+                        seen_pass_evalue = True
+                    if qcov >= min_query_coverage:
+                        seen_pass_qcov = True
+                    if pident >= min_pident:
+                        seen_pass_pident = True
+                    if bitscore >= min_bitscore:
+                        seen_pass_bitscore = True
+
+                    if evalue > max_evalue:
+                        continue
+
+                    # qcov slack for clearly strong hits
+                    qcov_thr = min_query_coverage
+                    if bitscore >= (min_bitscore + strong_bitscore_bonus) and pident >= (min_pident + strong_pident_bonus):
+                        qcov_thr = max(0.0, qcov_thr - qcov_slack)
+
+                    if qcov < qcov_thr:
+                        continue
+                    if pident < min_pident:
+                        continue
+                    if bitscore < min_bitscore:
+                        continue
+
+                    prev = best_per_accession.get(accession)
+                    cur = (reviewed, bitscore, evalue, qcov, pident, accession, title)
+                    if prev is None:
+                        best_per_accession[accession] = cur
+                    else:
+                        # Keep the better one (prefer reviewed, higher bitscore, lower evalue, higher qcov/pident)
+                        if cur[:5] > prev[:5]:
+                            best_per_accession[accession] = cur
+
+            if not seen_any:
+                _diag_inc("fail_no_hits")
+                if debug:
+                    print(f"{prefix} NO_HITS: BLAST returned no rows.")
+                return None
+
+            if not best_per_accession:
+                # Diagnostics: understand what failed
+                if not seen_pass_evalue:
+                    _diag_inc("fail_evalue")
+                elif not seen_pass_qcov:
+                    _diag_inc("fail_qcov")
+                elif not seen_pass_pident:
+                    _diag_inc("fail_pident")
+                elif not seen_pass_bitscore:
+                    _diag_inc("fail_bitscore")
+                else:
+                    _diag_inc("fail_thresholds_other")
+
+                if debug:
+                    print(f"{prefix} NO_PASS: no accession passed thresholds.")
+                    for dbtag, acc, pid, qcov, ev, bs, qthr in raw_top:
+                        print(f"{prefix}   top: {dbtag}|{acc} pid={pid:.1f} qcov={qcov:.2f} ev={ev:.2g} bs={bs:.1f} (qthr={qthr:.2f})")
+                return None
+
+            # Rank hits by (reviewed, bitscore, -evalue, qcov, pident)
+            ranked = sorted(best_per_accession.values(), key=lambda x: (x[0], x[1], -x[2], x[3], x[4]), reverse=True)
+            best = ranked[0]
+
+            best_reviewed, best_bitscore, best_evalue, best_qcov, best_pident, best_acc, best_title = best
+
+            # Compute dynamic bitscore margin
+            dynamic_margin = best_bitscore * margin_fraction_of_best
+            dynamic_margin = max(margin_floor, min(min_bitscore_margin_cap, dynamic_margin))
+
+            # Relax margin slightly if best is reviewed or clearly better in coverage/identity
+            relax = 0.0
+            if best_reviewed == 1:
+                relax += margin_relax
+            # If best is significantly higher in coverage/identity than runner-up, relax a bit
+            if len(ranked) > 1:
+                rb = ranked[1]
+                if (best_qcov - rb[3]) >= 0.10 or (best_pident - rb[4]) >= 10.0:
+                    relax += margin_relax
+
+            effective_margin = max(min_margin_after_relax, dynamic_margin - relax)
+
+            # Ambiguity rule: reject if there is another accession close in bitscore
+            ambiguous = False
+            ties = []
+            for cand in ranked[1:]:
+                _, cand_bitscore, _, cand_qcov, cand_pident, cand_acc, cand_title = cand
+                if (best_bitscore - cand_bitscore) <= effective_margin:
+                    ambiguous = True
+                    ties.append((cand_acc, cand_bitscore, cand_qcov, cand_pident, cand_title))
+                else:
+                    break
+
+            # Escape hatch: accept perfect ties for longer queries if both are near-perfect
+            if ambiguous and qlen0 >= allow_perfect_tie_if_qlen_at_least and ties:
+                # Identify top contender among ties (prefer reviewed)
+                contender = ranked[1]
+                cont_reviewed, cont_bitscore, cont_evalue, cont_qcov, cont_pident, cont_acc, cont_title = contender
+
+                if (
+                    best_pident >= perfect_min_pident
+                    and best_qcov >= perfect_min_qcov
+                    and cont_pident >= perfect_min_pident
+                    and cont_qcov >= perfect_min_qcov
+                ):
+                    # deterministically pick reviewed if different
+                    if best_reviewed != cont_reviewed:
+                        chosen = best if best_reviewed > cont_reviewed else contender
+                    else:
+                        # otherwise pick best bitscore, then lexicographic accession
+                        if best_bitscore != cont_bitscore:
+                            chosen = best if best_bitscore > cont_bitscore else contender
+                        else:
+                            chosen = best if best_acc <= cont_acc else contender
+
+                    best_reviewed, best_bitscore, best_evalue, best_qcov, best_pident, best_acc, best_title = chosen
+                    _diag_inc("accepted_perfect_tie")
+                    ambiguous = False
+
+            if ambiguous:
+                _diag_inc("fail_ambiguous_margin")
+                if debug:
+                    print(
+                        f"{prefix} AMBIGUOUS: best={('sp' if best_reviewed else 'tr')}|{best_acc} "
+                        f"bitscore={best_bitscore:.1f} margin={effective_margin:.1f} ties={len(ties)}"
+                    )
+                    for acc, bs, qc, pid, tt in ties[:5]:
+                        print(f"{prefix}   tie: {acc} bs={bs:.1f} qcov={qc:.2f} pid={pid:.1f}")
+                return None
+
+            _diag_inc("accepted")
+            return BlastHit(
+                accession=best_acc,
+                reviewed=bool(best_reviewed),
+                bitscore=best_bitscore,
+                evalue=best_evalue,
+                qcov=best_qcov,
+                pident=best_pident,
+                title=best_title,
+            )
 
     except Exception as e:
         _diag_inc("blast_exception")
         if debug:
             print(f"{prefix} EXCEPTION: {e}")
         return None
-
-    finally:
-        for fp in (query_file, output_file):
-            if os.path.exists(fp):
-                try:
-                    os.remove(fp)
-                except Exception:
-                    pass
 
 
 def classify_molecule_type(chain_data: Dict[str, Any], label: str = "", debug: bool = False) -> str:

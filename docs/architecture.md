@@ -17,6 +17,7 @@ PDB2Net is a batch pipeline for turning PDB/mmCIF structure files into protein a
 
 - `pdb2net/config_loader.py`: layered configuration, path expansion, environment overrides, and headless defaults.
 - `pdb2net/file_parser.py`: valid input detection, PDB ID extraction, and Gemmi structure parsing.
+- `pdb2net/reference_data.py`: cached loaders for PDB FASTA, SIFTS, and UniProt reference files.
 - `pdb2net/data_processor.py`: conversion from parsed structures to chain and atom dictionaries used by later stages.
 - `pdb2net/unknown_molecule_uniprot.py`: SIFTS, PDB FASTA, and UniProt FASTA annotation logic for known and unknown molecules.
 - `pdb2net/uniprot_matcher.py`: BLAST database creation, BLAST lookup, diagnostics, and SQLite-backed BLAST result caching.

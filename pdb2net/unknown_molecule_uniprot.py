@@ -16,14 +16,15 @@ Notes
 
 from __future__ import annotations
 
-import csv
-import os
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
-from Bio import SeqIO
-
 from .config_loader import config
+from .reference_data import (
+    load_pdb_fasta as _load_pdb_fasta,
+    load_sifts_mapping as _load_sifts_mapping,
+    load_uniprot_names,
+)
 
 # --- Paths from configuration ---
 PDB_FASTA_PATH: str = config["pdb_fasta_path"]
@@ -45,17 +46,7 @@ def load_sifts_mapping(tsv_path: str) -> None:
     if _sifts_loaded:
         return
 
-    with open(tsv_path, "r", encoding="utf-8", errors="ignore") as f:
-        reader = csv.reader(f, delimiter="\t")
-        for row in reader:
-            if not row or len(row) < 3:
-                continue
-            pdb_id = row[0].strip().lower()
-            chain = row[1].strip().upper()
-            uniprot_id = row[2].strip()
-            key = f"{pdb_id}_{chain}"
-            pdb_to_uniprot[key] = uniprot_id
-
+    pdb_to_uniprot = dict(_load_sifts_mapping(tsv_path))
     _sifts_loaded = True
 
 
@@ -65,19 +56,7 @@ def load_uniprot_fasta(fasta_path: str) -> None:
     if _uniprot_loaded:
         return
 
-    for record in SeqIO.parse(fasta_path, "fasta"):
-        # FASTA record.id often like: sp|P12345|...
-        parts = record.id.split("|")
-        if len(parts) >= 2:
-            uniprot_id = parts[1]
-        else:
-            # Fallback: if no pipe fields, use the whole id
-            uniprot_id = record.id
-
-        # Description: take everything after the first space as "name"
-        protein_name = record.description.split(" ", 1)[1] if " " in record.description else record.description
-        uniprot_dict[uniprot_id] = protein_name
-
+    uniprot_dict = dict(load_uniprot_names(fasta_path))
     _uniprot_loaded = True
 
 
@@ -92,36 +71,7 @@ def load_pdb_fasta(pdb_fasta_path: str) -> Dict[str, Dict[str, str]]:
           ...
         }
     """
-    pdb_sequences: Dict[str, Dict[str, str]] = {}
-    with open(pdb_fasta_path, "r", encoding="utf-8", errors="ignore") as f:
-        current_key: Optional[str] = None
-        current_seq: List[str] = []
-        for line in f:
-            if line.startswith(">"):
-                # Flush previous record
-                if current_key and current_seq:
-                    pdb_sequences[current_key]["sequence"] = "".join(current_seq)
-
-                parts = line.split()
-                fasta_header = parts[0][1:]  # strip '>'
-                if "_" in fasta_header:
-                    pdb_id, chain_id = fasta_header.split("_", 1)
-                    formatted_key = f"{pdb_id.lower()}_{chain_id.upper()}"
-                    pdb_sequences[formatted_key] = {"info": " ".join(parts[1:]), "sequence": ""}
-                    current_key = formatted_key
-                    current_seq = []
-                else:
-                    current_key = None
-                    current_seq = []
-            else:
-                if current_key is not None:
-                    current_seq.append(line.strip())
-
-        # Flush last record
-        if current_key and current_seq:
-            pdb_sequences[current_key]["sequence"] = "".join(current_seq)
-
-    return pdb_sequences
+    return _load_pdb_fasta(pdb_fasta_path)
 
 
 def determine_from_fasta(search_key: str, pdb_fasta: Dict[str, Dict[str, str]]) -> Tuple[str, str, Optional[str]]:

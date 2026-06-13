@@ -17,7 +17,6 @@ Notes
 
 from __future__ import annotations
 
-import csv
 import os
 import re
 from typing import Any, Dict, List, Optional
@@ -25,6 +24,7 @@ from typing import Any, Dict, List, Optional
 import gemmi
 
 from .config_loader import config
+from .reference_data import load_valid_pdb_ids as _load_valid_pdb_ids
 
 # --- Allowed file extensions for structural inputs ---
 ALLOWED_EXTENSIONS = {".pdb", ".cif", ".mmcif"}
@@ -41,22 +41,11 @@ def load_valid_pdb_ids() -> set[str]:
     set[str]
         Uppercase PDB IDs observed in the FASTA header lines.
     """
-    valid_pdb_ids: set[str] = set()
     try:
-        with open(PDB_FASTA_PATH, "r", encoding="utf-8") as f:
-            for line in f:
-                if line.startswith(">"):
-                    # Example header: >1abc_A ...
-                    # Take token after '>' up to first space, then split by '_'
-                    # and keep the first token as the 4-char PDB id.
-                    token = line.split()[0][1:]
-                    parts = token.split("_")
-                    if parts and len(parts[0]) == 4:
-                        valid_pdb_ids.add(parts[0].upper())
+        return _load_valid_pdb_ids(PDB_FASTA_PATH)
     except Exception as e:
         print(f"Error loading pdb_seqres.txt: {e}")
-
-    return valid_pdb_ids
+        return set()
 
 
 # Load PDB IDs once at import time to avoid repeated disk I/O.

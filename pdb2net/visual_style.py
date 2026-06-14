@@ -79,7 +79,7 @@ def is_linked_identity_network(network_title: str) -> bool:
 
 
 def is_combined_protein_network(network_title: str) -> bool:
-    return network_title == "Combined_Protein_Network"
+    return str(network_title).startswith("Combined_Protein_Network")
 
 
 def get_network_visual_profile(network_title: str) -> dict:

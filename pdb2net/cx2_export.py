@@ -5,8 +5,37 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 from .visual_style import VISUAL_TUNING, get_network_visual_profile
+
+
+def _cx_attr_value(value: Any) -> str | int | float | bool:
+    """Convert dataframe values to CX2-friendly scalar attributes."""
+    if value is None:
+        return ""
+    try:
+        if value != value:
+            return ""
+    except Exception:
+        pass
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    if isinstance(value, float):
+        return value
+    return str(value)
+
+
+def _cx_attr_type(value: Any) -> str:
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, int) and not isinstance(value, bool):
+        return "integer"
+    if isinstance(value, float):
+        return "double"
+    return "string"
 
 
 def export_cx2_headless(
@@ -43,19 +72,25 @@ def export_cx2_headless(
             else profile["node_border_transparency_headless"]
         )
 
+        node_values = {
+            "name": str(row.get("name", nid)),
+            "tooltip": str(row.get("tooltip", "")),
+            "color_group": str(row.get("color_group", "Unknown")),
+            "uniprot_border_color": str(row.get("uniprot_border_color", border_color)),
+            "linked_identity_border_color": border_color,
+            "linked_identity_border_transparency": border_transparency,
+        }
+        for column in nodes_df.columns:
+            if column == "id" or column in node_values:
+                continue
+            node_values[column] = _cx_attr_value(row.get(column))
+
         nodes_aspect.append(
             {
                 "id": raw_node_id,
                 "x": float(pos["x"]),
                 "y": float(pos["y"]),
-                "v": {
-                    "name": str(row.get("name", nid)),
-                    "tooltip": str(row.get("tooltip", "")),
-                    "color_group": str(row.get("color_group", "Unknown")),
-                    "uniprot_border_color": str(row.get("uniprot_border_color", border_color)),
-                    "linked_identity_border_color": border_color,
-                    "linked_identity_border_transparency": border_transparency,
-                },
+                "v": node_values,
             }
         )
         cartesian_layout_aspect.append(
@@ -72,15 +107,21 @@ def export_cx2_headless(
         if source is None or target is None or source == target:
             continue
         edge_id = index + 1
+        edge_values = {
+            "interaction": str(row.get("interaction", "interacts_with")),
+            "all_atoms_count": int(row.get("all_atoms_count", 1)),
+        }
+        for column in edges_df_for_export.columns:
+            if column in {"source", "target"} or column in edge_values:
+                continue
+            edge_values[column] = _cx_attr_value(row.get(column))
+
         edges_aspect.append(
             {
                 "id": edge_id,
                 "s": source,
                 "t": target,
-                "v": {
-                    "interaction": str(row.get("interaction", "interacts_with")),
-                    "all_atoms_count": int(row.get("all_atoms_count", 1)),
-                },
+                "v": edge_values,
             }
         )
         for attr_name, attr_value in edges_aspect[-1]["v"].items():
@@ -188,22 +229,46 @@ def export_cx2_headless(
             },
         }
 
+    node_attr_types = {
+        "name": "string",
+        "tooltip": "string",
+        "color_group": "string",
+        "uniprot_border_color": "string",
+        "linked_identity_border_color": "string",
+        "linked_identity_border_transparency": "integer",
+    }
+    for column in nodes_df.columns:
+        if column == "id" or column in node_attr_types:
+            continue
+        sample = ""
+        for value in nodes_df[column].tolist():
+            converted = _cx_attr_value(value)
+            if converted != "":
+                sample = converted
+                break
+        node_attr_types[column] = _cx_attr_type(sample)
+
+    edge_attr_types = {
+        "interaction": "string",
+        "all_atoms_count": "integer",
+    }
+    for column in edges_df_for_export.columns:
+        if column in {"source", "target"} or column in edge_attr_types:
+            continue
+        sample = ""
+        for value in edges_df_for_export[column].tolist():
+            converted = _cx_attr_value(value)
+            if converted != "":
+                sample = converted
+                break
+        edge_attr_types[column] = _cx_attr_type(sample)
+
     attr_decls = {
         "attributeDeclarations": [
             {
                 "networkAttributes": {"name": {"d": "string"}},
-                "nodes": {
-                    "name": {"d": "string"},
-                    "tooltip": {"d": "string"},
-                    "color_group": {"d": "string"},
-                    "uniprot_border_color": {"d": "string"},
-                    "linked_identity_border_color": {"d": "string"},
-                    "linked_identity_border_transparency": {"d": "integer"},
-                },
-                "edges": {
-                    "interaction": {"d": "string"},
-                    "all_atoms_count": {"d": "integer"},
-                },
+                "nodes": {name: {"d": attr_type} for name, attr_type in node_attr_types.items()},
+                "edges": {name: {"d": attr_type} for name, attr_type in edge_attr_types.items()},
             }
         ]
     }

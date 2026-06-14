@@ -3,8 +3,10 @@ from pathlib import Path
 
 import pandas as pd
 
+from pdb2net.cytoscape import generate_nodes_from_atom_data
 from pdb2net.cx2_export import export_cx2_headless
 from pdb2net.detailed_results_exporter import DETAILED_INTERACTION_COLUMNS, export_detailed_interactions
+from pdb2net.visual_style import get_network_visual_profile
 
 
 def _aspect_map(cx: list[dict]) -> dict[str, list]:
@@ -67,7 +69,15 @@ def test_headless_cx2_contains_core_aspects_and_attributes(tmp_path: Path) -> No
     nodes_df = pd.DataFrame(
         [
             {"id": "A", "name": "A", "tooltip": "node A", "color_group": "Protein"},
-            {"id": "B", "name": "B", "tooltip": "node B", "color_group": "Protein"},
+            {
+                "id": "B",
+                "name": "B",
+                "tooltip": "node B",
+                "color_group": "Protein",
+                "pdb_count": 2,
+                "source_chains": "PDB1:B, PDB2:B",
+                "node_kind": "protein",
+            },
         ]
     )
     edges_df = pd.DataFrame(
@@ -108,5 +118,40 @@ def test_headless_cx2_contains_core_aspects_and_attributes(tmp_path: Path) -> No
     assert len(aspects["edges"]) == 1
     node_attr_names = {record["n"] for record in aspects["nodeAttributes"]}
     edge_attr_names = {record["n"] for record in aspects["edgeAttributes"]}
-    assert {"name", "tooltip", "color_group"}.issubset(node_attr_names)
+    assert {"name", "tooltip", "color_group", "pdb_count", "source_chains", "node_kind"}.issubset(node_attr_names)
     assert {"interaction", "all_atoms_count"}.issubset(edge_attr_names)
+
+
+def test_component_combined_protein_titles_use_combined_protein_profile() -> None:
+    profile = get_network_visual_profile("Combined_Protein_Network_P0DTC2_Q9BYF1")
+
+    assert profile["is_combined_protein_network"] is True
+    assert profile["is_combined_network"] is True
+
+
+def test_chain_nodes_include_filterable_source_metadata() -> None:
+    nodes = generate_nodes_from_atom_data(
+        [
+            {
+                "unique_chain_id": "6M17:A",
+                "chain_id": "A",
+                "_parent_pdb_id": "6M17",
+                "_parent_file_label": "6m17.cif",
+                "molecule_type": "Protein",
+                "molecule_name": "Spike protein",
+                "uniprot_id": "P0DTC2",
+                "residues": [{"residue_name": "ALA"}, {"residue_name": "DA"}],
+            }
+        ],
+        pdb_id="6M17",
+    )
+
+    node = nodes[0]
+    assert node["node_kind"] == "chain"
+    assert node["pdb_id"] == "6M17"
+    assert node["chain_id"] == "A"
+    assert node["source_file"] == "6m17.cif"
+    assert node["molecule_type"] == "Protein"
+    assert node["uniprot_id"] == "P0DTC2"
+    assert node["aa_len"] == 1
+    assert node["nt_len"] == 1

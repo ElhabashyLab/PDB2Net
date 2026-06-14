@@ -157,6 +157,7 @@ def _export_chain_networks(
         if not structure:
             continue
 
+        _annotate_chain_parent_metadata(structure)
         nodes_data = generate_nodes_from_atom_data(structure["atom_data"], pdb_id)
         network_title = f"Chain_Interaction_Network_{pdb_id}"
         create_cytoscape_network(
@@ -169,6 +170,7 @@ def _export_chain_networks(
     for structure in combined_data:
         pdb_id = structure["pdb_id"]
         if pdb_id not in results_by_pdb:
+            _annotate_chain_parent_metadata(structure)
             nodes_data = generate_nodes_from_atom_data(structure["atom_data"], pdb_id)
             network_title = f"Chain_Interaction_Network_{pdb_id}"
             create_cytoscape_network(
@@ -231,6 +233,18 @@ def _get_border_color_for_uniprot(uniprot_id: Optional[str]) -> str:
     return f"#{hash_val & 0xFFFFFF:06x}"
 
 
+def _annotate_chain_parent_metadata(structure: Dict[str, Any]) -> None:
+    """Attach source metadata used by chain-level Cytoscape node tables."""
+    pdb_id = structure["pdb_id"]
+    file_path = structure.get("file_path", "")
+    file_label = os.path.basename(file_path) if file_path else pdb_id
+
+    for chain in structure["atom_data"]:
+        chain["_parent_pdb_id"] = pdb_id
+        chain["_parent_file_path"] = file_path
+        chain["_parent_file_label"] = file_label
+
+
 def _create_linked_identity_network(
     results: List[Dict[str, Any]],
     combined_data: List[Dict[str, Any]],
@@ -243,15 +257,9 @@ def _create_linked_identity_network(
     uniprot_groups: Dict[str, List[Dict[str, Any]]] = {}
 
     for structure in combined_data:
-        pdb_id = structure["pdb_id"]
-        file_path = structure.get("file_path", "")
-        file_label = os.path.basename(file_path) if file_path else pdb_id
+        _annotate_chain_parent_metadata(structure)
 
         for chain in structure["atom_data"]:
-            chain["_parent_pdb_id"] = pdb_id
-            chain["_parent_file_path"] = file_path
-            chain["_parent_file_label"] = file_label
-
             up_id = chain.get("uniprot_id")
             chain["uniprot_border_color"] = _get_border_color_for_uniprot(up_id)
             all_chains_flat.append(chain)

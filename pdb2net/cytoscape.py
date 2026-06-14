@@ -17,6 +17,7 @@ import time
 import subprocess
 import zlib
 import tempfile
+from pathlib import Path
 
 os.environ.setdefault("MPLCONFIGDIR", os.path.join(tempfile.gettempdir(), "pdb2net-matplotlib"))
 
@@ -227,8 +228,12 @@ def create_cytoscape_network(
         nodes_df = pd.DataFrame(nodes_data).copy()
         if "name" not in nodes_df.columns:
             nodes_df["name"] = nodes_df["id"]
+        else:
+            nodes_df["name"] = nodes_df["name"].where(nodes_df["name"].notna(), nodes_df["id"])
         if "tooltip" not in nodes_df.columns:
             nodes_df["tooltip"] = nodes_df.get("molecule_name", nodes_df["name"])
+        else:
+            nodes_df["tooltip"] = nodes_df["tooltip"].where(nodes_df["tooltip"].notna(), nodes_df["name"])
     else:
         nodes_df = pd.DataFrame({"id": list(unique_nodes)})
         nodes_df["name"] = nodes_df["id"]
@@ -416,10 +421,20 @@ def generate_nodes_from_atom_data(atom_data, pdb_id=None):
     nodes = []
     for chain in atom_data:
         uid = chain.get("unique_chain_id") or chain.get("id")
+        uid_pdb_id, uid_chain_id = ("", "")
+        if uid and ":" in str(uid):
+            uid_pdb_id, uid_chain_id = str(uid).split(":", 1)
         mol_type = (chain.get("molecule_type") or "Unknown").strip()
         mol_name_full = chain.get("molecule_name") or "Unknown"
         up_id = chain.get("uniprot_id")
         aa_len, nt_len = count_lengths(chain.get("residues"))
+        node_pdb_id = str(pdb_id or chain.get("_parent_pdb_id") or uid_pdb_id or "")
+        node_chain_id = str(chain.get("chain_id") or uid_chain_id or "")
+        source_file = str(
+            chain.get("_parent_file_label")
+            or Path(str(chain.get("_parent_file_path") or "")).name
+            or ""
+        )
 
         details = [str(mol_name_full)]
         details.append(f"Type: {mol_type}")
@@ -440,6 +455,14 @@ def generate_nodes_from_atom_data(atom_data, pdb_id=None):
                 "tooltip": tooltip,
                 "color_group": mol_type or "Unknown",
                 "molecule_name": mol_name_full,
+                "pdb_id": node_pdb_id,
+                "chain_id": node_chain_id,
+                "source_file": source_file,
+                "molecule_type": mol_type or "Unknown",
+                "uniprot_id": up_id or "",
+                "aa_len": aa_len,
+                "nt_len": nt_len,
+                "node_kind": "chain",
             }
         )
 

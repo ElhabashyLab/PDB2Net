@@ -24,6 +24,8 @@ Notes
 
 from __future__ import annotations
 
+import hashlib
+
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from .cytoscape import create_cytoscape_network
@@ -62,6 +64,7 @@ def create_protein_network(
     # --- Collect chain/protein metadata ---
     chain_to_uniprot: Dict[str, str] = {}
     uniprot_to_pdb_ids: Dict[str, Set[str]] = {}
+    uniprot_to_file_labels: Dict[str, Set[str]] = {}
     uniprot_to_name: Dict[str, str] = {}
     pdb_to_uniprots: Dict[str, Set[str]] = {}
     chain_info: Dict[str, Dict[str, Any]] = {}
@@ -69,6 +72,8 @@ def create_protein_network(
 
     for structure in combined_data:
         pdb_id = structure["pdb_id"]
+        file_path = str(structure.get("file_path") or "")
+        file_label = file_path.rsplit("/", 1)[-1] if file_path else pdb_id
         for chain in structure["atom_data"]:
             chain_id = chain["chain_id"]
             uid = f"{pdb_id}:{chain_id}"
@@ -80,12 +85,14 @@ def create_protein_network(
                 "nt_len": nt_len,
                 "pdb_id": pdb_id,
                 "chain_id": chain_id,
+                "file_label": file_label,
             }
             up = chain.get("uniprot_id")
             if up:
                 chain_to_uniprot[uid] = up
                 uniprot_to_name[up] = chain.get("molecule_name", up)
                 uniprot_to_pdb_ids.setdefault(up, set()).add(pdb_id)
+                uniprot_to_file_labels.setdefault(up, set()).add(file_label)
                 pdb_to_uniprots.setdefault(pdb_id, set()).add(up)
                 uniprot_pdb_to_chains.setdefault((up, pdb_id), set()).add(chain_id)
 
@@ -113,9 +120,13 @@ def create_protein_network(
         else:
             lines.append(f"PDBs: {len(pdbs)}")
             if pdbs:
-                sample = ", ".join(pdbs[:5])
-                more = "" if len(pdbs) <= 5 else f" (+{len(pdbs) - 5} more)"
-                lines.append(f"Examples: {sample}{more}")
+                lines.append(f"PDB IDs: {', '.join(pdbs)}")
+            source_chains = source_chains_for_uniprot(up_id, pdb_scope=None)
+            if source_chains:
+                lines.append(f"Source chains: {', '.join(source_chains)}")
+            source_files = sorted(uniprot_to_file_labels.get(up_id, []))
+            if source_files:
+                lines.append(f"Source files: {', '.join(source_files)}")
 
         return "\n".join(lines)
 
@@ -139,7 +150,6 @@ def create_protein_network(
 
     # --- Aggregate edges ---
     pp_edges_by_pdb: Dict[str, Dict[Tuple[str, str], int]] = {}
-    pp_edges_combined: Dict[Tuple[str, str], int] = {}
 
     na_types = {"DNA", "RNA", "DNA/RNA", "Nucleic Acid"}
     na_edges_by_pdb: Dict[str, Dict[Tuple[str, str], int]] = {}
@@ -163,7 +173,6 @@ def create_protein_network(
 
         if up_a and up_b and up_a != up_b:
             key = tuple(sorted((up_a, up_b)))
-            pp_edges_combined[key] = pp_edges_combined.get(key, 0) + cnt
             pp_edges_by_pdb.setdefault(pdb_id, {})
             pp_edges_by_pdb[pdb_id][key] = pp_edges_by_pdb[pdb_id].get(key, 0) + cnt
 
@@ -180,8 +189,17 @@ def create_protein_network(
             if na_uid not in na_nodes_by_pdb[pdb_id]:
                 na_nodes_by_pdb[pdb_id][na_uid] = {
                     "id": na_uid,
+                    "name": na_uid,
                     "color_group": na_type,
+                    "pdb_id": chain_info.get(na_uid, {}).get("pdb_id", ""),
+                    "chain_id": chain_info.get(na_uid, {}).get("chain_id", ""),
+                    "source_file": chain_info.get(na_uid, {}).get("file_label", ""),
+                    "molecule_type": chain_info.get(na_uid, {}).get("molecule_type", "Unknown"),
                     "molecule_name": chain_info.get(na_uid, {}).get("molecule_name", "Unknown"),
+                    "aa_len": chain_info.get(na_uid, {}).get("aa_len", 0),
+                    "nt_len": chain_info.get(na_uid, {}).get("nt_len", 0),
+                    "uniprot_id": "",
+                    "node_kind": "nucleic_acid",
                     "tooltip": na_tooltip(na_uid),
                 }
             na_edges_by_pdb.setdefault(pdb_id, {})
@@ -196,13 +214,38 @@ def create_protein_network(
         nodes: List[Dict[str, Any]] = []
         for up in sorted(uniprot_ids):
             cg = "Protein" if force_protein_color else get_color_group_for_combined(up)
+            pdbs = sorted(uniprot_to_pdb_ids.get(up, []))
+            source_chains = source_chains_for_uniprot(up, pdb_scope=pdb_scope)
+            source_files = sorted(uniprot_to_file_labels.get(up, []))
+            display_name = up
+            if pdb_scope is None and len(pdbs) > 1:
+                display_name = f"{up}\n{len(pdbs)} PDBs"
             nodes.append({
                 "id": up,
+                "name": display_name,
                 "color_group": cg,
+                "uniprot_id": up,
+                "node_kind": "protein",
+                "pdb_count": len(pdbs),
+                "pdb_ids": ", ".join(pdbs),
+                "source_chains": ", ".join(source_chains),
+                "source_files": ", ".join(source_files),
                 "molecule_name": uniprot_to_name.get(up, up),
                 "tooltip": protein_tooltip(up, pdb_scope=pdb_scope),
             })
         return nodes
+
+    def source_chains_for_uniprot(up_id: str, pdb_scope: Optional[str]) -> List[str]:
+        if pdb_scope:
+            pdbs = [pdb_scope]
+        else:
+            pdbs = sorted(uniprot_to_pdb_ids.get(up_id, []))
+
+        source_chains = []
+        for pdb_id in pdbs:
+            for chain_id in sorted(uniprot_pdb_to_chains.get((up_id, pdb_id), [])):
+                source_chains.append(f"{pdb_id}:{chain_id}")
+        return source_chains
 
     # --- Per-PDB networks: proteins in blue + NA neighbors ---
     if make_per_pdb:
@@ -234,11 +277,129 @@ def create_protein_network(
             # NEW: protein per-PDB folder
             create_cytoscape_network([], f"Protein_Network_{pdb_id}", per_pdb_out, nodes_data=nodes)
 
-    # --- Combined protein network ---
+    def sanitize_filename_part(text: str) -> str:
+        allowed = []
+        for char in str(text):
+            if char.isalnum() or char in {"-", "_"}:
+                allowed.append(char)
+            else:
+                allowed.append("_")
+        sanitized = "".join(allowed).strip("_")
+        return sanitized or "Unknown"
+
+    def make_combined_component_title(component_uniprots: Set[str]) -> str:
+        if not component_uniprots:
+            return "Combined_Protein_Network_Unknown"
+
+        sanitized_ids = [sanitize_filename_part(uniprot_id) for uniprot_id in sorted(component_uniprots)]
+        preview = "_".join(sanitized_ids[:5])
+        if len(sanitized_ids) > 5:
+            digest_source = "|".join(sanitized_ids).encode("utf-8")
+            digest = hashlib.md5(digest_source).hexdigest()[:8]
+            return f"Combined_Protein_Network_{preview}__{digest}"
+        return f"Combined_Protein_Network_{preview}"
+
+    def find_interlinked_chain_components() -> List[Set[str]]:
+        """Return chain components connected by interactions plus cross-PDB UniProt identity."""
+        identity_edges: List[Tuple[str, str]] = []
+        for up_id, pdb_ids in uniprot_to_pdb_ids.items():
+            if len(pdb_ids) < 2:
+                continue
+
+            chains = []
+            for pdb_id in pdb_ids:
+                for chain_id in uniprot_pdb_to_chains.get((up_id, pdb_id), set()):
+                    uid = f"{pdb_id}:{chain_id}"
+                    if uid in chain_info:
+                        chains.append(uid)
+
+            chains = sorted(chains)
+            for index in range(len(chains) - 1):
+                left = chains[index]
+                right = chains[index + 1]
+                if chain_info[left].get("pdb_id") != chain_info[right].get("pdb_id"):
+                    identity_edges.append((left, right))
+
+        if not identity_edges:
+            return []
+
+        adjacency: Dict[str, Set[str]] = {}
+
+        def add_edge(left: str, right: str) -> None:
+            adjacency.setdefault(left, set()).add(right)
+            adjacency.setdefault(right, set()).add(left)
+
+        for entry in results:
+            a, b = entry["chain_a"], entry["chain_b"]
+            if a in chain_info and b in chain_info:
+                add_edge(a, b)
+        for left, right in identity_edges:
+            add_edge(left, right)
+
+        identity_nodes = {node for edge in identity_edges for node in edge}
+        visited: Set[str] = set()
+        components: List[Set[str]] = []
+        for start_node in sorted(identity_nodes):
+            if start_node in visited:
+                continue
+
+            stack = [start_node]
+            component: Set[str] = set()
+            while stack:
+                node = stack.pop()
+                if node in visited:
+                    continue
+
+                visited.add(node)
+                component.add(node)
+                for neighbor in adjacency.get(node, set()):
+                    if neighbor not in visited:
+                        stack.append(neighbor)
+
+            if component:
+                components.append(component)
+
+        return components
+
+    # --- Combined protein networks: same interlinked components as combined chain networks ---
     if make_combined:
-        combined_edges = [{"chain_a": up1, "chain_b": up2, "all_atoms_count": w}
-                          for (up1, up2), w in pp_edges_combined.items()]
-        all_uniprots = set(uniprot_to_name.keys())
-        nodes = nodes_from_uniprots(all_uniprots, force_protein_color=False, pdb_scope=None)
-        # NEW: combined folder
-        create_cytoscape_network(combined_edges, "Combined_Protein_Network", combined_out, nodes_data=nodes)
+        component_node_sets = find_interlinked_chain_components()
+
+        for component_nodes in component_node_sets:
+            component_uniprots = {
+                chain_to_uniprot[node]
+                for node in component_nodes
+                if node in chain_to_uniprot
+            }
+            if not component_uniprots:
+                continue
+
+            component_edges_by_pair: Dict[Tuple[str, str], int] = {}
+            for entry in results:
+                a, b = entry["chain_a"], entry["chain_b"]
+                if a not in component_nodes or b not in component_nodes:
+                    continue
+
+                cnt = entry.get("all_atoms_count", 0)
+                if cnt <= 0:
+                    continue
+
+                up_a = chain_to_uniprot.get(a)
+                up_b = chain_to_uniprot.get(b)
+                if not up_a or not up_b or up_a == up_b:
+                    continue
+
+                key = tuple(sorted((up_a, up_b)))
+                component_edges_by_pair[key] = component_edges_by_pair.get(key, 0) + cnt
+
+            combined_edges = [
+                {"chain_a": up1, "chain_b": up2, "all_atoms_count": weight}
+                for (up1, up2), weight in sorted(component_edges_by_pair.items())
+            ]
+            nodes = nodes_from_uniprots(component_uniprots, force_protein_color=False, pdb_scope=None)
+            create_cytoscape_network(
+                combined_edges,
+                make_combined_component_title(component_uniprots),
+                combined_out,
+                nodes_data=nodes,
+            )

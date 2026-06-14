@@ -27,6 +27,7 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from .cytoscape import create_cytoscape_network
+from .residue_types import count_polymer_lengths
 
 
 def create_protein_network(
@@ -55,24 +56,8 @@ def create_protein_network(
     per_pdb_out = per_pdb_output_path or run_output_path
     combined_out = combined_output_path or run_output_path
 
-    # --- Residue classes for quick length annotations in tooltips ---
-    dna_set = {"DA", "DT", "DG", "DC", "DI"}
-    rna_set = {"A", "U", "G", "C", "I"}
-    aa_set = {
-        "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS",
-        "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP",
-        "TYR", "VAL", "SEC", "PYL",
-    }
-
     def count_lengths(res_list: Optional[List[Dict[str, Any]]]) -> Tuple[int, int]:
-        aa = nt = 0
-        for res in (res_list or []):
-            rn = (res.get("residue_name") or "").upper()
-            if rn in aa_set:
-                aa += 1
-            elif rn in dna_set or rn in rna_set:
-                nt += 1
-        return aa, nt
+        return count_polymer_lengths((res.get("residue_name") for res in res_list or []))
 
     # --- Collect chain/protein metadata ---
     chain_to_uniprot: Dict[str, str] = {}

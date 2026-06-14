@@ -8,6 +8,8 @@ import os
 import time
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from .config_loader import config
@@ -16,10 +18,21 @@ from .data_processor import process_structure
 from .detailed_results_exporter import export_detailed_interactions
 from .distances import calculate_distances_with_ckdtree, coords_cache, tree_cache
 from .file_parser import get_pdb_id, is_valid_file, parse_structure
-from .outputs import RunOutputPaths, create_run_output_paths, write_runtime_analysis
+from .input_contract import InputValidationError
+from .logging_utils import get_logger
+from .outputs import (
+    RunOutputPaths,
+    create_run_output_paths,
+    write_failed_run_manifest,
+    write_run_manifest,
+    write_runtime_analysis,
+)
 from .protein_network import create_protein_network
 from .uniprot_matcher import parallel_blast_search
 from .unknown_molecule_uniprot import process_molecule_info
+
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -72,20 +85,39 @@ def process_single_file(file_path: str) -> Optional[Dict[str, Any]]:
 
 
 def discover_input_files(input_path_or_filelist: Union[str, List[str]]) -> List[str]:
-    """Resolve a folder or explicit file list into valid structure files."""
+    """Resolve a folder or internal file list into valid structure files."""
     if isinstance(input_path_or_filelist, list):
         return [file_path for file_path in input_path_or_filelist if is_valid_file(file_path)]
 
-    return [
-        entry.path for entry in os.scandir(input_path_or_filelist)
+    input_path = Path(input_path_or_filelist)
+    if not input_path.exists():
+        raise InputValidationError(
+            "INPUT_PATH_NOT_FOUND",
+            f"input_folder_path does not exist: {input_path}",
+        )
+    if not input_path.is_dir():
+        raise InputValidationError(
+            "INPUT_PATH_NOT_DIRECTORY",
+            f"input_folder_path must be a directory containing PDB/mmCIF files: {input_path}",
+        )
+
+    file_paths = [
+        entry.path for entry in os.scandir(str(input_path))
         if entry.is_file() and is_valid_file(entry.path)
     ]
+    if not file_paths:
+        raise InputValidationError(
+            "NO_VALID_INPUT_FILES",
+            f"input_folder_path contains no supported .pdb, .cif, or .mmcif files: {input_path}",
+        )
+
+    return file_paths
 
 
 def _parse_input_files(file_paths: List[str]) -> List[Dict[str, Any]]:
     """Parse and preprocess structure files in parallel."""
     parsing_workers = resolve_workers(config.get("workers", {}).get("parsing"), kind="parsing")
-    print(f"[Workers] Parsing processes: {parsing_workers}")
+    logger.info("[Workers] Parsing processes: %s", parsing_workers)
     with ProcessPoolExecutor(max_workers=parsing_workers) as executor:
         return list(filter(None, executor.map(process_single_file, file_paths)))
 
@@ -93,7 +125,7 @@ def _parse_input_files(file_paths: List[str]) -> List[Dict[str, Any]]:
 def _run_blast_annotation(combined_data: List[Dict[str, Any]]) -> None:
     """Run BLAST fallback for unresolved chain annotations."""
     blast_workers = resolve_workers(config.get("workers", {}).get("blast_threads"), kind="blast")
-    print(f"[Workers] BLAST threads: {blast_workers}")
+    logger.info("[Workers] BLAST threads: %s", blast_workers)
     parallel_blast_search(combined_data, max_workers=blast_workers)
 
 
@@ -178,6 +210,19 @@ def _export_network_outputs(
         timings.networks += time.time() - start_time
 
 
+def _config_snapshot(network_config: Dict[str, Any]) -> Dict[str, Any]:
+    """Return the small config subset useful for manifests and webserver jobs."""
+    return {
+        "networks": network_config,
+        "distance_thresholds": config.get("distance_thresholds", {}),
+        "workers": config.get("workers", {}),
+        "layout_mode": config.get("layout_mode"),
+        "open_in_cytoscape": config.get("open_in_cytoscape"),
+        "export_detailed_interactions": config.get("export_detailed_interactions", False),
+        "blast_cache_path": config.get("blast_cache_path", ""),
+    }
+
+
 def _get_border_color_for_uniprot(uniprot_id: Optional[str]) -> str:
     """Generate a consistent hex color from a UniProt ID string (or return gray)."""
     if not uniprot_id:
@@ -192,7 +237,7 @@ def _create_linked_identity_network(
     run_output_path: str,
 ) -> None:
     """Build separate linked-identity combined networks."""
-    print("  > Building Linked Identity Network (bridging different PDBs)...")
+    logger.info("Building Linked Identity Network (bridging different PDBs)")
 
     all_chains_flat = []
     uniprot_groups: Dict[str, List[Dict[str, Any]]] = {}
@@ -235,10 +280,10 @@ def _create_linked_identity_network(
                 })
                 count_identity_edges += 1
 
-    print(f"    - Added {count_identity_edges} identity bridges between files.")
+    logger.info("Added %s identity bridges between files", count_identity_edges)
 
     if not identity_edges:
-        print("    - No interlinked components found. Skipping Combined_Network export.")
+        logger.info("No interlinked components found. Skipping Combined_Network export.")
         return
 
     adjacency: Dict[str, set[str]] = {}
@@ -307,7 +352,7 @@ def _create_linked_identity_network(
             return f"Combined_Network_{preview}__{digest}"
         return f"Combined_Network_{preview}"
 
-    print(f"    - Found {len(component_node_sets)} interlinked component(s).")
+    logger.info("Found %s interlinked component(s)", len(component_node_sets))
 
     for index, component_nodes in enumerate(component_node_sets, start=1):
         filtered_chains = [
@@ -343,9 +388,13 @@ def _create_linked_identity_network(
                 final_edges.append(edge)
 
         network_title = _make_component_network_title(component_nodes)
-        print(
-            f"    - Exporting component {index}/{len(component_node_sets)}: "
-            f"{network_title} ({len(filtered_chains)} chains, {len(final_edges)} edges)"
+        logger.info(
+            "Exporting component %s/%s: %s (%s chains, %s edges)",
+            index,
+            len(component_node_sets),
+            network_title,
+            len(filtered_chains),
+            len(final_edges),
         )
         create_cytoscape_network(final_edges, network_title, run_output_path, nodes_data=nodes_data)
 
@@ -353,36 +402,63 @@ def _create_linked_identity_network(
 def run_pipeline(input_path_or_filelist: Union[str, List[str]]) -> None:
     """Run the full single-process pipeline for a folder or explicit file list."""
     network_config = config["networks"]
-    file_paths = discover_input_files(input_path_or_filelist)
-    output_paths = create_run_output_paths(config["output_path"])
-
     start_time_total = time.time()
+    started_at = datetime.now().isoformat(timespec="seconds")
     timings = PipelineTimings()
 
-    start_time = time.time()
-    combined_data = _parse_input_files(file_paths)
-    timings.parsing = time.time() - start_time
+    try:
+        file_paths = discover_input_files(input_path_or_filelist)
+        output_paths = create_run_output_paths(config["output_path"])
 
-    start_time = time.time()
-    process_molecule_info(combined_data)
-    timings.sifts = time.time() - start_time
+        logger.info("Run started with %s input file(s)", len(file_paths))
 
-    start_time = time.time()
-    _run_blast_annotation(combined_data)
-    timings.blast = time.time() - start_time
+        start_time = time.time()
+        combined_data = _parse_input_files(file_paths)
+        timings.parsing = time.time() - start_time
 
-    start_time = time.time()
-    results = calculate_distances_with_ckdtree(combined_data)
-    timings.interaction = time.time() - start_time
+        start_time = time.time()
+        process_molecule_info(combined_data)
+        timings.sifts = time.time() - start_time
 
-    if config.get("export_detailed_interactions", False):
-        _export_detailed_interaction_tables(combined_data, results, output_paths.distances_dir)
+        start_time = time.time()
+        _run_blast_annotation(combined_data)
+        timings.blast = time.time() - start_time
 
-    _export_network_outputs(combined_data, results, network_config, output_paths, timings)
+        start_time = time.time()
+        results = calculate_distances_with_ckdtree(combined_data)
+        timings.interaction = time.time() - start_time
 
-    total_time = time.time() - start_time_total
-    write_runtime_analysis(output_paths.log_file, timings.as_dict(), total_time)
+        if config.get("export_detailed_interactions", False):
+            _export_detailed_interaction_tables(combined_data, results, output_paths.distances_dir)
 
-    tree_cache.clear()
-    coords_cache.clear()
-    gc.collect()
+        _export_network_outputs(combined_data, results, network_config, output_paths, timings)
+
+        total_time = time.time() - start_time_total
+        write_runtime_analysis(output_paths.log_file, timings.as_dict(), total_time)
+        finished_at = datetime.now().isoformat(timespec="seconds")
+        write_run_manifest(
+            output_paths.manifest_file,
+            input_files=file_paths,
+            output_paths=output_paths,
+            config_snapshot=_config_snapshot(network_config),
+            status="success",
+            started_at=started_at,
+            finished_at=finished_at,
+            total_time=total_time,
+        )
+        logger.info("Run finished successfully in %.1f seconds", total_time)
+    except Exception as exc:
+        logger.error("Run failed: %s", exc)
+        if not isinstance(input_path_or_filelist, list):
+            write_failed_run_manifest(
+                config["output_path"],
+                input_path=str(input_path_or_filelist),
+                config_snapshot=_config_snapshot(network_config),
+                error=exc,
+                started_at=started_at,
+            )
+        raise
+    finally:
+        tree_cache.clear()
+        coords_cache.clear()
+        gc.collect()

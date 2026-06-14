@@ -1,0 +1,112 @@
+import json
+from pathlib import Path
+
+import pandas as pd
+
+from pdb2net.cx2_export import export_cx2_headless
+from pdb2net.detailed_results_exporter import DETAILED_INTERACTION_COLUMNS, export_detailed_interactions
+
+
+def _aspect_map(cx: list[dict]) -> dict[str, list]:
+    aspects: dict[str, list] = {}
+    for block in cx:
+        if not isinstance(block, dict):
+            continue
+        for key, value in block.items():
+            if key in {"CXVersion", "hasFragments"}:
+                continue
+            aspects[key] = value if isinstance(value, list) else [value]
+    return aspects
+
+
+def test_detailed_interactions_csv_columns_are_stable(tmp_path: Path) -> None:
+    structure_data = {
+        "pdb_id": "TST1",
+        "atom_data": [
+            {
+                "chain_id": "A",
+                "uniprot_id": "PAAAAA",
+                "residues": [
+                    {
+                        "residue_name": "ALA",
+                        "residue_number": 1,
+                        "atoms": [{"atom_name": "CA", "coordinates": [0.0, 0.0, 0.0]}],
+                    }
+                ],
+            },
+            {
+                "chain_id": "B",
+                "uniprot_id": "PBBBBB",
+                "residues": [
+                    {
+                        "residue_name": "GLY",
+                        "residue_number": 2,
+                        "atoms": [{"atom_name": "CA", "coordinates": [1.0, 0.0, 0.0]}],
+                    }
+                ],
+            },
+        ],
+    }
+    interactions = [
+        {
+            "chain_a": "TST1:A",
+            "chain_b": "TST1:B",
+            "all_atoms_count": 1,
+            "interaction_type": "Protein-Protein",
+        }
+    ]
+
+    export_detailed_interactions(structure_data, interactions, str(tmp_path))
+
+    out_file = tmp_path / "TST1_detailed_interactions.csv"
+    df = pd.read_csv(out_file)
+    assert list(df.columns) == DETAILED_INTERACTION_COLUMNS
+
+
+def test_headless_cx2_contains_core_aspects_and_attributes(tmp_path: Path) -> None:
+    nodes_df = pd.DataFrame(
+        [
+            {"id": "A", "name": "A", "tooltip": "node A", "color_group": "Protein"},
+            {"id": "B", "name": "B", "tooltip": "node B", "color_group": "Protein"},
+        ]
+    )
+    edges_df = pd.DataFrame(
+        [
+            {
+                "source": "A",
+                "target": "B",
+                "interaction": "Protein-Protein",
+                "all_atoms_count": 3,
+            }
+        ]
+    )
+    positions = {"A": {"x": 1.0, "y": 2.0}, "B": {"x": 3.0, "y": 4.0}}
+
+    export_cx2_headless(
+        "Mini_Network",
+        str(tmp_path),
+        nodes_df,
+        edges_df,
+        {"Protein": "#1f77b4"},
+        positions,
+    )
+
+    cx = json.loads((tmp_path / "Mini_Network.cx2").read_text(encoding="utf-8"))
+    aspects = _aspect_map(cx)
+
+    for aspect in [
+        "nodes",
+        "edges",
+        "nodeAttributes",
+        "edgeAttributes",
+        "cartesianLayout",
+        "visualProperties",
+    ]:
+        assert aspect in aspects
+
+    assert len(aspects["nodes"]) == 2
+    assert len(aspects["edges"]) == 1
+    node_attr_names = {record["n"] for record in aspects["nodeAttributes"]}
+    edge_attr_names = {record["n"] for record in aspects["edgeAttributes"]}
+    assert {"name", "tooltip", "color_group"}.issubset(node_attr_names)
+    assert {"interaction", "all_atoms_count"}.issubset(edge_attr_names)

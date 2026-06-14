@@ -55,6 +55,14 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from Bio.Data import IUPACData
 from .config_loader import config
+from .residue_types import (
+    AMINO_ACIDS,
+    DNA_RESIDUES,
+    MODIFIED_RESIDUES_3TO3,
+    NUCLEIC_ACID_TYPES,
+    RNA_RESIDUES,
+    normalize_residue_name,
+)
 
 # --- Paths from configuration ---
 BLAST_DB_PATH: str = config["blast_db_path"]
@@ -68,24 +76,7 @@ three_to_one: Dict[str, str] = IUPACData.protein_letters_3to1
 # This reduces artificial 'X' inflation from frequent modifications
 # (e.g., selenomethionine MSE), improving BLAST eligibility without
 # changing the underlying polymer.
-MODRES_3TO3: Dict[str, str] = {
-    # very common in crystal structures
-    "MSE": "MET",  # selenomethionine
-    # common phosphorylation variants
-    "SEP": "SER",  # phosphoserine
-    "TPO": "THR",  # phosphothreonine
-    "PTR": "TYR",  # phosphotyrosine
-    # a few frequent oxidations / special cases
-    "CSO": "CYS",  # S-hydroxycysteine
-    "HYP": "PRO",  # hydroxyproline
-}
-
-# Set of valid amino acid residue codes (3-letter)
-AMINO_ACIDS = {
-    "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS",
-    "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP",
-    "TYR", "VAL", "SEC", "PYL",
-}
+MODRES_3TO3: Dict[str, str] = MODIFIED_RESIDUES_3TO3
 
 # Debug flag (opt-in)
 _DEBUG_BLAST: bool = str(os.environ.get("PDB2NET_BLAST_DEBUG", "")).strip().lower() in {"1", "true", "yes", "on"}
@@ -376,8 +367,7 @@ def extract_sequence_from_parsed_data(chain_data: Dict[str, Any]) -> str:
         if not rn_raw:
             continue
 
-        rn = rn_raw.upper()
-        rn = MODRES_3TO3.get(rn, rn)  # normalize common modified residues
+        rn = normalize_residue_name(rn_raw)
 
         # Biopython three_to_one uses capitalized 3-letter codes ("Ala", ...)
         seq_chars.append(three_to_one.get(rn.capitalize(), "X"))
@@ -748,19 +738,16 @@ def classify_molecule_type(chain_data: Dict[str, Any], label: str = "", debug: b
     nt_count = 0
     unk_count = 0
 
-    dna_res = {"DA", "DT", "DG", "DC", "DI"}
-    rna_res = {"A", "U", "G", "C", "I"}
-
     for r in residues:
         res = str(r.get("residue_name") or r.get("resname") or "").strip().upper()
         if not res:
             continue
 
-        res = MODRES_3TO3.get(res, res)
+        res = normalize_residue_name(res)
 
         if res in AMINO_ACIDS:
             aa_count += 1
-        elif res in dna_res or res in rna_res:
+        elif res in DNA_RESIDUES or res in RNA_RESIDUES:
             nt_count += 1
         else:
             unk_count += 1
@@ -775,11 +762,11 @@ def classify_molecule_type(chain_data: Dict[str, Any], label: str = "", debug: b
     if aa_frac >= 0.50:
         return "Protein"
     if nt_frac >= 0.50:
-        if any(str(rr.get("residue_name") or rr.get("resname") or "").strip().upper() in dna_res for rr in residues):
-            if any(str(rr.get("residue_name") or rr.get("resname") or "").strip().upper() in rna_res for rr in residues):
+        if any(normalize_residue_name(rr.get("residue_name") or rr.get("resname")) in DNA_RESIDUES for rr in residues):
+            if any(normalize_residue_name(rr.get("residue_name") or rr.get("resname")) in RNA_RESIDUES for rr in residues):
                 return "DNA/RNA"
             return "DNA"
-        if any(str(rr.get("residue_name") or rr.get("resname") or "").strip().upper() in rna_res for rr in residues):
+        if any(normalize_residue_name(rr.get("residue_name") or rr.get("resname")) in RNA_RESIDUES for rr in residues):
             return "RNA"
         return "Nucleic Acid"
 
@@ -793,7 +780,7 @@ def parallel_blast_search(parsed_data: List[Dict[str, Any]], max_workers: int = 
     _diag_reset()
 
     max_x_fraction: float = 0.20
-    na_types = {"Nucleic Acid", "DNA", "RNA", "DNA/RNA"}
+    na_types = NUCLEIC_ACID_TYPES
 
     # Dedupe by sequence: seq_key -> { "qlen": int, "seq": str, "targets": [(chain_dict, label), ...] }
     seq_groups: Dict[str, Dict[str, Any]] = {}

@@ -20,19 +20,12 @@ from __future__ import annotations
 import gemmi
 from typing import Any, Dict, List
 
+from .residue_types import AMINO_ACIDS, DNA_RESIDUES, RNA_RESIDUES
+
 
 # Set of allowed residue names for proteins and nucleic acids.
 # This is used to decide whether a chain is considered "valid".
-ALLOWED_RESIDUES = {
-    # Protein residues (including selenocysteine SEC and pyrrolysine PYL)
-    "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS",
-    "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP",
-    "TYR", "VAL", "SEC", "PYL",
-    # RNA residues
-    "A", "U", "G", "C", "I",
-    # DNA residues (deoxy versions)
-    "DA", "DT", "DG", "DC", "DI",
-}
+ALLOWED_RESIDUES = AMINO_ACIDS | RNA_RESIDUES | DNA_RESIDUES
 
 
 def process_structure(structure_data: Dict[str, Any]) -> Dict[str, Any]:

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import os
 import re
+import csv
 from typing import Any, Dict, List, Optional
 
 import gemmi
@@ -94,7 +95,7 @@ def extract_pdb_id_from_filename(file_path: str) -> Optional[str]:
         pdb_id = match.group(1).upper()
         if pdb_id in VALID_PDB_IDS:
             return pdb_id
-        print(f"Warning: File {filename} contains an invalid PDB ID ({pdb_id} not in pdb_seqres.txt).")
+        print(f"Warning: File {filename} contains a canonical-looking PDB ID not found in pdb_seqres.txt: {pdb_id}.")
     return None
 
 
@@ -147,7 +148,11 @@ def extract_pdb_id_from_file(file_path: str) -> Optional[str]:
                 if pdb_id:
                     if len(pdb_id) == 4 and pdb_id in VALID_PDB_IDS:
                         return pdb_id
-                    print(f"Warning: File {file_path} contains an invalid PDB ID ({pdb_id} not in pdb_seqres.txt).")
+                    if len(pdb_id) == 4:
+                        print(
+                            "Warning: File "
+                            f"{file_path} contains a canonical-looking PDB ID not found in pdb_seqres.txt: {pdb_id}."
+                        )
                     return None
 
     except Exception as e:
@@ -183,7 +188,7 @@ def get_pdb_id(file_path: str) -> str:
 
     # Fallback: use filename stem (uppercased) if no valid PDB ID was found
     filename_stem = os.path.basename(file_path).split(".")[0].upper()
-    print(f"Warning: No valid PDB ID found. Using filename as PDB ID: {filename_stem}")
+    print(f"Info: No canonical PDB ID found. Using filename as structure ID: {filename_stem}")
     return filename_stem
 
 

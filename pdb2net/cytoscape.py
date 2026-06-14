@@ -25,6 +25,7 @@ import pandas as pd
 from .config_loader import config
 from .cx2_export import export_cx2_headless
 from .layout_engine import calculate_positions
+from .residue_types import count_polymer_lengths
 from .visual_style import (
     LINKED_IDENTITY_EDGE_STYLE,
     LINKED_IDENTITY_EDGE_WIDTH,
@@ -409,42 +410,8 @@ def create_cytoscape_network(
 
 def generate_nodes_from_atom_data(atom_data, pdb_id=None):
     """Create Cytoscape chain nodes from parsed atom/chain data."""
-    dna_set = {"DA", "DT", "DG", "DC", "DI"}
-    rna_set = {"A", "U", "G", "C", "I"}
-    protein_set = {
-        "ALA",
-        "ARG",
-        "ASN",
-        "ASP",
-        "CYS",
-        "GLN",
-        "GLU",
-        "GLY",
-        "HIS",
-        "ILE",
-        "LEU",
-        "LYS",
-        "MET",
-        "PHE",
-        "PRO",
-        "SER",
-        "THR",
-        "TRP",
-        "TYR",
-        "VAL",
-        "SEC",
-        "PYL",
-    }
-
     def count_lengths(res_list):
-        aa = nt = 0
-        for res in res_list or []:
-            rn = (res.get("residue_name") or "").upper()
-            if rn in protein_set:
-                aa += 1
-            elif rn in dna_set or rn in rna_set:
-                nt += 1
-        return aa, nt
+        return count_polymer_lengths((res.get("residue_name") for res in res_list or []))
 
     nodes = []
     for chain in atom_data:

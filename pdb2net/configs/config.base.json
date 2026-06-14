@@ -10,6 +10,7 @@
   "layout_mode": "python_fast",
   "layout_engine_path": "",
   "layout_keep_temp_files": false,
+  "blast_cache_path": "",
   "keep_last_n_networks": 46,
   "export_detailed_interactions": false
 }

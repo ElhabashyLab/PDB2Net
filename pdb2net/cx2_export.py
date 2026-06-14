@@ -26,8 +26,11 @@ def export_cx2_headless(
     nid_map = {nid: index + 1 for index, nid in enumerate(node_ids)}
 
     nodes_aspect = []
+    node_attributes_aspect = []
+    cartesian_layout_aspect = []
     for _, row in nodes_df.iterrows():
         nid = str(row["id"])
+        raw_node_id = nid_map[nid]
         pos = positions.get(nid, {"x": 0.0, "y": 0.0})
         border_color = (
             str(row.get("linked_identity_border_color", row.get("uniprot_border_color", profile["node_border_color"])))
@@ -42,7 +45,7 @@ def export_cx2_headless(
 
         nodes_aspect.append(
             {
-                "id": nid_map[nid],
+                "id": raw_node_id,
                 "x": float(pos["x"]),
                 "y": float(pos["y"]),
                 "v": {
@@ -55,16 +58,23 @@ def export_cx2_headless(
                 },
             }
         )
+        cartesian_layout_aspect.append(
+            {"node": raw_node_id, "x": float(pos["x"]), "y": float(pos["y"])}
+        )
+        for attr_name, attr_value in nodes_aspect[-1]["v"].items():
+            node_attributes_aspect.append({"po": raw_node_id, "n": attr_name, "v": attr_value})
 
     edges_aspect = []
+    edge_attributes_aspect = []
     for index, row in edges_df_for_export.iterrows():
         source = nid_map.get(str(row["source"]))
         target = nid_map.get(str(row["target"]))
         if source is None or target is None or source == target:
             continue
+        edge_id = index + 1
         edges_aspect.append(
             {
-                "id": index + 1,
+                "id": edge_id,
                 "s": source,
                 "t": target,
                 "v": {
@@ -73,6 +83,8 @@ def export_cx2_headless(
                 },
             }
         )
+        for attr_name, attr_value in edges_aspect[-1]["v"].items():
+            edge_attributes_aspect.append({"po": edge_id, "n": attr_name, "v": attr_value})
 
     discrete_map = [{"v": key, "vp": value} for key, value in color_map.items()]
 
@@ -202,6 +214,9 @@ def export_cx2_headless(
             {"name": "networkAttributes", "elementCount": 1},
             {"name": "nodes", "elementCount": len(nodes_aspect)},
             {"name": "edges", "elementCount": len(edges_aspect)},
+            {"name": "nodeAttributes", "elementCount": len(node_attributes_aspect)},
+            {"name": "edgeAttributes", "elementCount": len(edge_attributes_aspect)},
+            {"name": "cartesianLayout", "elementCount": len(cartesian_layout_aspect)},
             {
                 "name": "visualProperties",
                 "elementCount": len(visual_props.get("visualProperties", [])),
@@ -216,6 +231,9 @@ def export_cx2_headless(
         {"networkAttributes": [{"name": network_title}]},
         {"nodes": nodes_aspect},
         {"edges": edges_aspect},
+        {"nodeAttributes": node_attributes_aspect},
+        {"edgeAttributes": edge_attributes_aspect},
+        {"cartesianLayout": cartesian_layout_aspect},
         visual_props,
         {"status": [{"error": "", "success": True}]},
     ]

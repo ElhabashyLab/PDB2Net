@@ -96,8 +96,10 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
         "PDB2NET_SIFTS_TSV": ("sifts_tsv_path", str),
         "PDB2NET_CYTO_PATH": ("cytoscape_path", str),
         "PDB2NET_BLAST_DB": ("blast_db_path", str),
+        "PDB2NET_BLAST_CACHE_PATH": ("blast_cache_path", str),
         "PDB2NET_BLASTP": ("blastp_executable", str),
         "PDB2NET_OPEN_IN_CYTOSCAPE": ("open_in_cytoscape", _bool_from_env),
+        "PDB2NET_EXPORT_DETAILED_INTERACTIONS": ("export_detailed_interactions", _bool_from_env),
     }
     nested: Dict[str, Tuple[str, str]] = {
         "PDB2NET_WORKERS_PARSING": ("workers", "parsing"),
@@ -136,6 +138,7 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
         "output_path",
         "cytoscape_path",
         "blast_db_path",
+        "blast_cache_path",
         "blastp_executable",
         "layout_engine_path",
     ]:

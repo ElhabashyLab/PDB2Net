@@ -5,6 +5,7 @@
   "sifts_tsv_path": "$HOME/pdb2net/reference/pdb_chain_uniprot.tsv",
   "output_path": "$HOME/pdb2net/outputs",
   "blast_db_path": "$HOME/pdb2net/reference/blast_db",
+  "blast_cache_path": "$HOME/pdb2net/cache/blast_cache.sqlite3",
   "blastp_executable": "blastp",
   "layout_mode": "python_fast",
   "layout_engine_path": "",

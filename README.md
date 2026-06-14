@@ -166,8 +166,10 @@ You can override individual settings via ENV:
 | `PDB2NET_SIFTS_TSV`         | `sifts_tsv_path`                              |
 | `PDB2NET_CYTO_PATH`         | `cytoscape_path`                              |
 | `PDB2NET_BLAST_DB`          | `blast_db_path`                               |
+| `PDB2NET_BLAST_CACHE_PATH`  | `blast_cache_path` (optional SQLite cache)    |
 | `PDB2NET_BLASTP`            | `blastp_executable`                           |
 | `PDB2NET_OPEN_IN_CYTOSCAPE` | `open_in_cytoscape` (`true/false/1/0/yes/no`) |
+| `PDB2NET_EXPORT_DETAILED_INTERACTIONS` | `export_detailed_interactions` (`true/false/1/0/yes/no`) |
 | `PDB2NET_WORKERS_PARSING`   | `workers.parsing` (`auto` or int)             |
 | `PDB2NET_WORKERS_BLAST`     | `workers.blast_threads` (`auto` or int)       |
 | `PDB2NET_CA_RADIUS`         | `distance_thresholds.ca_radius`               |
@@ -187,6 +189,10 @@ export PDB2NET_INPUT=~/pdb2net/pdb_inputs
 export PDB2NET_OUTPUT=~/pdb2net/outputs
 export PDB2NET_OPEN_IN_CYTOSCAPE=false
 ```
+
+For server or read-only reference-data deployments, set `blast_cache_path` (or
+`PDB2NET_BLAST_CACHE_PATH`) to a writable SQLite file outside the BLAST database
+directory. If unset, PDB2Net keeps the previous default next to `blast_db_path`.
 
 ## Run the Tool  
 Once all dependencies are installed, you can run the tool with:
@@ -253,7 +259,5 @@ If you have any questions or inquiries, please feel free to contact Hadeer Elhab
 
 # License
 - The **PDB2NET code** in this repository is licensed under the [MIT License](./LICENSE).
-
-
 
 

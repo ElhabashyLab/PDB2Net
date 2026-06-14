@@ -41,6 +41,7 @@ Debugging
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import tempfile
 import threading
@@ -69,6 +70,15 @@ BLAST_DB_PATH: str = config["blast_db_path"]
 BLAST_EXECUTABLE: str = config["blastp_executable"]
 UNIPROT_FASTA_PATH: str = config["uniprot_fasta_path"]
 
+_BLAST_CONFIG: Dict[str, Any] = config.get("blast", {}) if isinstance(config.get("blast", {}), dict) else {}
+BLAST_MAX_TARGET_SEQS_DEFAULT: int = int(_BLAST_CONFIG.get("max_target_seqs_default", 50))
+BLAST_MAX_TARGET_SEQS_SHORT: int = int(_BLAST_CONFIG.get("max_target_seqs_short", 100))
+BLAST_SHORT_QUERY_LENGTH: int = int(_BLAST_CONFIG.get("short_query_length", 80))
+BLAST_VERY_SHORT_QUERY_LENGTH: int = int(_BLAST_CONFIG.get("very_short_query_length", 30))
+BLAST_USE_BLASTP_SHORT: bool = bool(_BLAST_CONFIG.get("use_blastp_short", True))
+BLAST_MAX_HSPS: int = int(_BLAST_CONFIG.get("max_hsps", 1))
+BLAST_MAX_X_FRACTION: float = float(_BLAST_CONFIG.get("max_x_fraction", 0.20))
+
 # 3-letter → 1-letter amino-acid mapping (Biopython)
 three_to_one: Dict[str, str] = IUPACData.protein_letters_3to1
 
@@ -85,6 +95,11 @@ _DEBUG_BLAST: bool = str(os.environ.get("PDB2NET_BLAST_DEBUG", "")).strip().lowe
 _DIAG_BLAST: bool = str(os.environ.get("PDB2NET_BLAST_DIAG", "")).strip().lower() in {"1", "true", "yes", "on"}
 _DIAG_LOCK = threading.Lock()
 _DIAG = Counter()
+
+_UNIPROT_ACCESSION_PATTERN = (
+    r"(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|"
+    r"[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})"
+)
 
 
 def _diag_inc(key: str, n: int = 1) -> None:
@@ -332,6 +347,86 @@ class BlastHit:
     title: str = ""
 
 
+def extract_direct_uniprot_accession(file_path_or_id: str) -> Optional[str]:
+    """Return a UniProt accession encoded in an AlphaFold-style file name.
+
+    This intentionally accepts only explicit AlphaFold/fragment-style names, e.g.
+    ``AF-Q9BYF1-F1-model_v4.cif`` or ``Q8WZ42-F1.cif``. Generic custom names
+    such as ``123456.cif`` are left for residue inference and BLAST fallback.
+    """
+    if not file_path_or_id:
+        return None
+
+    stem = os.path.splitext(os.path.basename(str(file_path_or_id)))[0].upper()
+    acc = _UNIPROT_ACCESSION_PATTERN
+
+    af_match = re.search(
+        rf"(?:^|[^A-Z0-9])AF[-_](?P<accession>{acc}(?:-\d+)?)(?:[-_](?:F\d+|MODEL|V\d+)|$)",
+        stem,
+    )
+    if af_match:
+        return af_match.group("accession").replace("_", "-")
+
+    fragment_match = re.search(rf"^(?P<accession>{acc}(?:-\d+)?)[-_]F\d+(?:[-_]|$)", stem)
+    if fragment_match:
+        return fragment_match.group("accession").replace("_", "-")
+
+    return None
+
+
+def _lookup_direct_uniprot_name(accession: str) -> Optional[str]:
+    # process_molecule_info() runs before BLAST in the pipeline and loads this
+    # cache already; reusing it avoids a second full UniProt FASTA parse.
+    try:
+        from . import unknown_molecule_uniprot
+
+        names = unknown_molecule_uniprot.uniprot_dict
+    except Exception:
+        names = {}
+
+    name = names.get(accession)
+    if not name and "-" in accession:
+        name = names.get(accession.split("-", 1)[0])
+    if name and name != "Unknown Protein":
+        return name
+    return None
+
+
+def _apply_direct_uniprot_to_structure(structure: Dict[str, Any], debug: bool = False) -> bool:
+    """Annotate a single-chain AlphaFold-style structure from its file name."""
+    file_path = str(structure.get("file_path") or "")
+    pdb_id = str(structure.get("pdb_id") or "")
+    accession = extract_direct_uniprot_accession(file_path) or extract_direct_uniprot_accession(pdb_id)
+    if not accession:
+        return False
+
+    chains = list(structure.get("atom_data", []))
+    if len(chains) != 1:
+        _diag_inc("direct_uniprot_skip_multichain")
+        if debug:
+            print(
+                f"[BLASTSEL][{os.path.basename(file_path) or pdb_id}] "
+                f"SKIP_DIRECT_UNIPROT: accession={accession} chains={len(chains)}"
+            )
+        return False
+
+    chain = chains[0]
+    if chain.get("uniprot_id") not in [None, "Unknown"]:
+        return False
+
+    chain["uniprot_id"] = accession
+    chain["molecule_type"] = "Protein"
+    chain["molecule_name"] = _lookup_direct_uniprot_name(accession) or f"UniProt: {accession}"
+    _diag_inc("direct_uniprot_assigned")
+
+    if debug:
+        chain_id = chain.get("chain_id", "?")
+        uniq = chain.get("unique_chain_id", f"{pdb_id}:{chain_id}")
+        print(f"[BLASTSEL][{uniq}] DIRECT_UNIPROT: {accession}")
+
+    return True
+
+
 def create_blast_database(force_rebuild: bool = False) -> None:
     """Create a BLAST database from the UniProt FASTA if needed."""
     os.makedirs(BLAST_DB_PATH, exist_ok=True)
@@ -467,7 +562,8 @@ def run_blast_search(query_sequence: str, label: str = "", debug: bool = False) 
         min_pident = 25.0
         min_bitscore = 80.0
 
-    max_targets = 25  # give ambiguity rule enough candidates
+    max_targets = BLAST_MAX_TARGET_SEQS_SHORT if qlen0 < BLAST_SHORT_QUERY_LENGTH else BLAST_MAX_TARGET_SEQS_DEFAULT
+    blast_task = "blastp-short" if BLAST_USE_BLASTP_SHORT and qlen0 < BLAST_VERY_SHORT_QUERY_LENGTH else None
 
     unique_id = str(uuid.uuid4())[:8]
     prefix = f"[BLASTDBG][{label or unique_id}]"
@@ -481,7 +577,7 @@ def run_blast_search(query_sequence: str, label: str = "", debug: bool = False) 
                 print(
                     f"{prefix} qlen={qlen0} thr: evalue<={max_evalue:g}, "
                     f"qcov>={min_query_coverage:.2f}, pident>={min_pident:.1f}, bitscore>={min_bitscore:.1f}, "
-                    f"max_targets={max_targets}"
+                    f"max_targets={max_targets}, max_hsps={BLAST_MAX_HSPS}, task={blast_task or 'default'}"
                 )
 
             with open(query_file, "w", encoding="utf-8") as f:
@@ -506,6 +602,10 @@ def run_blast_search(query_sequence: str, label: str = "", debug: bool = False) 
                     "-max_target_seqs", str(max_targets),
                     "-outfmt", outfmt,
                 ]
+                if BLAST_MAX_HSPS > 0:
+                    blast_cmd.extend(["-max_hsps", str(BLAST_MAX_HSPS)])
+                if blast_task:
+                    blast_cmd.extend(["-task", blast_task])
                 return subprocess.run(blast_cmd, capture_output=True, text=True)
 
             use_qcovs = True
@@ -779,7 +879,7 @@ def parallel_blast_search(parsed_data: List[Dict[str, Any]], max_workers: int = 
 
     _diag_reset()
 
-    max_x_fraction: float = 0.20
+    max_x_fraction: float = BLAST_MAX_X_FRACTION
     na_types = NUCLEIC_ACID_TYPES
 
     # Dedupe by sequence: seq_key -> { "qlen": int, "seq": str, "targets": [(chain_dict, label), ...] }
@@ -811,6 +911,7 @@ def parallel_blast_search(parsed_data: List[Dict[str, Any]], max_workers: int = 
     for structure in parsed_data:
         pdb_id = structure.get("pdb_id", "?")
         file_path = structure.get("file_path", "?")
+        _apply_direct_uniprot_to_structure(structure, debug=debug)
 
         for chain in structure.get("atom_data", []):
             _diag_inc("pre_chains_seen")

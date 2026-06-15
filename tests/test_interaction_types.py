@@ -1,6 +1,7 @@
 import pytest
 
-from pdb2net.distances import determine_interaction_type
+from pdb2net import distances
+from pdb2net.distances import calculate_distances_with_ckdtree, determine_interaction_type
 from pdb2net.uniprot_matcher import classify_molecule_type
 
 
@@ -34,3 +35,94 @@ def test_determine_interaction_type_contract(left: str, right: str, expected: st
 def test_classify_molecule_type_from_residue_composition(residues: list[str], expected: str) -> None:
     chain = {"residues": [{"residue_name": name} for name in residues]}
     assert classify_molecule_type(chain) == expected
+
+
+def _protein_chain(unique_id: str, offset: float = 0.0) -> dict:
+    residues = []
+    for index in range(10):
+        residues.append({
+            "residue_name": "ALA",
+            "atoms": [{"atom_name": "CA", "coordinates": [float(index * 10) + offset, 0.0, 0.0]}],
+        })
+    return {
+        "chain_id": unique_id.split(":", 1)[1],
+        "unique_chain_id": unique_id,
+        "molecule_type": "Protein",
+        "residues": residues,
+    }
+
+
+def _dna_chain(unique_id: str, offset: float = 0.0) -> dict:
+    return {
+        "chain_id": unique_id.split(":", 1)[1],
+        "unique_chain_id": unique_id,
+        "molecule_type": "DNA",
+        "residues": [
+            {"residue_name": "DA", "atoms": [{"atom_name": "P", "coordinates": [offset, 0.0, 0.0]}]},
+            {"residue_name": "DT", "atoms": [{"atom_name": "P", "coordinates": [offset + 100.0, 0.0, 0.0]}]},
+        ],
+    }
+
+
+def test_protein_contact_filters_are_configurable(monkeypatch) -> None:
+    distances.coords_cache.clear()
+    distances.tree_cache.clear()
+    monkeypatch.setitem(distances.config, "distance_thresholds", {"ca_radius": 1.1, "all_atoms_radius": 1.1})
+    monkeypatch.setitem(
+        distances.config,
+        "interaction_filters",
+        {
+            "protein_protein_min_ca_neighbors": 11,
+            "protein_protein_min_all_atom_contacts": 1,
+            "protein_nucleic_acid_min_all_atom_contacts": 1,
+            "nucleic_acid_min_all_atom_contacts": 1,
+        },
+    )
+
+    no_edges = calculate_distances_with_ckdtree([
+        {"file_path": "/tmp/tst.cif", "atom_data": [_protein_chain("TST:A"), _protein_chain("TST:B")]}
+    ])
+
+    assert no_edges == []
+
+    monkeypatch.setitem(
+        distances.config,
+        "interaction_filters",
+        {
+            "protein_protein_min_ca_neighbors": 10,
+            "protein_protein_min_all_atom_contacts": 1,
+            "protein_nucleic_acid_min_all_atom_contacts": 1,
+            "nucleic_acid_min_all_atom_contacts": 1,
+        },
+    )
+    distances.coords_cache.clear()
+    distances.tree_cache.clear()
+
+    edges = calculate_distances_with_ckdtree([
+        {"file_path": "/tmp/tst.cif", "atom_data": [_protein_chain("TST:A"), _protein_chain("TST:B")]}
+    ])
+
+    assert len(edges) == 1
+    assert edges[0]["interaction_type"] == "Protein-Protein"
+
+
+def test_nucleic_acid_contact_filters_are_configurable(monkeypatch) -> None:
+    distances.coords_cache.clear()
+    distances.tree_cache.clear()
+    monkeypatch.setitem(distances.config, "distance_thresholds", {"ca_radius": 1.1, "all_atoms_radius": 1.1})
+    monkeypatch.setitem(
+        distances.config,
+        "interaction_filters",
+        {
+            "protein_protein_min_ca_neighbors": 10,
+            "protein_protein_min_all_atom_contacts": 1,
+            "protein_nucleic_acid_min_all_atom_contacts": 1,
+            "nucleic_acid_min_all_atom_contacts": 3,
+        },
+    )
+
+    edges = calculate_distances_with_ckdtree([
+        {"file_path": "/tmp/tst.cif", "atom_data": [_dna_chain("TST:A"), _dna_chain("TST:B")]}
+    ])
+
+    assert edges == []

@@ -10,6 +10,13 @@
   "layout_mode": "python_fast",
   "layout_engine_path": "",
   "layout_keep_temp_files": false,
+  "structure_model_policy": "first",
+  "interaction_filters": {
+    "protein_protein_min_ca_neighbors": 10,
+    "protein_protein_min_all_atom_contacts": 1,
+    "protein_nucleic_acid_min_all_atom_contacts": 1,
+    "nucleic_acid_min_all_atom_contacts": 1
+  },
   "open_in_cytoscape": false,
   "workers": {
     "parsing": 1,

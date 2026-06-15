@@ -24,5 +24,10 @@ dependencies = [
   "scipy==1.15.2"
 ]
 
+[project.optional-dependencies]
+dev = [
+  "pytest"
+]
+
 [tool.setuptools.packages.find]
 include = ["pdb2net*"]

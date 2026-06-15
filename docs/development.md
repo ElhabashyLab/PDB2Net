@@ -10,7 +10,7 @@ Create a virtual environment and install the package in editable mode:
 python3 -m venv .venv
 . .venv/bin/activate
 python3 -m pip install --upgrade pip setuptools wheel
-python3 -m pip install -e .
+python3 -m pip install -e ".[dev]"
 ```
 
 If editable install is not needed, installing the pinned runtime dependencies is enough:

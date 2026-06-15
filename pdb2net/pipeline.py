@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import gc
-import hashlib
 import os
+import shutil
 import time
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from .config_loader import config
+from .components import build_identity_edges, find_linked_components, make_component_title
 from .cytoscape import create_cytoscape_network, generate_nodes_from_atom_data
 from .data_processor import process_structure
 from .detailed_results_exporter import export_detailed_interactions
@@ -28,7 +29,8 @@ from .outputs import (
     write_runtime_analysis,
 )
 from .protein_network import create_protein_network
-from .uniprot_matcher import parallel_blast_search
+from .residue_types import NUCLEIC_ACID_TYPES
+from .uniprot_matcher import extract_direct_uniprot_accession, parallel_blast_search
 from .unknown_molecule_uniprot import process_molecule_info
 
 
@@ -124,9 +126,55 @@ def _parse_input_files(file_paths: List[str]) -> List[Dict[str, Any]]:
 
 def _run_blast_annotation(combined_data: List[Dict[str, Any]]) -> None:
     """Run BLAST fallback for unresolved chain annotations."""
+    _validate_blast_ready_if_needed(combined_data)
     blast_workers = resolve_workers(config.get("workers", {}).get("blast_threads"), kind="blast")
     logger.info("[Workers] BLAST threads: %s", blast_workers)
     parallel_blast_search(combined_data, max_workers=blast_workers)
+
+
+def _blast_fallback_needed(combined_data: List[Dict[str, Any]]) -> bool:
+    """Return whether at least one chain may require BLAST fallback annotation."""
+    for structure in combined_data:
+        file_path = str(structure.get("file_path") or "")
+        pdb_id = str(structure.get("pdb_id") or "")
+        atom_data = list(structure.get("atom_data", []))
+        has_direct_single_chain_uniprot = (
+            len(atom_data) == 1
+            and bool(extract_direct_uniprot_accession(file_path) or extract_direct_uniprot_accession(pdb_id))
+        )
+        for chain in structure.get("atom_data", []):
+            if chain.get("uniprot_id") not in (None, "Unknown"):
+                continue
+            if has_direct_single_chain_uniprot:
+                continue
+            molecule_type = (chain.get("molecule_type") or "").strip()
+            if molecule_type not in NUCLEIC_ACID_TYPES:
+                return True
+    return False
+
+
+def _validate_blast_ready_if_needed(combined_data: List[Dict[str, Any]]) -> None:
+    """Fail early with clear messages when BLAST fallback is required but unavailable."""
+    if not _blast_fallback_needed(combined_data):
+        return
+
+    blastp = str(config.get("blastp_executable") or "blastp")
+    if os.path.sep in blastp or (os.path.altsep and os.path.altsep in blastp):
+        blastp_ok = os.path.exists(blastp)
+    else:
+        blastp_ok = shutil.which(blastp) is not None
+    if not blastp_ok:
+        raise InputValidationError("BLASTP_NOT_FOUND", f"blastp executable is not available: {blastp}")
+
+    blast_db_path = str(config.get("blast_db_path") or "")
+    db_prefix = os.path.join(blast_db_path, "uniprot_db")
+    missing = [path for path in (db_prefix + ".pin", db_prefix + ".phr", db_prefix + ".psq") if not os.path.exists(path)]
+    if missing:
+        raise InputValidationError(
+            "BLAST_DATABASE_MISSING",
+            "BLAST fallback is required but the UniProt BLAST database is incomplete. "
+            f"Missing: {', '.join(missing)}",
+        )
 
 
 def _export_detailed_interaction_tables(
@@ -217,6 +265,8 @@ def _config_snapshot(network_config: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "networks": network_config,
         "distance_thresholds": config.get("distance_thresholds", {}),
+        "interaction_filters": config.get("interaction_filters", {}),
+        "structure_model_policy": config.get("structure_model_policy", "first"),
         "workers": config.get("workers", {}),
         "layout_mode": config.get("layout_mode"),
         "open_in_cytoscape": config.get("open_in_cytoscape"),
@@ -229,6 +279,8 @@ def _get_border_color_for_uniprot(uniprot_id: Optional[str]) -> str:
     """Generate a consistent hex color from a UniProt ID string (or return gray)."""
     if not uniprot_id:
         return "#555555"
+    import hashlib
+
     hash_val = int(hashlib.md5(uniprot_id.encode("utf-8")).hexdigest(), 16)
     return f"#{hash_val & 0xFFFFFF:06x}"
 
@@ -268,97 +320,23 @@ def _create_linked_identity_network(
                 uniprot_groups.setdefault(up_id, []).append(chain)
 
     chain_lookup = {chain["unique_chain_id"]: chain for chain in all_chains_flat}
+    chain_to_pdb = {
+        chain["unique_chain_id"]: chain.get("_parent_pdb_id", "")
+        for chain in all_chains_flat
+    }
+    uniprot_to_chain_ids = {
+        up_id: [chain["unique_chain_id"] for chain in chains]
+        for up_id, chains in uniprot_groups.items()
+    }
 
-    identity_edges = []
-    count_identity_edges = 0
-    for up_id, chains in uniprot_groups.items():
-        if len(chains) < 2:
-            continue
-
-        chains = sorted(chains, key=lambda chain: chain["unique_chain_id"])
-        for index in range(len(chains) - 1):
-            chain_a = chains[index]
-            chain_b = chains[index + 1]
-            if chain_a["_parent_pdb_id"] != chain_b["_parent_pdb_id"]:
-                identity_edges.append({
-                    "chain_a": chain_a["unique_chain_id"],
-                    "chain_b": chain_b["unique_chain_id"],
-                    "all_atoms_count": 1000,
-                    "interaction_type": "identity",
-                })
-                count_identity_edges += 1
-
-    logger.info("Added %s identity bridges between files", count_identity_edges)
+    identity_edges = build_identity_edges(uniprot_to_chain_ids, chain_to_pdb)
+    logger.info("Added %s identity bridges between files", len(identity_edges))
 
     if not identity_edges:
         logger.info("No interlinked components found. Skipping Combined_Network export.")
         return
 
-    adjacency: Dict[str, set[str]] = {}
-
-    def add_edge_to_adjacency(chain_a: str, chain_b: str) -> None:
-        adjacency.setdefault(chain_a, set()).add(chain_b)
-        adjacency.setdefault(chain_b, set()).add(chain_a)
-
-    for result in results:
-        add_edge_to_adjacency(result["chain_a"], result["chain_b"])
-    for edge in identity_edges:
-        add_edge_to_adjacency(edge["chain_a"], edge["chain_b"])
-
-    identity_nodes = set()
-    for edge in identity_edges:
-        identity_nodes.add(edge["chain_a"])
-        identity_nodes.add(edge["chain_b"])
-
-    visited = set()
-    component_node_sets: List[set[str]] = []
-    for start_node in sorted(identity_nodes):
-        if start_node in visited:
-            continue
-
-        stack = [start_node]
-        component_nodes = set()
-        while stack:
-            node = stack.pop()
-            if node in visited:
-                continue
-
-            visited.add(node)
-            component_nodes.add(node)
-            for neighbor in adjacency.get(node, set()):
-                if neighbor not in visited:
-                    stack.append(neighbor)
-
-        if component_nodes:
-            component_node_sets.append(component_nodes)
-
-    def _sanitize_filename_part(text: str) -> str:
-        allowed = []
-        for char in str(text):
-            if char.isalnum() or char in {"-", "_"}:
-                allowed.append(char)
-            else:
-                allowed.append("_")
-        sanitized = "".join(allowed).strip("_")
-        return sanitized or "Unknown"
-
-    def _make_component_network_title(component_nodes: set[str]) -> str:
-        component_uniprots = sorted({
-            chain_lookup[node_id].get("uniprot_id")
-            for node_id in component_nodes
-            if node_id in chain_lookup and chain_lookup[node_id].get("uniprot_id")
-        })
-
-        if not component_uniprots:
-            return "Combined_Network_Unknown"
-
-        sanitized_ids = [_sanitize_filename_part(uniprot_id) for uniprot_id in component_uniprots]
-        preview = "_".join(sanitized_ids[:5])
-        if len(sanitized_ids) > 5:
-            digest_source = "|".join(sanitized_ids).encode("utf-8")
-            digest = hashlib.md5(digest_source).hexdigest()[:8]
-            return f"Combined_Network_{preview}__{digest}"
-        return f"Combined_Network_{preview}"
+    component_node_sets = find_linked_components(results, identity_edges, valid_nodes=chain_lookup.keys())
 
     logger.info("Found %s interlinked component(s)", len(component_node_sets))
 
@@ -395,7 +373,12 @@ def _create_linked_identity_network(
             if edge["chain_a"] in component_nodes and edge["chain_b"] in component_nodes:
                 final_edges.append(edge)
 
-        network_title = _make_component_network_title(component_nodes)
+        component_uniprots = {
+            chain_lookup[node_id].get("uniprot_id")
+            for node_id in component_nodes
+            if node_id in chain_lookup and chain_lookup[node_id].get("uniprot_id")
+        }
+        network_title = make_component_title("Combined_Network", component_uniprots)
         logger.info(
             "Exporting component %s/%s: %s (%s chains, %s edges)",
             index,
@@ -423,6 +406,16 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]]) -> None:
         start_time = time.time()
         combined_data = _parse_input_files(file_paths)
         timings.parsing = time.time() - start_time
+        if not combined_data:
+            raise InputValidationError(
+                "NO_PARSEABLE_STRUCTURES",
+                "No input structure could be parsed successfully.",
+            )
+        if not any(structure.get("atom_data") for structure in combined_data):
+            raise InputValidationError(
+                "NO_VALID_CHAINS",
+                "Parsed structures did not contain supported protein or nucleic-acid polymer chains.",
+            )
 
         start_time = time.time()
         process_molecule_info(combined_data)

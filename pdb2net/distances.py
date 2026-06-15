@@ -18,6 +18,7 @@ Configuration
 - Distance thresholds are read from `config["distance_thresholds"]`:
   * "ca_radius"         → Cα cutoff for protein–protein prefilter
   * "all_atoms_radius"  → all-atom cutoff for confirmation / NA interactions
+- Minimum contact filters are read from `config["interaction_filters"]`.
 """
 
 from __future__ import annotations
@@ -175,7 +176,35 @@ def determine_interaction_type(mol_type_a: Optional[str], mol_type_b: Optional[s
     return None
 
 
-# Thresholds from configuration
+def _interaction_filters() -> Dict[str, int]:
+    """Return configured minimum contact filters with backward-compatible defaults."""
+    filters = config.get("interaction_filters", {})
+    if not isinstance(filters, dict):
+        filters = {}
+    return {
+        "protein_protein_min_ca_neighbors": int(filters.get("protein_protein_min_ca_neighbors", 10)),
+        "protein_protein_min_all_atom_contacts": int(filters.get("protein_protein_min_all_atom_contacts", 1)),
+        "protein_nucleic_acid_min_all_atom_contacts": int(
+            filters.get("protein_nucleic_acid_min_all_atom_contacts", 1)
+        ),
+        "nucleic_acid_min_all_atom_contacts": int(filters.get("nucleic_acid_min_all_atom_contacts", 1)),
+    }
+
+
+def _distance_thresholds() -> Tuple[float, float]:
+    thresholds = config["distance_thresholds"]
+    return float(thresholds["ca_radius"]), float(thresholds["all_atoms_radius"])
+
+
+def _required_all_atom_contacts(interaction_type: str, filters: Dict[str, int]) -> int:
+    if interaction_type == "Protein-Protein":
+        return filters["protein_protein_min_all_atom_contacts"]
+    if interaction_type.startswith("Protein-"):
+        return filters["protein_nucleic_acid_min_all_atom_contacts"]
+    return filters["nucleic_acid_min_all_atom_contacts"]
+
+
+# Backward-compatible module constants for callers that imported them directly.
 RADIUS_CA: float = float(config["distance_thresholds"]["ca_radius"])
 RADIUS_ALL_ATOMS: float = float(config["distance_thresholds"]["all_atoms_radius"])
 
@@ -186,9 +215,9 @@ def calculate_distances_with_ckdtree(combined_data: List[Dict[str, Any]]) -> Lis
     For each structure:
       1) Build or reuse KD-trees for "ca" and "all_atoms" per chain.
       2) Iterate over unique chain pairs (unordered) and infer interaction type.
-      3) For nucleic acids, count all-atom neighbors at `RADIUS_ALL_ATOMS`.
-      4) For proteins, require at least 10 Cα neighbors within `RADIUS_CA`,
-         then confirm with an all-atom neighbor count at `RADIUS_ALL_ATOMS`.
+      3) For nucleic acids, count all-atom neighbors at the configured radius.
+      4) For proteins, require the configured Cα-neighbor minimum first,
+         then confirm with the configured all-atom contact minimum.
       5) Emit a result for pairs that meet the criteria.
 
     Parameters
@@ -212,6 +241,8 @@ def calculate_distances_with_ckdtree(combined_data: List[Dict[str, Any]]) -> Lis
     results: List[Dict[str, Any]] = []
 
     nucleic_acid_types = {"Nucleic Acid", "DNA", "RNA", "DNA/RNA"}
+    radius_ca, radius_all_atoms = _distance_thresholds()
+    filters = _interaction_filters()
 
     for file_data in combined_data:
         file_path = file_data["file_path"]
@@ -250,9 +281,9 @@ def calculate_distances_with_ckdtree(combined_data: List[Dict[str, Any]]) -> Lis
                 all_atoms_count = count_nearby_atoms(
                     local_trees.get((chain_a["unique_chain_id"], "all_atoms")),
                     local_trees.get((chain_b["unique_chain_id"], "all_atoms")),
-                    radius=RADIUS_ALL_ATOMS,
+                    radius=radius_all_atoms,
                 )
-                if all_atoms_count:
+                if all_atoms_count >= _required_all_atom_contacts(interaction_type, filters):
                     results.append({
                         "file_path": file_path,
                         "chain_a": chain_a["unique_chain_id"],
@@ -266,15 +297,15 @@ def calculate_distances_with_ckdtree(combined_data: List[Dict[str, Any]]) -> Lis
             ca_neighbors = count_nearby_atoms(
                 local_trees.get((chain_a["unique_chain_id"], "ca")),
                 local_trees.get((chain_b["unique_chain_id"], "ca")),
-                radius=RADIUS_CA,
+                radius=radius_ca,
             )
-            if ca_neighbors >= 10:
+            if ca_neighbors >= filters["protein_protein_min_ca_neighbors"]:
                 all_atoms_count = count_nearby_atoms(
                     local_trees.get((chain_a["unique_chain_id"], "all_atoms")),
                     local_trees.get((chain_b["unique_chain_id"], "all_atoms")),
-                    radius=RADIUS_ALL_ATOMS,
+                    radius=radius_all_atoms,
                 )
-                if all_atoms_count:
+                if all_atoms_count >= filters["protein_protein_min_all_atom_contacts"]:
                     results.append({
                         "file_path": file_path,
                         "chain_a": chain_a["unique_chain_id"],

@@ -100,12 +100,17 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
         "PDB2NET_BLASTP": ("blastp_executable", str),
         "PDB2NET_OPEN_IN_CYTOSCAPE": ("open_in_cytoscape", _bool_from_env),
         "PDB2NET_EXPORT_DETAILED_INTERACTIONS": ("export_detailed_interactions", _bool_from_env),
+        "PDB2NET_STRUCTURE_MODEL_POLICY": ("structure_model_policy", str),
     }
     nested: Dict[str, Tuple[str, str]] = {
         "PDB2NET_WORKERS_PARSING": ("workers", "parsing"),
         "PDB2NET_WORKERS_BLAST": ("workers", "blast_threads"),
         "PDB2NET_CA_RADIUS": ("distance_thresholds", "ca_radius"),
         "PDB2NET_ALL_ATOMS_RADIUS": ("distance_thresholds", "all_atoms_radius"),
+        "PDB2NET_PP_MIN_CA_NEIGHBORS": ("interaction_filters", "protein_protein_min_ca_neighbors"),
+        "PDB2NET_PP_MIN_ALL_ATOM_CONTACTS": ("interaction_filters", "protein_protein_min_all_atom_contacts"),
+        "PDB2NET_PNA_MIN_ALL_ATOM_CONTACTS": ("interaction_filters", "protein_nucleic_acid_min_all_atom_contacts"),
+        "PDB2NET_NA_MIN_ALL_ATOM_CONTACTS": ("interaction_filters", "nucleic_acid_min_all_atom_contacts"),
     }
 
     for env, (key, caster) in flat.items():
@@ -165,6 +170,13 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
     cfg.setdefault("layout_mode", "python_fast")
     cfg.setdefault("layout_engine_path", "")
     cfg.setdefault("layout_keep_temp_files", False)
+    cfg.setdefault("structure_model_policy", "first")
+    if not isinstance(cfg.get("interaction_filters"), dict):
+        cfg["interaction_filters"] = {}
+    cfg["interaction_filters"].setdefault("protein_protein_min_ca_neighbors", 10)
+    cfg["interaction_filters"].setdefault("protein_protein_min_all_atom_contacts", 1)
+    cfg["interaction_filters"].setdefault("protein_nucleic_acid_min_all_atom_contacts", 1)
+    cfg["interaction_filters"].setdefault("nucleic_acid_min_all_atom_contacts", 1)
 
     # Create output folder proactively (if provided)
     out = cfg.get("output_path")

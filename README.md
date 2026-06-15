@@ -174,6 +174,11 @@ You can override individual settings via ENV:
 | `PDB2NET_WORKERS_BLAST`     | `workers.blast_threads` (`auto` or int)       |
 | `PDB2NET_CA_RADIUS`         | `distance_thresholds.ca_radius`               |
 | `PDB2NET_ALL_ATOMS_RADIUS`  | `distance_thresholds.all_atoms_radius`        |
+| `PDB2NET_PP_MIN_CA_NEIGHBORS` | `interaction_filters.protein_protein_min_ca_neighbors` |
+| `PDB2NET_PP_MIN_ALL_ATOM_CONTACTS` | `interaction_filters.protein_protein_min_all_atom_contacts` |
+| `PDB2NET_PNA_MIN_ALL_ATOM_CONTACTS` | `interaction_filters.protein_nucleic_acid_min_all_atom_contacts` |
+| `PDB2NET_NA_MIN_ALL_ATOM_CONTACTS` | `interaction_filters.nucleic_acid_min_all_atom_contacts` |
+| `PDB2NET_STRUCTURE_MODEL_POLICY` | `structure_model_policy` (`first` or `all`) |
 
 ## Examples:
 
@@ -193,6 +198,11 @@ export PDB2NET_OPEN_IN_CYTOSCAPE=false
 For server or read-only reference-data deployments, set `blast_cache_path` (or
 `PDB2NET_BLAST_CACHE_PATH`) to a writable SQLite file outside the BLAST database
 directory. If unset, PDB2Net keeps the previous default next to `blast_db_path`.
+
+For automated webserver jobs, keep `open_in_cytoscape: false`, set
+`blast_cache_path` to a writable cache directory, and leave
+`structure_model_policy: "first"` unless you intentionally want all models from
+multi-model structures represented as separate chain nodes.
 
 ## Run the Tool  
 Once all dependencies are installed, you can run the tool with:
@@ -259,5 +269,4 @@ If you have any questions or inquiries, please feel free to contact Hadeer Elhab
 
 # License
 - The **PDB2NET code** in this repository is licensed under the [MIT License](./LICENSE).
-
 

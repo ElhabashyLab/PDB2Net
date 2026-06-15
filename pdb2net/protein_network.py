@@ -24,10 +24,9 @@ Notes
 
 from __future__ import annotations
 
-import hashlib
-
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
+from .components import build_identity_edges, find_linked_components, make_component_title
 from .cytoscape import create_cytoscape_network
 from .residue_types import count_polymer_lengths
 
@@ -277,89 +276,25 @@ def create_protein_network(
             # NEW: protein per-PDB folder
             create_cytoscape_network([], f"Protein_Network_{pdb_id}", per_pdb_out, nodes_data=nodes)
 
-    def sanitize_filename_part(text: str) -> str:
-        allowed = []
-        for char in str(text):
-            if char.isalnum() or char in {"-", "_"}:
-                allowed.append(char)
-            else:
-                allowed.append("_")
-        sanitized = "".join(allowed).strip("_")
-        return sanitized or "Unknown"
-
     def make_combined_component_title(component_uniprots: Set[str]) -> str:
-        if not component_uniprots:
-            return "Combined_Protein_Network_Unknown"
-
-        sanitized_ids = [sanitize_filename_part(uniprot_id) for uniprot_id in sorted(component_uniprots)]
-        preview = "_".join(sanitized_ids[:5])
-        if len(sanitized_ids) > 5:
-            digest_source = "|".join(sanitized_ids).encode("utf-8")
-            digest = hashlib.md5(digest_source).hexdigest()[:8]
-            return f"Combined_Protein_Network_{preview}__{digest}"
-        return f"Combined_Protein_Network_{preview}"
+        return make_component_title("Combined_Protein_Network", component_uniprots)
 
     def find_interlinked_chain_components() -> List[Set[str]]:
         """Return chain components connected by interactions plus cross-PDB UniProt identity."""
-        identity_edges: List[Tuple[str, str]] = []
-        for up_id, pdb_ids in uniprot_to_pdb_ids.items():
-            if len(pdb_ids) < 2:
-                continue
+        uniprot_to_chain_ids: Dict[str, Set[str]] = {}
+        chain_to_pdb: Dict[str, str] = {}
+        valid_nodes = set(chain_info.keys())
 
-            chains = []
+        for up_id, pdb_ids in uniprot_to_pdb_ids.items():
             for pdb_id in pdb_ids:
                 for chain_id in uniprot_pdb_to_chains.get((up_id, pdb_id), set()):
                     uid = f"{pdb_id}:{chain_id}"
                     if uid in chain_info:
-                        chains.append(uid)
+                        uniprot_to_chain_ids.setdefault(up_id, set()).add(uid)
+                        chain_to_pdb[uid] = pdb_id
 
-            chains = sorted(chains)
-            for index in range(len(chains) - 1):
-                left = chains[index]
-                right = chains[index + 1]
-                if chain_info[left].get("pdb_id") != chain_info[right].get("pdb_id"):
-                    identity_edges.append((left, right))
-
-        if not identity_edges:
-            return []
-
-        adjacency: Dict[str, Set[str]] = {}
-
-        def add_edge(left: str, right: str) -> None:
-            adjacency.setdefault(left, set()).add(right)
-            adjacency.setdefault(right, set()).add(left)
-
-        for entry in results:
-            a, b = entry["chain_a"], entry["chain_b"]
-            if a in chain_info and b in chain_info:
-                add_edge(a, b)
-        for left, right in identity_edges:
-            add_edge(left, right)
-
-        identity_nodes = {node for edge in identity_edges for node in edge}
-        visited: Set[str] = set()
-        components: List[Set[str]] = []
-        for start_node in sorted(identity_nodes):
-            if start_node in visited:
-                continue
-
-            stack = [start_node]
-            component: Set[str] = set()
-            while stack:
-                node = stack.pop()
-                if node in visited:
-                    continue
-
-                visited.add(node)
-                component.add(node)
-                for neighbor in adjacency.get(node, set()):
-                    if neighbor not in visited:
-                        stack.append(neighbor)
-
-            if component:
-                components.append(component)
-
-        return components
+        identity_edges = build_identity_edges(uniprot_to_chain_ids, chain_to_pdb)
+        return find_linked_components(results, identity_edges, valid_nodes=valid_nodes)
 
     # --- Combined protein networks: same interlinked components as combined chain networks ---
     if make_combined:

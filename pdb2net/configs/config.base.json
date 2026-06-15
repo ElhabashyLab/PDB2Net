@@ -6,6 +6,13 @@
     "combined_protein_network": true
   },
   "distance_thresholds": { "ca_radius": 12.0, "all_atoms_radius": 5.0 },
+  "interaction_filters": {
+    "protein_protein_min_ca_neighbors": 10,
+    "protein_protein_min_all_atom_contacts": 1,
+    "protein_nucleic_acid_min_all_atom_contacts": 1,
+    "nucleic_acid_min_all_atom_contacts": 1
+  },
+  "structure_model_policy": "first",
   "workers": { "parsing": "auto", "blast_threads": "auto" },
   "layout_mode": "python_fast",
   "layout_engine_path": "",

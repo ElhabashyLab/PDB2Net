@@ -55,7 +55,8 @@ The check reports:
 
 - Python version
 - required Python packages
-- optional external commands such as `blastp`, `makeblastdb`, and `cytoscape`
+- optional external commands such as `blastp`, `makeblastdb`, `diamond`, and
+  `cytoscape`
 - whether configured local reference/input/output paths exist
 
 Missing Cytoscape is acceptable for headless checks. Missing BLAST tools or reference files only block the BLAST-backed annotation path, not pure code editing.

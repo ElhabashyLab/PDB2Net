@@ -98,8 +98,11 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
         "PDB2NET_BLAST_DB": ("blast_db_path", str),
         "PDB2NET_BLAST_CACHE_PATH": ("blast_cache_path", str),
         "PDB2NET_BLASTP": ("blastp_executable", str),
+        "PDB2NET_DIAMOND": ("diamond.executable", str),
+        "PDB2NET_DIAMOND_UNIREF90_DB": ("diamond.uniref90_db_path", str),
         "PDB2NET_OPEN_IN_CYTOSCAPE": ("open_in_cytoscape", _bool_from_env),
         "PDB2NET_EXPORT_DETAILED_INTERACTIONS": ("export_detailed_interactions", _bool_from_env),
+        "PDB2NET_DIAMOND_ENABLED": ("diamond.enabled", _bool_from_env),
         "PDB2NET_STRUCTURE_MODEL_POLICY": ("structure_model_policy", str),
     }
     nested: Dict[str, Tuple[str, str]] = {
@@ -116,7 +119,13 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
     for env, (key, caster) in flat.items():
         raw = os.environ.get(env)
         if raw:
-            cfg[key] = caster(raw) if callable(caster) else raw
+            value = caster(raw) if callable(caster) else raw
+            if "." in key:
+                first, second = key.split(".", 1)
+                cfg.setdefault(first, {})
+                cfg[first][second] = value
+            else:
+                cfg[key] = value
 
     for env, (k1, k2) in nested.items():
         raw = os.environ.get(env)
@@ -145,9 +154,15 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
         "blast_db_path",
         "blast_cache_path",
         "blastp_executable",
+        "diamond.uniref90_db_path",
+        "diamond.executable",
         "layout_engine_path",
     ]:
-        if key in cfg and cfg[key]:
+        if "." in key:
+            first, second = key.split(".", 1)
+            if isinstance(cfg.get(first), dict) and cfg[first].get(second):
+                cfg[first][second] = _normalize_path(cfg[first][second])
+        elif key in cfg and cfg[key]:
             cfg[key] = _normalize_path(cfg[key])
 
     # Headless/Container => disable Cytoscape by default (unless explicitly set)
@@ -171,6 +186,12 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
     cfg.setdefault("layout_engine_path", "")
     cfg.setdefault("layout_keep_temp_files", False)
     cfg.setdefault("structure_model_policy", "first")
+    cfg.setdefault("diamond", {})
+    cfg["diamond"].setdefault("enabled", False)
+    cfg["diamond"].setdefault("executable", "diamond")
+    cfg["diamond"].setdefault("uniref90_db_path", "")
+    cfg["diamond"].setdefault("max_target_seqs", 50)
+    cfg["diamond"].setdefault("assign_uniprot_id", "never")
     if not isinstance(cfg.get("interaction_filters"), dict):
         cfg["interaction_filters"] = {}
     cfg["interaction_filters"].setdefault("protein_protein_min_ca_neighbors", 10)

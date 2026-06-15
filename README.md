@@ -168,6 +168,9 @@ You can override individual settings via ENV:
 | `PDB2NET_BLAST_DB`          | `blast_db_path`                               |
 | `PDB2NET_BLAST_CACHE_PATH`  | `blast_cache_path` (optional SQLite cache)    |
 | `PDB2NET_BLASTP`            | `blastp_executable`                           |
+| `PDB2NET_DIAMOND_ENABLED`   | `diamond.enabled` (`true/false/1/0/yes/no`)   |
+| `PDB2NET_DIAMOND`           | `diamond.executable`                          |
+| `PDB2NET_DIAMOND_UNIREF90_DB` | `diamond.uniref90_db_path`                  |
 | `PDB2NET_OPEN_IN_CYTOSCAPE` | `open_in_cytoscape` (`true/false/1/0/yes/no`) |
 | `PDB2NET_EXPORT_DETAILED_INTERACTIONS` | `export_detailed_interactions` (`true/false/1/0/yes/no`) |
 | `PDB2NET_WORKERS_PARSING`   | `workers.parsing` (`auto` or int)             |
@@ -203,6 +206,33 @@ For automated webserver jobs, keep `open_in_cytoscape: false`, set
 `blast_cache_path` to a writable cache directory, and leave
 `structure_model_policy: "first"` unless you intentionally want all models from
 multi-model structures represented as separate chain nodes.
+
+### Optional DIAMOND/UniRef90 fallback
+
+PDB2Net can optionally run DIAMOND against a local UniRef90 DIAMOND database
+after the normal Swiss-Prot BLAST fallback fails to find an accepted hit. This
+fallback is disabled by default and does not download or build UniRef90 itself.
+
+When enabled, configure:
+
+```json
+{
+  "diamond": {
+    "enabled": true,
+    "executable": "diamond",
+    "uniref90_db_path": "/path/to/uniref90.dmnd",
+    "max_target_seqs": 50,
+    "assign_uniprot_id": "never"
+  }
+}
+```
+
+DIAMOND/UniRef90 hits are recorded with `annotation_source`,
+`matched_database`, `matched_id`, `representative_accession`, and
+`annotation_confidence`. By default they do not populate `uniprot_id`, keeping
+cross-PDB UniProt identity bridges limited to higher-confidence annotation
+sources unless you explicitly set `assign_uniprot_id` to `high_confidence` or
+`always`.
 
 ## Run the Tool
 
@@ -257,6 +287,7 @@ Valid PDB/mmCIF files found in `input_folder_path`
 | --------------------------- | ------------------------------------------------------------------------------ |
 | `runtime_analysis.txt`      | Timing summary (parsing, classification, BLAST, interaction, exports)          |
 | `manifest.json` / `run_summary.json` | Machine-readable run status, inputs, generated files, counts, config snapshot, contract/package versions, warnings, and errors |
+| `outputs/summary.json`      | Stable web-output summary with copied outputs, counts, status, config snapshot, warnings, and errors when `--web-output-dir` is used |
 | `*.cx2`                     | Cytoscape networks (Chain/Protein/Combined), portable CX2                      |
 | `detailed_interactions.csv` | Per-atom residue/atom distance pairs (if `export_detailed_interactions: true`) |
 | `error_in_batch_log/`                     | Batch/runtime logs                                                             |

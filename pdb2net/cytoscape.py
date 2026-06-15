@@ -427,6 +427,11 @@ def generate_nodes_from_atom_data(atom_data, pdb_id=None):
         mol_type = (chain.get("molecule_type") or "Unknown").strip()
         mol_name_full = chain.get("molecule_name") or "Unknown"
         up_id = chain.get("uniprot_id")
+        annotation_source = str(chain.get("annotation_source") or "")
+        matched_database = str(chain.get("matched_database") or "")
+        matched_id = str(chain.get("matched_id") or "")
+        representative_accession = str(chain.get("representative_accession") or "")
+        annotation_confidence = str(chain.get("annotation_confidence") or "")
         aa_len, nt_len = count_lengths(chain.get("residues"))
         node_pdb_id = str(pdb_id or chain.get("_parent_pdb_id") or uid_pdb_id or "")
         node_chain_id = str(chain.get("chain_id") or uid_chain_id or "")
@@ -446,6 +451,17 @@ def generate_nodes_from_atom_data(atom_data, pdb_id=None):
             details.append(f"PDB: {uid}")
         if up_id:
             details.append(f"UniProt: {up_id}")
+        if annotation_source:
+            annotation_label = annotation_source
+            if matched_database:
+                annotation_label = f"{annotation_label} / {matched_database}"
+            if annotation_confidence:
+                annotation_label = f"{annotation_label} ({annotation_confidence})"
+            details.append(f"Annotation: {annotation_label}")
+        if matched_id:
+            details.append(f"Matched ID: {matched_id}")
+        if representative_accession and representative_accession != up_id:
+            details.append(f"Representative accession: {representative_accession}")
         tooltip = "\n".join(details)
 
         nodes.append(
@@ -460,6 +476,11 @@ def generate_nodes_from_atom_data(atom_data, pdb_id=None):
                 "source_file": source_file,
                 "molecule_type": mol_type or "Unknown",
                 "uniprot_id": up_id or "",
+                "annotation_source": annotation_source,
+                "matched_database": matched_database,
+                "matched_id": matched_id,
+                "representative_accession": representative_accession,
+                "annotation_confidence": annotation_confidence,
                 "aa_len": aa_len,
                 "nt_len": nt_len,
                 "node_kind": "chain",

@@ -103,3 +103,4 @@ def test_collect_web_outputs_creates_stable_summary_networks_and_interactions(tm
     assert summary["networks"]
     assert summary["interactions"]
     assert summary["counts"] == {"networks": 3, "interactions": 1}
+    assert summary["config"]["open_in_cytoscape"] is False

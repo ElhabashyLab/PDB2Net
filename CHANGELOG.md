@@ -8,3 +8,5 @@
 - Release hardening for versioned output contracts, failed-run summaries,
   CLI error exit codes, reference-data preflight checks, and safer KDTree
   caching across multiple structures processed in one run.
+- Optional DIAMOND/UniRef90 fallback scaffolding for broader annotation without
+  bundling or downloading large external databases.

@@ -26,6 +26,13 @@
     "max_hsps": 1,
     "max_x_fraction": 0.2
   },
+  "diamond": {
+    "enabled": false,
+    "executable": "diamond",
+    "uniref90_db_path": "",
+    "max_target_seqs": 50,
+    "assign_uniprot_id": "never"
+  },
   "blast_cache_path": "",
   "keep_last_n_networks": 46,
   "export_detailed_interactions": false

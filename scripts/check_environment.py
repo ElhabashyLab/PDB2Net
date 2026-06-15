@@ -94,6 +94,14 @@ def _load_config_preview() -> dict[str, Any]:
         if os.environ.get(env_name):
             cfg[key] = os.environ[env_name]
 
+    cfg.setdefault("diamond", {})
+    if os.environ.get("PDB2NET_DIAMOND_ENABLED"):
+        cfg["diamond"]["enabled"] = os.environ["PDB2NET_DIAMOND_ENABLED"].strip().lower() in {"1", "true", "yes", "on"}
+    if os.environ.get("PDB2NET_DIAMOND"):
+        cfg["diamond"]["executable"] = os.environ["PDB2NET_DIAMOND"]
+    if os.environ.get("PDB2NET_DIAMOND_UNIREF90_DB"):
+        cfg["diamond"]["uniref90_db_path"] = os.environ["PDB2NET_DIAMOND_UNIREF90_DB"]
+
     return cfg
 
 
@@ -156,6 +164,22 @@ def main() -> int:
 
     blast_executable = cfg.get("blastp_executable", "blastp")
     print(f"  blastp_executable: {blast_executable}")
+    diamond_cfg = cfg.get("diamond", {}) if isinstance(cfg.get("diamond", {}), dict) else {}
+    if diamond_cfg.get("enabled"):
+        diamond_executable = str(diamond_cfg.get("executable") or "diamond")
+        diamond_db = _expand_path(diamond_cfg.get("uniref90_db_path"))
+        diamond_found = shutil.which(diamond_executable) or (
+            diamond_executable if Path(diamond_executable).exists() else None
+        )
+        diamond_db_ok = bool(diamond_db) and (diamond_db.exists() or Path(str(diamond_db) + ".dmnd").exists())
+        if not diamond_found:
+            missing_external.append("diamond")
+        if not diamond_db_ok:
+            missing_paths.append("diamond.uniref90_db_path")
+        print(f"  diamond_executable: {diamond_executable} ({diamond_found or 'missing'})")
+        print(f"  diamond.uniref90_db_path: {diamond_db or 'missing'} ({_status(bool(diamond_db_ok))})")
+    else:
+        print("  diamond_uniref90: disabled")
     print()
 
     if missing_python:

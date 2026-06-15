@@ -7,6 +7,13 @@
   "blast_db_path": "$HOME/pdb2net/reference/blast_db",
   "blast_cache_path": "$HOME/pdb2net/cache/blast_cache.sqlite3",
   "blastp_executable": "blastp",
+  "diamond": {
+    "enabled": false,
+    "executable": "diamond",
+    "uniref90_db_path": "$HOME/pdb2net/reference/uniref90.dmnd",
+    "max_target_seqs": 50,
+    "assign_uniprot_id": "never"
+  },
   "layout_mode": "python_fast",
   "layout_engine_path": "",
   "layout_keep_temp_files": false,

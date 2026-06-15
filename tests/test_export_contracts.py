@@ -155,3 +155,36 @@ def test_chain_nodes_include_filterable_source_metadata() -> None:
     assert node["uniprot_id"] == "P0DTC2"
     assert node["aa_len"] == 1
     assert node["nt_len"] == 1
+
+
+def test_chain_nodes_include_diamond_annotation_metadata() -> None:
+    nodes = generate_nodes_from_atom_data(
+        [
+            {
+                "unique_chain_id": "TST1:A",
+                "chain_id": "A",
+                "_parent_pdb_id": "TST1",
+                "_parent_file_label": "model.cif",
+                "molecule_type": "Protein",
+                "molecule_name": "Example oxidase",
+                "uniprot_id": None,
+                "annotation_source": "diamond_uniref90",
+                "matched_database": "UniRef90",
+                "matched_id": "UniRef90_P12345",
+                "representative_accession": "P12345",
+                "annotation_confidence": "high",
+                "residues": [{"residue_name": "ALA"}],
+            }
+        ],
+        pdb_id="TST1",
+    )
+
+    node = nodes[0]
+    assert node["annotation_source"] == "diamond_uniref90"
+    assert node["matched_database"] == "UniRef90"
+    assert node["matched_id"] == "UniRef90_P12345"
+    assert node["representative_accession"] == "P12345"
+    assert node["annotation_confidence"] == "high"
+    assert "Annotation: diamond_uniref90 / UniRef90 (high)" in node["tooltip"]
+    assert "Matched ID: UniRef90_P12345" in node["tooltip"]
+    assert "Representative accession: P12345" in node["tooltip"]

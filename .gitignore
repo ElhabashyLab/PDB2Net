@@ -42,5 +42,8 @@ blast_db/
 *.psd
 *.psi
 *.psr
+*.dmnd
+uniref*.fasta
+uniref*.fasta.gz
 
 pdb2net/configs/config.local.json

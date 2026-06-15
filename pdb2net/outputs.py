@@ -228,6 +228,7 @@ def collect_web_outputs(output_paths: RunOutputPaths, web_output_dir: str) -> di
             "networks": len(copied_networks),
             "interactions": len(copied_interactions),
         },
+        "config": internal_summary.get("config", {}),
         "errors": internal_summary.get("errors", []),
         "warnings": internal_summary.get("warnings", []),
     }

@@ -21,6 +21,16 @@ def test_run_help_includes_backend_output_option(capsys) -> None:
     assert "--web-output-dir" in captured.out
 
 
+def test_run_help_includes_optional_diamond_flags(capsys) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["run", "--help"])
+
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "--diamond-uniref90" in captured.out
+    assert "--diamond-uniref90-db" in captured.out
+
+
 def test_run_returns_nonzero_for_missing_input_dir(tmp_path, capsys) -> None:
     exit_code = main([
         "run",

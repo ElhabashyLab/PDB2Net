@@ -33,7 +33,13 @@ from .outputs import (
 )
 from .protein_network import create_protein_network
 from .residue_types import NUCLEIC_ACID_TYPES
-from .uniprot_matcher import extract_direct_uniprot_accession, parallel_blast_search
+from .uniprot_matcher import (
+    diamond_uniref90_enabled,
+    extract_direct_uniprot_accession,
+    get_diamond_executable,
+    get_diamond_uniref90_db_path,
+    parallel_blast_search,
+)
 from .unknown_molecule_uniprot import process_molecule_info
 
 
@@ -213,6 +219,26 @@ def _validate_blast_ready_if_needed(combined_data: List[Dict[str, Any]]) -> None
             f"Missing: {', '.join(missing)}",
         )
 
+    if diamond_uniref90_enabled():
+        diamond = get_diamond_executable()
+        if os.path.sep in diamond or (os.path.altsep and os.path.altsep in diamond):
+            diamond_ok = os.path.exists(diamond)
+        else:
+            diamond_ok = shutil.which(diamond) is not None
+        if not diamond_ok:
+            raise InputValidationError("DIAMOND_NOT_FOUND", f"DIAMOND executable is not available: {diamond}")
+
+        diamond_db_path = get_diamond_uniref90_db_path()
+        diamond_db_ok = bool(diamond_db_path) and (
+            os.path.exists(diamond_db_path) or os.path.exists(diamond_db_path + ".dmnd")
+        )
+        if not diamond_db_ok:
+            raise InputValidationError(
+                "DIAMOND_DATABASE_MISSING",
+                "DIAMOND/UniRef90 fallback is enabled but the DIAMOND database is missing. "
+                f"Configure diamond.uniref90_db_path or PDB2NET_DIAMOND_UNIREF90_DB. Path: {diamond_db_path}",
+            )
+
 
 def _export_detailed_interaction_tables(
     combined_data: List[Dict[str, Any]],
@@ -309,6 +335,7 @@ def _config_snapshot(network_config: Dict[str, Any]) -> Dict[str, Any]:
         "open_in_cytoscape": config.get("open_in_cytoscape"),
         "export_detailed_interactions": config.get("export_detailed_interactions", False),
         "blast_cache_path": config.get("blast_cache_path", ""),
+        "diamond": config.get("diamond", {}),
     }
 
 

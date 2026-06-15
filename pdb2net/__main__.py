@@ -33,12 +33,33 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--sifts-tsv", help="Path to SIFTS pdb_chain_uniprot.tsv.")
     run.add_argument("--blast-db", help="Folder containing the UniProt BLAST database prefix uniprot_db.")
     run.add_argument("--blastp", help="blastp executable name or path.")
+    run.add_argument("--diamond", help="DIAMOND executable name or path for optional UniRef90 fallback.")
+    run.add_argument("--diamond-uniref90-db", help="DIAMOND UniRef90 database path or prefix for optional fallback.")
+    run.add_argument(
+        "--diamond-assign-uniprot-id",
+        choices=["never", "high_confidence", "always"],
+        help="Whether DIAMOND/UniRef90 fallback hits may populate uniprot_id.",
+    )
     run.add_argument("--ca-radius", type=float, help="C-alpha distance radius in Angstrom.")
     run.add_argument("--all-atoms-radius", type=float, help="All-atoms distance radius in Angstrom.")
     _add_bool_pair(run, "chain-per-pdb", "chain_per_pdb", "Export per-PDB chain networks.")
     _add_bool_pair(run, "protein-per-pdb", "protein_per_pdb", "Export per-PDB protein networks.")
     _add_bool_pair(run, "combined-chain-network", "combined_chain_network", "Export combined chain networks.")
     _add_bool_pair(run, "combined-protein-network", "combined_protein_network", "Export combined protein networks.")
+    diamond_group = run.add_mutually_exclusive_group()
+    diamond_group.add_argument(
+        "--diamond-uniref90",
+        dest="diamond_uniref90",
+        action="store_true",
+        help="Use optional DIAMOND/UniRef90 fallback.",
+    )
+    diamond_group.add_argument(
+        "--no-diamond-uniref90",
+        dest="diamond_uniref90",
+        action="store_false",
+        help="Disable optional DIAMOND/UniRef90 fallback.",
+    )
+    run.set_defaults(diamond_uniref90=None)
     _add_bool_pair(
         run,
         "export-detailed-interactions",
@@ -64,6 +85,16 @@ def _apply_run_overrides(args: argparse.Namespace, config: dict[str, Any]) -> No
     for key, value in path_options.items():
         if value:
             config[key] = str(Path(value).expanduser()) if key != "blastp_executable" else value
+
+    config.setdefault("diamond", {})
+    if args.diamond:
+        config["diamond"]["executable"] = args.diamond
+    if args.diamond_uniref90_db:
+        config["diamond"]["uniref90_db_path"] = str(Path(args.diamond_uniref90_db).expanduser())
+    if args.diamond_assign_uniprot_id:
+        config["diamond"]["assign_uniprot_id"] = args.diamond_assign_uniprot_id
+    if args.diamond_uniref90 is not None:
+        config["diamond"]["enabled"] = args.diamond_uniref90
 
     if args.headless:
         config["open_in_cytoscape"] = False

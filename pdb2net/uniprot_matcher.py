@@ -158,7 +158,7 @@ def _diag_print_summary() -> None:
         print("")
 
 
-# --- Persistent BLAST cache (sequence → selected BlastHit / NO_HIT) ---
+# --- Persistent sequence-search cache (sequence → selected BlastHit / NO_HIT) ---
 #
 # This cache is used to avoid re-running BLAST for identical sequences across:
 #   - multiple chains within one batch/run (dedupe is handled separately), and
@@ -183,20 +183,31 @@ _CACHE_DB_SIG: str | None = None
 
 
 def _db_signature() -> str:
-    """Compute a lightweight signature for the current UniProt/BLAST database."""
+    """Compute a lightweight signature for the active sequence-search databases."""
     try:
         st = os.stat(UNIPROT_FASTA_PATH)
-        return f"uniprot_fasta:{st.st_size}:{st.st_mtime_ns}"
+        swissprot_sig = f"uniprot_fasta:{st.st_size}:{st.st_mtime_ns}"
     except Exception:
-        pass
+        swissprot_sig = ""
 
-    try:
-        st = os.stat(os.path.join(BLAST_DB_PATH, "uniprot_db.pin"))
-        return f"blast_db:{st.st_size}:{st.st_mtime_ns}"
-    except Exception:
-        pass
+    if not swissprot_sig:
+        try:
+            st = os.stat(os.path.join(BLAST_DB_PATH, "uniprot_db.pin"))
+            swissprot_sig = f"blast_db:{st.st_size}:{st.st_mtime_ns}"
+        except Exception:
+            swissprot_sig = "unknown"
 
-    return "unknown"
+    diamond_sig = "diamond:off"
+    if diamond_uniref90_enabled():
+        db_path = get_diamond_uniref90_db_path()
+        db_file = db_path if os.path.exists(db_path) else db_path + ".dmnd"
+        try:
+            st = os.stat(db_file)
+            diamond_sig = f"diamond_uniref90:{db_file}:{st.st_size}:{st.st_mtime_ns}"
+        except Exception:
+            diamond_sig = f"diamond_uniref90:{db_path}:missing"
+
+    return f"{swissprot_sig}|{diamond_sig}"
 
 
 def _seq_cache_key(sequence: str) -> str:
@@ -235,10 +246,26 @@ def _cache_init() -> None:
                 "qcov REAL, "
                 "pident REAL, "
                 "title TEXT, "
+                "source TEXT, "
+                "database_name TEXT, "
+                "matched_id TEXT, "
+                "representative_accession TEXT, "
+                "confidence TEXT, "
                 "updated_at TEXT, "
                 "PRIMARY KEY (db_sig, seq_key)"
                 ")"
             )
+            for ddl in [
+                "ALTER TABLE blast_cache ADD COLUMN source TEXT",
+                "ALTER TABLE blast_cache ADD COLUMN database_name TEXT",
+                "ALTER TABLE blast_cache ADD COLUMN matched_id TEXT",
+                "ALTER TABLE blast_cache ADD COLUMN representative_accession TEXT",
+                "ALTER TABLE blast_cache ADD COLUMN confidence TEXT",
+            ]:
+                try:
+                    conn.execute(ddl)
+                except sqlite3.OperationalError:
+                    pass
             conn.execute("CREATE INDEX IF NOT EXISTS idx_blast_cache_seq_key ON blast_cache(seq_key)")
             conn.commit()
             _CACHE_CONN = conn
@@ -262,7 +289,8 @@ def _cache_get(seq_key: str) -> Tuple[bool, Optional["BlastHit"]]:
             if _CACHE_CONN is None or _CACHE_DB_SIG is None:
                 return (False, None)
             row = _CACHE_CONN.execute(
-                "SELECT has_hit, accession, reviewed, bitscore, evalue, qcov, pident, title "
+                "SELECT has_hit, accession, reviewed, bitscore, evalue, qcov, pident, title, "
+                "source, database_name, matched_id, representative_accession, confidence "
                 "FROM blast_cache WHERE db_sig=? AND seq_key=?",
                 (_CACHE_DB_SIG, seq_key),
             ).fetchone()
@@ -284,6 +312,11 @@ def _cache_get(seq_key: str) -> Tuple[bool, Optional["BlastHit"]]:
                 qcov=float(row[5] or 0.0),
                 pident=float(row[6] or 0.0),
                 title=str(row[7] or ""),
+                source=str(row[8] or "blastp_swissprot"),
+                database=str(row[9] or "Swiss-Prot"),
+                matched_id=str(row[10] or row[1] or ""),
+                representative_accession=str(row[11] or row[1] or ""),
+                confidence=str(row[12] or "high"),
             ),
         )
     except Exception:
@@ -313,8 +346,9 @@ def _cache_put(seq_key: str, hit: Optional["BlastHit"]) -> None:
             else:
                 _CACHE_CONN.execute(
                     "INSERT OR REPLACE INTO blast_cache "
-                    "(db_sig, seq_key, has_hit, accession, reviewed, bitscore, evalue, qcov, pident, title, updated_at) "
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                    "(db_sig, seq_key, has_hit, accession, reviewed, bitscore, evalue, qcov, pident, title, "
+                    "source, database_name, matched_id, representative_accession, confidence, updated_at) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (
                         _CACHE_DB_SIG,
                         seq_key,
@@ -326,6 +360,11 @@ def _cache_put(seq_key: str, hit: Optional["BlastHit"]) -> None:
                         float(hit.qcov),
                         float(hit.pident),
                         hit.title or "",
+                        hit.source,
+                        hit.database,
+                        hit.matched_id or hit.accession,
+                        hit.representative_accession or hit.accession,
+                        hit.confidence,
                         now,
                     ),
                 )
@@ -337,7 +376,7 @@ def _cache_put(seq_key: str, hit: Optional["BlastHit"]) -> None:
 
 @dataclass(frozen=True)
 class BlastHit:
-    """Selected BLAST hit used for chain→UniProt assignment."""
+    """Selected sequence-search hit used for chain annotation."""
     accession: str
     reviewed: bool
     bitscore: float
@@ -345,6 +384,31 @@ class BlastHit:
     qcov: float
     pident: float
     title: str = ""
+    source: str = "blastp_swissprot"
+    database: str = "Swiss-Prot"
+    matched_id: str = ""
+    representative_accession: str = ""
+    confidence: str = "high"
+
+
+def _diamond_config() -> Dict[str, Any]:
+    raw = config.get("diamond", {})
+    return raw if isinstance(raw, dict) else {}
+
+
+def diamond_uniref90_enabled() -> bool:
+    """Return whether the optional DIAMOND/UniRef90 fallback is enabled."""
+    return bool(_diamond_config().get("enabled", False))
+
+
+def get_diamond_executable() -> str:
+    """Return the configured DIAMOND executable name or path."""
+    return str(_diamond_config().get("executable") or "diamond")
+
+
+def get_diamond_uniref90_db_path() -> str:
+    """Return the configured DIAMOND UniRef90 database path/prefix."""
+    return str(_diamond_config().get("uniref90_db_path") or "")
 
 
 def extract_direct_uniprot_accession(file_path_or_id: str) -> Optional[str]:
@@ -517,8 +581,8 @@ def _protein_name_from_uniprot_title(stitle: str) -> Optional[str]:
     return None
 
 
-def run_blast_search(query_sequence: str, label: str = "", debug: bool = False) -> Optional[BlastHit]:
-    """Run BLASTP for a given protein sequence and return a robust UniProt match."""
+def _run_blastp_swissprot_search(query_sequence: str, label: str = "", debug: bool = False) -> Optional[BlastHit]:
+    """Run BLASTP for a given protein sequence and return a robust Swiss-Prot match."""
     debug = bool(debug or _DEBUG_BLAST)
 
     _diag_inc("blast_calls")
@@ -816,6 +880,11 @@ def run_blast_search(query_sequence: str, label: str = "", debug: bool = False) 
                 qcov=best_qcov,
                 pident=best_pident,
                 title=best_title,
+                source="blastp_swissprot",
+                database="Swiss-Prot",
+                matched_id=best_acc,
+                representative_accession=best_acc,
+                confidence="high",
             )
 
     except Exception as e:
@@ -823,6 +892,166 @@ def run_blast_search(query_sequence: str, label: str = "", debug: bool = False) 
         if debug:
             print(f"{prefix} EXCEPTION: {e}")
         return None
+
+
+def _extract_uniref90_representative(sseqid: str, title: str = "") -> Tuple[str, str]:
+    """Return (matched UniRef90 ID, representative accession) from a DIAMOND subject ID."""
+    matched_id = str(sseqid or "").strip().split()[0]
+    representative = ""
+
+    if matched_id.startswith("UniRef90_"):
+        representative = matched_id[len("UniRef90_"):]
+    else:
+        match = re.search(r"(UniRef90_[A-Za-z0-9_.-]+)", f"{sseqid} {title}")
+        if match:
+            matched_id = match.group(1)
+            representative = matched_id[len("UniRef90_"):]
+
+    if not representative:
+        accession_match = re.search(_UNIPROT_ACCESSION_PATTERN, f"{sseqid} {title}")
+        if accession_match:
+            representative = accession_match.group(0)
+
+    return matched_id or representative, representative
+
+
+def _diamond_thresholds(qlen: int) -> Tuple[float, float, float, float]:
+    """Return e-value, qcov, pident, and bitscore thresholds for DIAMOND fallback."""
+    if qlen < 80:
+        return 1e-6, 0.85, 35.0, 60.0
+    if qlen < 200:
+        return 1e-10, 0.70, 30.0, 70.0
+    return 1e-20, 0.60, 25.0, 80.0
+
+
+def _run_diamond_uniref90_search(query_sequence: str, label: str = "", debug: bool = False) -> Optional[BlastHit]:
+    """Run optional DIAMOND search against UniRef90 and return a conservative fallback hit."""
+    if not diamond_uniref90_enabled():
+        return None
+
+    debug = bool(debug or _DEBUG_BLAST)
+    qlen0 = len(query_sequence)
+    max_evalue, min_query_coverage, min_pident, min_bitscore = _diamond_thresholds(qlen0)
+    max_targets = int(_diamond_config().get("max_target_seqs", 50))
+    executable = get_diamond_executable()
+    db_path = get_diamond_uniref90_db_path()
+    unique_id = str(uuid.uuid4())[:8]
+    prefix = f"[DIAMONDDBG][{label or unique_id}]"
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="pdb2net-diamond-") as temp_dir:
+            query_file = os.path.join(temp_dir, f"query_{unique_id}.fasta")
+            output_file = os.path.join(temp_dir, f"diamond_results_{unique_id}.txt")
+
+            with open(query_file, "w", encoding="utf-8") as handle:
+                handle.write(f">query\n{query_sequence}\n")
+
+            cmd = [
+                executable,
+                "blastp",
+                "--db", db_path,
+                "--query", query_file,
+                "--out", output_file,
+                "--evalue", str(max_evalue),
+                "--max-target-seqs", str(max_targets),
+                "--outfmt", "6", "qseqid", "sseqid", "pident", "length",
+                "qstart", "qend", "qlen", "evalue", "bitscore", "stitle",
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode != 0:
+                _diag_inc("diamond_error")
+                if debug:
+                    stderr = (result.stderr or "").strip()
+                    print(f"{prefix} DIAMOND ERROR returncode={result.returncode} stderr={stderr[:400]}")
+                return None
+
+            if not os.path.exists(output_file):
+                _diag_inc("diamond_no_output")
+                return None
+
+            best_per_match: Dict[str, Tuple[float, float, float, float, str, str, str]] = {}
+            seen_any = False
+            with open(output_file, "r", encoding="utf-8") as handle:
+                for line in handle:
+                    cols = line.rstrip("\n").split("\t")
+                    if len(cols) < 10:
+                        continue
+
+                    sseqid = cols[1].strip()
+                    try:
+                        pident = float(cols[2])
+                        qstart = int(float(cols[4]))
+                        qend = int(float(cols[5]))
+                        qlen = int(float(cols[6]))
+                        evalue = float(cols[7])
+                        bitscore = float(cols[8])
+                        title = cols[9]
+                    except Exception:
+                        continue
+
+                    if qlen <= 0:
+                        continue
+
+                    seen_any = True
+                    qcov = max(0.0, min(1.0, (abs(qend - qstart) + 1) / float(qlen)))
+                    if evalue > max_evalue or qcov < min_query_coverage or pident < min_pident or bitscore < min_bitscore:
+                        continue
+
+                    matched_id, representative = _extract_uniref90_representative(sseqid, title)
+                    if not matched_id:
+                        continue
+
+                    cur = (bitscore, -evalue, qcov, pident, matched_id, representative, title)
+                    prev = best_per_match.get(matched_id)
+                    if prev is None or cur[:4] > prev[:4]:
+                        best_per_match[matched_id] = cur
+
+            if not seen_any:
+                _diag_inc("diamond_fail_no_hits")
+                return None
+            if not best_per_match:
+                _diag_inc("diamond_fail_thresholds")
+                return None
+
+            ranked = sorted(best_per_match.values(), reverse=True)
+            best_bitscore, neg_evalue, best_qcov, best_pident, best_id, representative, best_title = ranked[0]
+            best_evalue = -neg_evalue
+
+            dynamic_margin = max(4.0, min(10.0, best_bitscore * 0.05))
+            if len(ranked) > 1 and (best_bitscore - ranked[1][0]) <= dynamic_margin:
+                if not (best_pident >= 99.0 and best_qcov >= 0.95):
+                    _diag_inc("diamond_fail_ambiguous_margin")
+                    return None
+
+            confidence = "high" if best_pident >= 95.0 and best_qcov >= 0.90 and best_evalue <= 1e-20 else "medium"
+            _diag_inc("diamond_accepted")
+            return BlastHit(
+                accession=representative or best_id,
+                reviewed=False,
+                bitscore=best_bitscore,
+                evalue=best_evalue,
+                qcov=best_qcov,
+                pident=best_pident,
+                title=best_title,
+                source="diamond_uniref90",
+                database="UniRef90",
+                matched_id=best_id,
+                representative_accession=representative,
+                confidence=confidence,
+            )
+    except Exception as exc:
+        _diag_inc("diamond_exception")
+        if debug:
+            print(f"{prefix} EXCEPTION: {exc}")
+        return None
+
+
+def run_blast_search(query_sequence: str, label: str = "", debug: bool = False) -> Optional[BlastHit]:
+    """Run Swiss-Prot BLASTP, then optional DIAMOND/UniRef90 fallback."""
+    hit = _run_blastp_swissprot_search(query_sequence, label=label, debug=debug)
+    if hit is not None:
+        return hit
+    return _run_diamond_uniref90_search(query_sequence, label=label, debug=debug)
 
 
 def classify_molecule_type(chain_data: Dict[str, Any], label: str = "", debug: bool = False) -> str:
@@ -887,19 +1116,38 @@ def parallel_blast_search(parsed_data: List[Dict[str, Any]], max_workers: int = 
 
     def _apply_result(chain: Dict[str, Any], label: str, hit: Optional[BlastHit]) -> None:
         if hit:
-            chain["uniprot_id"] = hit.accession
+            chain["annotation_source"] = hit.source
+            chain["matched_database"] = hit.database
+            chain["matched_id"] = hit.matched_id or hit.accession
+            chain["representative_accession"] = hit.representative_accession or hit.accession
+            chain["annotation_confidence"] = hit.confidence
+
+            assign_uniprot = True
+            if hit.source == "diamond_uniref90":
+                assign_policy = str(_diamond_config().get("assign_uniprot_id", "never")).strip().lower()
+                assign_uniprot = assign_policy == "always" or (
+                    assign_policy == "high_confidence" and hit.confidence == "high"
+                )
+
+            if assign_uniprot:
+                chain["uniprot_id"] = hit.accession
             chain["molecule_type"] = "Protein"
 
             name = _protein_name_from_uniprot_title(hit.title) if hit.title else None
             if name:
                 chain["molecule_name"] = name
             else:
-                chain["molecule_name"] = f"Matched UniProt: {hit.accession}"
+                chain["molecule_name"] = (
+                    f"Matched {hit.database}: {hit.matched_id or hit.accession}"
+                    if hit.source == "diamond_uniref90"
+                    else f"Matched UniProt: {hit.accession}"
+                )
 
             if debug:
-                src = "sp" if hit.reviewed else "tr/unk"
+                src = hit.source
                 print(
-                    f"[BLASTRES][{label}] HIT: {src}|{hit.accession} qcov={hit.qcov:.2f} pid={hit.pident:.1f} → molecule_type=Protein"
+                    f"[BLASTRES][{label}] HIT: {src}|{hit.accession} qcov={hit.qcov:.2f} "
+                    f"pid={hit.pident:.1f} conf={hit.confidence} → molecule_type=Protein"
                 )
         else:
             if debug:

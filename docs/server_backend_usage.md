@@ -38,9 +38,17 @@ Provide reference data through `pdb2net/configs/config.local.json`, an explicit
 - `PDB2NET_BLASTP`: `blastp` executable path or command name
 - `PDB2NET_BLAST_CACHE_PATH`: writable SQLite cache path, recommended for
   server deployments
+- Optional DIAMOND/UniRef90 fallback:
+  - `PDB2NET_DIAMOND_ENABLED=true`
+  - `PDB2NET_DIAMOND`: `diamond` executable path or command name
+  - `PDB2NET_DIAMOND_UNIREF90_DB`: local UniRef90 `.dmnd` path or prefix
 
 Use `--headless` or `PDB2NET_OPEN_IN_CYTOSCAPE=false` for web jobs. A running
 Cytoscape desktop UI should not be required on servers.
+
+If DIAMOND/UniRef90 is enabled, the worker image or host must provision the
+DIAMOND executable and database ahead of time. PDB2Net validates the configured
+paths but does not download UniRef90 or build the `.dmnd` database.
 
 ## Output Contract
 
@@ -70,8 +78,26 @@ outputs/
 `summary.json` lists copied network files, interaction tables, counts, runtime
 analysis, warnings, and errors. It also includes `output_contract_version`
 and `pdb2net_version` so workers can detect the summary structure they are
-reading. Future webserver code can rely on this filesystem contract while
-keeping database and job status logic outside the PDB2Net core.
+reading. The `config` object mirrors the relevant runtime settings from the
+internal `run_summary.json`, which lets a web UI show the exact defaults or
+advanced settings used for a job. Future webserver code can rely on this
+filesystem contract while keeping database and job status logic outside the
+PDB2Net core.
+
+## Web UI Settings Model
+
+The recommended webserver model is:
+
+- keep the default submission form simple and do not expose scientific tuning
+  unless the user opens advanced settings
+- validate advanced settings in the webserver worker
+- write validated values into a per-job JSON config
+- pass that config with `--config <job>/pdb2net_config.json`
+
+Good first advanced settings are distance/contact thresholds, selected network
+types, detailed interaction export, and the optional DIAMOND/UniRef90 fallback.
+Do not pass arbitrary user-provided shell strings to PDB2Net. Keep reference
+data paths, DIAMOND database paths, and executable paths server-controlled.
 
 ## Notes For Workers
 
@@ -80,4 +106,5 @@ keeping database and job status logic outside the PDB2Net core.
 - Do not require Cytoscape for automated jobs.
 - Treat non-zero process exit as a failed job, then inspect
   `outputs/summary.json` or the internal `run_summary.json` when present.
-- Keep large reference datasets and BLAST databases outside git.
+- Keep large reference datasets, BLAST databases, and DIAMOND databases outside
+  git.

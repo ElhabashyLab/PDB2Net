@@ -157,6 +157,47 @@ def test_blast_preflight_skips_when_no_fallback_needed(tmp_path: Path, monkeypat
     pipeline._validate_blast_ready_if_needed(combined_data)
 
 
+def test_diamond_preflight_fails_when_enabled_database_is_missing(tmp_path: Path, monkeypatch) -> None:
+    blast_db = tmp_path / "blast_db"
+    blast_db.mkdir()
+    for suffix in [".pin", ".phr", ".psq"]:
+        (blast_db / f"uniprot_db{suffix}").write_text("x", encoding="utf-8")
+
+    monkeypatch.setitem(pipeline.config, "blastp_executable", "blastp")
+    monkeypatch.setitem(pipeline.config, "blast_db_path", str(blast_db))
+    monkeypatch.setitem(
+        pipeline.config,
+        "diamond",
+        {
+            "enabled": True,
+            "executable": "diamond",
+            "uniref90_db_path": str(tmp_path / "missing_uniref90.dmnd"),
+            "max_target_seqs": 50,
+            "assign_uniprot_id": "never",
+        },
+    )
+    monkeypatch.setattr(pipeline.shutil, "which", lambda _name: "/usr/bin/tool")
+    combined_data = [
+        {
+            "pdb_id": "TST1",
+            "atom_data": [
+                {
+                    "chain_id": "A",
+                    "unique_chain_id": "TST1:A",
+                    "molecule_type": "Protein",
+                    "uniprot_id": None,
+                    "residues": [{"residue_name": "ALA"}],
+                }
+            ],
+        }
+    ]
+
+    with pytest.raises(InputValidationError) as exc_info:
+        pipeline._validate_blast_ready_if_needed(combined_data)
+
+    assert exc_info.value.code == "DIAMOND_DATABASE_MISSING"
+
+
 def test_blast_preflight_skips_single_chain_direct_uniprot_filename(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setitem(pipeline.config, "blast_db_path", str(tmp_path / "missing_db"))
     combined_data = [

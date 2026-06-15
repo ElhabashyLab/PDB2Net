@@ -38,6 +38,7 @@ Use `config.local.json` or environment variables for machine-specific paths. Do 
 ## Output Contract
 
 - Internal runs use timestamped folders with `combined/`, `protein/`, `chain/`, `distances/`, `runtime_analysis.txt`, `manifest.json`, and `run_summary.json`.
+- Web `summary.json` should include copied outputs, counts, status, warnings/errors, package/contract versions, and the relevant runtime `config` snapshot.
 - When adding output types, update `run_summary.json` and the web-output adapter.
 - If `--web-output-dir` is used, preserve this stable structure:
 
@@ -57,11 +58,13 @@ outputs/
 - Do not require a running Cytoscape UI for verification.
 - Prefer tiny fixtures, headless CX2 export, and focused import/unit checks when validating changes.
 - BLAST work requires external `blastp`, `makeblastdb`, a Swiss-Prot FASTA, and a built BLAST database.
+- Optional DIAMOND/UniRef90 fallback work requires external `diamond` and a local `.dmnd` database; do not download or build UniRef90 unless explicitly requested.
 
 ## Code Style
 
 - Keep changes scoped to the requested behavior.
 - Preserve the current config layering and headless behavior.
+- Keep optional DIAMOND/UniRef90 fallback disabled by default and clearly marked as lower-confidence annotation unless explicitly configured otherwise.
 - Preserve scientific behavior unless the user explicitly asks for scientific changes.
 - Avoid introducing global side effects at import time beyond the existing config-loading pattern unless the surrounding code is being intentionally refactored.
 - Prefer package-safe imports in new code. Existing script-style imports can be cleaned up in a dedicated import/packaging change.

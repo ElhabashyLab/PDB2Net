@@ -17,14 +17,15 @@ Notes
 
 from __future__ import annotations
 
-import csv
 import os
 import re
+import csv
 from typing import Any, Dict, List, Optional
 
 import gemmi
 
-from config_loader import config
+from .config_loader import config
+from .reference_data import load_valid_pdb_ids as _load_valid_pdb_ids
 
 # --- Allowed file extensions for structural inputs ---
 ALLOWED_EXTENSIONS = {".pdb", ".cif", ".mmcif"}
@@ -41,22 +42,11 @@ def load_valid_pdb_ids() -> set[str]:
     set[str]
         Uppercase PDB IDs observed in the FASTA header lines.
     """
-    valid_pdb_ids: set[str] = set()
     try:
-        with open(PDB_FASTA_PATH, "r", encoding="utf-8") as f:
-            for line in f:
-                if line.startswith(">"):
-                    # Example header: >1abc_A ...
-                    # Take token after '>' up to first space, then split by '_'
-                    # and keep the first token as the 4-char PDB id.
-                    token = line.split()[0][1:]
-                    parts = token.split("_")
-                    if parts and len(parts[0]) == 4:
-                        valid_pdb_ids.add(parts[0].upper())
+        return _load_valid_pdb_ids(PDB_FASTA_PATH)
     except Exception as e:
         print(f"Error loading pdb_seqres.txt: {e}")
-
-    return valid_pdb_ids
+        return set()
 
 
 # Load PDB IDs once at import time to avoid repeated disk I/O.
@@ -105,7 +95,7 @@ def extract_pdb_id_from_filename(file_path: str) -> Optional[str]:
         pdb_id = match.group(1).upper()
         if pdb_id in VALID_PDB_IDS:
             return pdb_id
-        print(f"Warning: File {filename} contains an invalid PDB ID ({pdb_id} not in pdb_seqres.txt).")
+        print(f"Warning: File {filename} contains a canonical-looking PDB ID not found in pdb_seqres.txt: {pdb_id}.")
     return None
 
 
@@ -158,7 +148,11 @@ def extract_pdb_id_from_file(file_path: str) -> Optional[str]:
                 if pdb_id:
                     if len(pdb_id) == 4 and pdb_id in VALID_PDB_IDS:
                         return pdb_id
-                    print(f"Warning: File {file_path} contains an invalid PDB ID ({pdb_id} not in pdb_seqres.txt).")
+                    if len(pdb_id) == 4:
+                        print(
+                            "Warning: File "
+                            f"{file_path} contains a canonical-looking PDB ID not found in pdb_seqres.txt: {pdb_id}."
+                        )
                     return None
 
     except Exception as e:
@@ -194,7 +188,7 @@ def get_pdb_id(file_path: str) -> str:
 
     # Fallback: use filename stem (uppercased) if no valid PDB ID was found
     filename_stem = os.path.basename(file_path).split(".")[0].upper()
-    print(f"Warning: No valid PDB ID found. Using filename as PDB ID: {filename_stem}")
+    print(f"Info: No canonical PDB ID found. Using filename as structure ID: {filename_stem}")
     return filename_stem
 
 

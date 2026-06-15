@@ -24,6 +24,21 @@ import pandas as pd
 from scipy.spatial import cKDTree
 
 
+DETAILED_INTERACTION_COLUMNS = [
+    "PDB_ID",
+    "Chain_A",
+    "Residue_A",
+    "Atom_A",
+    "Chain_B",
+    "Residue_B",
+    "Atom_B",
+    "Distance",
+    "UniProt_A",
+    "UniProt_B",
+    "Interaction_Type",
+]
+
+
 def export_detailed_interactions(
     structure_data: Dict[str, Any],
     interactions: List[Dict[str, Any]],
@@ -33,7 +48,7 @@ def export_detailed_interactions(
     atom_data = structure_data["atom_data"]
 
     # NEW: use the same cutoff as the interaction detection
-    from config_loader import config
+    from .config_loader import config
     radius = float(config["distance_thresholds"]["all_atoms_radius"])
 
     residues_atoms_lookup: Dict[str, Dict[str, Any]] = {}
@@ -103,7 +118,7 @@ def export_detailed_interactions(
                     }
                 )
 
-    df = pd.DataFrame(detailed_interactions)
+    df = pd.DataFrame(detailed_interactions, columns=DETAILED_INTERACTION_COLUMNS)
     os.makedirs(run_output_path, exist_ok=True)
     output_file = os.path.join(run_output_path, f"{pdb_id}_detailed_interactions.csv")
     df.to_csv(output_file, index=False)

@@ -1,0 +1,25 @@
+{
+  "input_folder_path": "$HOME/pdb2net/pdb_inputs",
+  "pdb_fasta_path": "$HOME/pdb2net/reference/pdb_seqres.txt",
+  "uniprot_fasta_path": "$HOME/pdb2net/reference/uniprot_sprot.fasta",
+  "sifts_tsv_path": "$HOME/pdb2net/reference/pdb_chain_uniprot.tsv",
+  "output_path": "$HOME/pdb2net/outputs",
+  "blast_db_path": "$HOME/pdb2net/reference/blast_db",
+  "blast_cache_path": "$HOME/pdb2net/cache/blast_cache.sqlite3",
+  "blastp_executable": "blastp",
+  "layout_mode": "python_fast",
+  "layout_engine_path": "",
+  "layout_keep_temp_files": false,
+  "structure_model_policy": "first",
+  "interaction_filters": {
+    "protein_protein_min_ca_neighbors": 10,
+    "protein_protein_min_all_atom_contacts": 1,
+    "protein_nucleic_acid_min_all_atom_contacts": 1,
+    "nucleic_acid_min_all_atom_contacts": 1
+  },
+  "open_in_cytoscape": false,
+  "workers": {
+    "parsing": 1,
+    "blast_threads": 1
+  }
+}

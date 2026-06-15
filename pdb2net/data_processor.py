@@ -20,19 +20,13 @@ from __future__ import annotations
 import gemmi
 from typing import Any, Dict, List
 
+from .config_loader import config
+from .residue_types import AMINO_ACIDS, DNA_RESIDUES, RNA_RESIDUES, normalize_residue_name
+
 
 # Set of allowed residue names for proteins and nucleic acids.
 # This is used to decide whether a chain is considered "valid".
-ALLOWED_RESIDUES = {
-    # Protein residues (including selenocysteine SEC and pyrrolysine PYL)
-    "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS",
-    "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP",
-    "TYR", "VAL", "SEC", "PYL",
-    # RNA residues
-    "A", "U", "G", "C", "I",
-    # DNA residues (deoxy versions)
-    "DA", "DT", "DG", "DC", "DI",
-}
+ALLOWED_RESIDUES = AMINO_ACIDS | RNA_RESIDUES | DNA_RESIDUES
 
 
 def process_structure(structure_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -83,16 +77,25 @@ def process_structure(structure_data: Dict[str, Any]) -> Dict[str, Any]:
 
     atom_data: List[Dict[str, Any]] = []
 
-    # Traverse all models and chains in the structure.
-    for model in structure:
+    model_policy = str(config.get("structure_model_policy", "first")).strip().lower()
+    models = list(structure)
+    if model_policy != "all":
+        models = models[:1]
+
+    # Traverse the selected model(s) and chains in the structure.
+    for model_index, model in enumerate(models, start=1):
         for chain in model:
             chain_id = chain.name.strip()
+            unique_chain_id = f"{pdb_id}:{chain_id}"
+            if model_policy == "all":
+                unique_chain_id = f"{pdb_id}:model{model_index}:{chain_id}"
             residues: List[Dict[str, Any]] = []
             is_valid_chain = False
 
             # Collect residues and their heavy-atom coordinates.
             for res in chain:
-                res_name = res.name.upper()
+                original_res_name = res.name.upper()
+                res_name = normalize_residue_name(original_res_name)
 
                 atoms = []
                 for atom in res:
@@ -106,13 +109,14 @@ def process_structure(structure_data: Dict[str, Any]) -> Dict[str, Any]:
                         )
 
                 if atoms:
-                    residues.append(
-                        {
-                            "residue_name": res_name,
-                            "residue_number": res.seqid.num,
-                            "atoms": atoms,
-                        }
-                    )
+                    residue_record = {
+                        "residue_name": res_name,
+                        "residue_number": res.seqid.num,
+                        "atoms": atoms,
+                    }
+                    if original_res_name != res_name:
+                        residue_record["original_residue_name"] = original_res_name
+                    residues.append(residue_record)
                     # Mark chain as valid if it contains at least one allowed residue.
                     if res_name in ALLOWED_RESIDUES:
                         is_valid_chain = True
@@ -122,7 +126,8 @@ def process_structure(structure_data: Dict[str, Any]) -> Dict[str, Any]:
                 atom_data.append(
                     {
                         "chain_id": chain_id,
-                        "unique_chain_id": f"{pdb_id}:{chain_id}",
+                        "unique_chain_id": unique_chain_id,
+                        "model_index": model_index,
                         "molecule_name": "UNKNOWN",    # filled downstream
                         "molecule_type": "UNKNOWN",    # filled downstream
                         "sequence": "",                # filled downstream (e.g., from PDB FASTA)

@@ -6,7 +6,27 @@
     "combined_protein_network": true
   },
   "distance_thresholds": { "ca_radius": 12.0, "all_atoms_radius": 5.0 },
+  "interaction_filters": {
+    "protein_protein_min_ca_neighbors": 10,
+    "protein_protein_min_all_atom_contacts": 1,
+    "protein_nucleic_acid_min_all_atom_contacts": 1,
+    "nucleic_acid_min_all_atom_contacts": 1
+  },
+  "structure_model_policy": "first",
   "workers": { "parsing": "auto", "blast_threads": "auto" },
+  "layout_mode": "python_fast",
+  "layout_engine_path": "",
+  "layout_keep_temp_files": false,
+  "blast": {
+    "max_target_seqs_default": 50,
+    "max_target_seqs_short": 100,
+    "short_query_length": 80,
+    "very_short_query_length": 30,
+    "use_blastp_short": true,
+    "max_hsps": 1,
+    "max_x_fraction": 0.2
+  },
+  "blast_cache_path": "",
   "keep_last_n_networks": 46,
-  "export_detailed_interactions": true
+  "export_detailed_interactions": false
 }

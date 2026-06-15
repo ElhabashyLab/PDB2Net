@@ -1,9 +1,8 @@
-Bio==1.7.1
 biopython==1.84
+gemmi
+matplotlib
+networkx
 numpy==2.2.4
 pandas==2.2.3
 py4cytoscape==1.11.0
 scipy==1.15.2
-gemmi
-matplotlib
-setuptools>=80.9.0

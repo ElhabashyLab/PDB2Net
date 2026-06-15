@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdb2net"
+version = "0.1.0"
+description = "Extract protein interaction networks from PDB/mmCIF structures and export Cytoscape CX2 networks."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Gregor Habitzreither" },
+  { name = "Hadeer Elhabashy" }
+]
+dependencies = [
+  "biopython==1.84",
+  "gemmi",
+  "matplotlib",
+  "networkx",
+  "numpy==2.2.4",
+  "pandas==2.2.3",
+  "py4cytoscape==1.11.0",
+  "scipy==1.15.2"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest"
+]
+
+[project.scripts]
+pdb2net = "pdb2net.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["pdb2net*"]

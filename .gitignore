@@ -3,16 +3,44 @@
 
 # Ignoriere virtuelle Umgebungen
 venv/
+.venv/
 
 # Ignoriere Python-Cache-Dateien
 __pycache__/
 *.pyc
 *.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+*.egg-info/
+build/
+dist/
+*.class
+*.jar
 
 # BLAST temp files
 blast_results_*.txt
 query_*.fasta
+blast_cache.sqlite3
 
 logs/
+pdb2net/logs/
+outputs/
+job_outputs/
+jobs/
+tmp_jobs/
+data/
+reference/
+blast_db/
+.env
+*.log
+*.pin
+*.phr
+*.psq
+*.pog
+*.psd
+*.psi
+*.psr
 
 pdb2net/configs/config.local.json

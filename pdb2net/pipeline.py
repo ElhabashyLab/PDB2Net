@@ -119,6 +119,40 @@ def discover_input_files(input_path_or_filelist: Union[str, List[str]]) -> List[
     return file_paths
 
 
+def _validate_output_root() -> None:
+    """Ensure the configured output folder can hold timestamped run outputs."""
+    configured_output = str(config.get("output_path") or "").strip()
+    if not configured_output:
+        raise InputValidationError("OUTPUT_PATH_MISSING", "output_path is not configured.")
+    output_root = Path(configured_output)
+    try:
+        output_root.mkdir(parents=True, exist_ok=True)
+    except Exception as exc:
+        raise InputValidationError("OUTPUT_PATH_NOT_WRITABLE", f"output_path cannot be created: {output_root}") from exc
+    if not output_root.is_dir():
+        raise InputValidationError("OUTPUT_PATH_NOT_DIRECTORY", f"output_path is not a directory: {output_root}")
+
+
+def _validate_required_reference_files() -> None:
+    """Fail early with actionable messages for reference files needed by normal runs."""
+    required = {
+        "pdb_fasta_path": "pdb_seqres.txt",
+        "sifts_tsv_path": "pdb_chain_uniprot.tsv",
+        "uniprot_fasta_path": "uniprot_sprot.fasta",
+    }
+    missing = []
+    for config_key, label in required.items():
+        path = Path(str(config.get(config_key) or ""))
+        if not str(path) or not path.is_file():
+            missing.append(f"{label} ({config_key}): {path}")
+    if missing:
+        raise InputValidationError(
+            "REFERENCE_FILE_MISSING",
+            "Required reference file(s) are missing. Configure them with config.local.json, "
+            "PDB2NET_CONFIG_FILE, or CLI flags. Missing: " + "; ".join(missing),
+        )
+
+
 def _parse_input_files(file_paths: List[str]) -> List[Dict[str, Any]]:
     """Parse and preprocess structure files in parallel."""
     parsing_workers = resolve_workers(config.get("workers", {}).get("parsing"), kind="parsing")
@@ -401,7 +435,9 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
     timings = PipelineTimings()
 
     try:
+        _validate_output_root()
         file_paths = discover_input_files(input_path_or_filelist)
+        _validate_required_reference_files()
         output_paths = create_run_output_paths(config["output_path"])
 
         logger.info("Run started with %s input file(s)", len(file_paths))

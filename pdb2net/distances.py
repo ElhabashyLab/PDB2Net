@@ -10,8 +10,8 @@ within configurable distance thresholds. It supports:
 
 Caches
 ------
-- `coords_cache`: memoizes extracted coordinate arrays per (chain, extraction_type)
-- `tree_cache`: memoizes cKDTree instances per (chain, extraction_type)
+- `coords_cache`: memoizes extracted coordinate arrays per chain object/extraction
+- `tree_cache`: memoizes cKDTree instances per chain object/extraction
 
 Configuration
 -------------
@@ -31,9 +31,15 @@ from scipy.spatial import cKDTree
 
 from .config_loader import config
 
-# Caches for KD-Trees and extracted coordinates
-tree_cache: Dict[Tuple[str, str], cKDTree] = {}
-coords_cache: Dict[Tuple[str, str], np.ndarray] = {}
+# Caches for KD-Trees and extracted coordinates. Include object identity so
+# repeated chain IDs from different structures in one process never share trees.
+CacheKey = Tuple[int, str, str]
+tree_cache: Dict[CacheKey, cKDTree] = {}
+coords_cache: Dict[CacheKey, np.ndarray] = {}
+
+
+def _cache_key(chain: Dict[str, Any], extraction_type: str) -> CacheKey:
+    return (id(chain), chain["unique_chain_id"], extraction_type)
 
 
 def extract_coordinates(chain: Dict[str, Any], extraction_type: str) -> np.ndarray:
@@ -54,7 +60,7 @@ def extract_coordinates(chain: Dict[str, Any], extraction_type: str) -> np.ndarr
     numpy.ndarray, shape (N, 3)
         Extracted coordinates (may be empty with shape (0, 3)).
     """
-    key = (chain["unique_chain_id"], extraction_type)
+    key = _cache_key(chain, extraction_type)
     if key in coords_cache:
         return coords_cache[key]
 
@@ -86,7 +92,7 @@ def get_or_create_tree(chain: Dict[str, Any], extraction_type: str) -> Optional[
     scipy.spatial.cKDTree | None
         KD-tree instance if there are any coordinates, otherwise None.
     """
-    key = (chain["unique_chain_id"], extraction_type)
+    key = _cache_key(chain, extraction_type)
     if key not in tree_cache:
         points = extract_coordinates(chain, extraction_type)
         if points.size:

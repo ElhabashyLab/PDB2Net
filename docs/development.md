@@ -95,15 +95,15 @@ Compare an existing output directory:
 
 ```bash
 python3 scripts/run_goldstandard_check.py \
-  --actual /mnt/e/Networks/2026-06-13_14-44-59 \
-  --expected /mnt/e/Goldstandard/6m17_6w41/expected
+  --actual /path/to/pdb2net_outputs/2026-06-13_14-44-59 \
+  --expected /path/to/goldstandard/expected
 ```
 
 Run the configured headless pipeline first, then compare the newest output:
 
 ```bash
 python3 scripts/run_goldstandard_check.py \
-  --expected /mnt/e/Goldstandard/6m17_6w41/expected
+  --expected /path/to/goldstandard/expected
 ```
 
 Reports are written to `/tmp/pdb2net-goldstandard` by default. A `FAIL` status

@@ -134,7 +134,7 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
 
 
 def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
-    """Normalize paths, set headless/container defaults, provide fallbacks, and ensure output directory."""
+    """Normalize paths, set headless/container defaults, and provide fallbacks."""
     for key in [
         "input_folder_path",
         "pdb_fasta_path",
@@ -177,14 +177,6 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
     cfg["interaction_filters"].setdefault("protein_protein_min_all_atom_contacts", 1)
     cfg["interaction_filters"].setdefault("protein_nucleic_acid_min_all_atom_contacts", 1)
     cfg["interaction_filters"].setdefault("nucleic_acid_min_all_atom_contacts", 1)
-
-    # Create output folder proactively (if provided)
-    out = cfg.get("output_path")
-    if isinstance(out, str) and out:
-        try:
-            Path(out).mkdir(parents=True, exist_ok=True)
-        except Exception as e:
-            _log(f"Warn: Konnte output_path '{out}' nicht anlegen: {e}")
 
 
 def load_config() -> Dict[str, Any]:

@@ -126,3 +126,33 @@ def test_nucleic_acid_contact_filters_are_configurable(monkeypatch) -> None:
     ])
 
     assert edges == []
+
+
+def test_kdtree_cache_does_not_reuse_same_chain_ids_across_structures(monkeypatch) -> None:
+    distances.coords_cache.clear()
+    distances.tree_cache.clear()
+    monkeypatch.setitem(distances.config, "distance_thresholds", {"ca_radius": 1.1, "all_atoms_radius": 1.1})
+    monkeypatch.setitem(
+        distances.config,
+        "interaction_filters",
+        {
+            "protein_protein_min_ca_neighbors": 10,
+            "protein_protein_min_all_atom_contacts": 1,
+            "protein_nucleic_acid_min_all_atom_contacts": 1,
+            "nucleic_acid_min_all_atom_contacts": 1,
+        },
+    )
+
+    edges = calculate_distances_with_ckdtree([
+        {
+            "file_path": "/tmp/first.cif",
+            "atom_data": [_protein_chain("DUP:A"), _protein_chain("DUP:B")],
+        },
+        {
+            "file_path": "/tmp/second.cif",
+            "atom_data": [_protein_chain("DUP:A", offset=1000.0), _protein_chain("DUP:B", offset=2000.0)],
+        },
+    ])
+
+    assert len(edges) == 1
+    assert edges[0]["file_path"] == "/tmp/first.cif"

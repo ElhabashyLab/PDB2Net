@@ -1,8 +1,10 @@
 import json
 from pathlib import Path
 
+from pdb2net import __version__
 from pdb2net.input_contract import InputValidationError
 from pdb2net.outputs import (
+    OUTPUT_CONTRACT_VERSION,
     collect_web_outputs,
     create_run_output_paths,
     write_failed_run_manifest,
@@ -26,7 +28,11 @@ def test_write_run_manifest_is_additive_and_machine_readable(tmp_path: Path) -> 
     )
 
     manifest = json.loads(Path(paths.manifest_file).read_text(encoding="utf-8"))
+    assert manifest["output_contract_version"] == OUTPUT_CONTRACT_VERSION
+    assert manifest["pdb2net_version"] == __version__
     assert manifest["status"] == "success"
+    assert manifest["started_at"] == "2026-01-02T03:04:05"
+    assert manifest["finished_at"] == "2026-01-02T03:04:06"
     assert manifest["input_files"] == ["/inputs/a.pdb"]
     assert manifest["input_path"] is None
     assert manifest["outputs"]["runtime_analysis"] == paths.log_file
@@ -46,7 +52,11 @@ def test_write_failed_run_manifest_records_error_code(tmp_path: Path) -> None:
     )
 
     manifest = json.loads(Path(paths.manifest_file).read_text(encoding="utf-8"))
+    summary = json.loads(Path(paths.summary_file).read_text(encoding="utf-8"))
     assert manifest["status"] == "failed"
+    assert summary["status"] == "failed"
+    assert summary["output_contract_version"] == OUTPUT_CONTRACT_VERSION
+    assert summary["pdb2net_version"] == __version__
     assert manifest["input_path"] == "/inputs"
     assert manifest["errors"][0]["code"] == "NO_VALID_INPUT_FILES"
     assert manifest["errors"][0]["message"].startswith("NO_VALID_INPUT_FILES")
@@ -83,4 +93,13 @@ def test_collect_web_outputs_creates_stable_summary_networks_and_interactions(tm
     assert (web_root / "interactions" / "D.csv").read_text(encoding="utf-8") == "interactions"
 
     summary = json.loads((web_root / "summary.json").read_text(encoding="utf-8"))
+    assert summary["output_contract_version"] == OUTPUT_CONTRACT_VERSION
+    assert summary["pdb2net_version"] == __version__
+    assert summary["status"] == "success"
+    assert summary["started_at"] == "2026-01-02T03:04:05"
+    assert summary["finished_at"] == "2026-01-02T03:04:06"
+    assert summary["input_files"] == ["/inputs/a.pdb"]
+    assert summary["input_path"] is None
+    assert summary["networks"]
+    assert summary["interactions"]
     assert summary["counts"] == {"networks": 3, "interactions": 1}

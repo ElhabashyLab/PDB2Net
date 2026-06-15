@@ -10,7 +10,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
 
+from . import __version__
 from .input_contract import InputValidationError
+
+OUTPUT_CONTRACT_VERSION = "1.0"
 
 
 @dataclass(frozen=True)
@@ -124,6 +127,8 @@ def write_run_manifest(
         **dict(extra_counts or {}),
     }
     manifest = {
+        "output_contract_version": OUTPUT_CONTRACT_VERSION,
+        "pdb2net_version": __version__,
         "status": status,
         "started_at": started_at,
         "finished_at": finished_at,
@@ -207,7 +212,13 @@ def collect_web_outputs(output_paths: RunOutputPaths, web_output_dir: str) -> di
         internal_summary = json.loads(source_summary.read_text(encoding="utf-8"))
 
     summary = {
+        "output_contract_version": internal_summary.get("output_contract_version", OUTPUT_CONTRACT_VERSION),
+        "pdb2net_version": internal_summary.get("pdb2net_version", __version__),
         "status": internal_summary.get("status", "completed"),
+        "started_at": internal_summary.get("started_at"),
+        "finished_at": internal_summary.get("finished_at"),
+        "input_files": internal_summary.get("input_files", []),
+        "input_path": internal_summary.get("input_path"),
         "run_summary": str(source_summary) if source_summary.exists() else None,
         "internal_run_output_path": output_paths.run_output_path,
         "networks": copied_networks,

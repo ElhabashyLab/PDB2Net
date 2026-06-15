@@ -68,9 +68,10 @@ outputs/
 ```
 
 `summary.json` lists copied network files, interaction tables, counts, runtime
-analysis, warnings, and errors. Future webserver code can rely on this
-filesystem contract while keeping database and job status logic outside the
-PDB2Net core.
+analysis, warnings, and errors. It also includes `output_contract_version`
+and `pdb2net_version` so workers can detect the summary structure they are
+reading. Future webserver code can rely on this filesystem contract while
+keeping database and job status logic outside the PDB2Net core.
 
 ## Notes For Workers
 

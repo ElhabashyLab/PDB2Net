@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -96,15 +97,24 @@ def run_command(args: argparse.Namespace) -> int:
         os.environ["PDB2NET_CONFIG_FILE"] = args.config
 
     from .config_loader import config
-    from .cytoscape import ensure_cytoscape_running
-    from .pipeline import run_pipeline
 
     _apply_run_overrides(args, config)
 
     if config.get("open_in_cytoscape", True):
+        from .cytoscape import ensure_cytoscape_running
+
         ensure_cytoscape_running()
 
-    output_paths = run_pipeline(config["input_folder_path"], web_output_dir=args.web_output_dir)
+    try:
+        from .pipeline import run_pipeline
+
+        output_paths = run_pipeline(config["input_folder_path"], web_output_dir=args.web_output_dir)
+    except Exception as exc:
+        print(f"PDB2Net run failed: {exc}", file=sys.stderr)
+        if args.web_output_dir:
+            print(f"Web output summary: {Path(args.web_output_dir) / 'summary.json'}", file=sys.stderr)
+        return 1
+
     print(f"PDB2Net run complete: {output_paths.run_output_path}")
     print(f"Run summary: {output_paths.summary_file}")
     if args.web_output_dir:

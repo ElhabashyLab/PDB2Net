@@ -107,6 +107,13 @@ def _status(ok: bool) -> str:
     return "ok" if ok else "missing"
 
 
+def _path_exists(path: Path) -> tuple[bool, str | None]:
+    try:
+        return path.exists(), None
+    except OSError as exc:
+        return False, str(exc)
+
+
 def main() -> int:
     print("PDB2Net environment check")
     print(f"Python: {sys.version.split()[0]} ({sys.executable})")
@@ -141,10 +148,11 @@ def main() -> int:
             missing_paths.append(key)
             print(f"  {key}: missing")
             continue
-        exists = path.exists()
+        exists, path_error = _path_exists(path)
         if not exists and key != "output_path":
             missing_paths.append(key)
-        print(f"  {key}: {path} ({_status(exists)})")
+        detail = _status(exists) if path_error is None else f"unavailable: {path_error}"
+        print(f"  {key}: {path} ({detail})")
 
     blast_executable = cfg.get("blastp_executable", "blastp")
     print(f"  blastp_executable: {blast_executable}")

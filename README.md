@@ -116,26 +116,26 @@ Now, generate the BLAST database from the downloaded UniProt FASTA file.
 - `config.windows.json`
 ```json
 {
-  "input_folder_path": "E:/PDB_Files/Test500",
-  "pdb_fasta_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/pdb_seqres.txt",
-  "uniprot_fasta_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/uniprot_sprot.fasta",
-  "sifts_tsv_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/pdb_chain_uniprot.tsv",
-  "output_path": "D:/Networks",
+  "input_folder_path": "%USERPROFILE%/pdb2net/pdb_inputs",
+  "pdb_fasta_path": "%USERPROFILE%/pdb2net/reference/pdb_seqres.txt",
+  "uniprot_fasta_path": "%USERPROFILE%/pdb2net/reference/uniprot_sprot.fasta",
+  "sifts_tsv_path": "%USERPROFILE%/pdb2net/reference/pdb_chain_uniprot.tsv",
+  "output_path": "%USERPROFILE%/pdb2net/outputs",
   "cytoscape_path": "C:/Program Files/Cytoscape_v3.10.4/Cytoscape.exe",
-  "blast_db_path": "C:/Users/habit/Documents/Projekte/MPI_PDB2Net/Data/blast_db",
-  "blastp_executable": "C:/Program Files/NCBI/blast-2.17.0+/bin/blastp.exe",
-  "open_in_cytoscape": true
+  "blast_db_path": "%USERPROFILE%/pdb2net/reference/blast_db",
+  "blastp_executable": "blastp",
+  "open_in_cytoscape": false
 }
 ```
 - `config.linux.json`
 ```json
 {
-  "input_folder_path": "/data/pdb_inputs",
-  "pdb_fasta_path": "/data/reference/pdb_seqres.txt",
-  "uniprot_fasta_path": "/data/reference/uniprot_sprot.fasta",
-  "sifts_tsv_path": "/data/reference/pdb_chain_uniprot.tsv",
-  "output_path": "/srv/pdb2net_outputs",
-  "blast_db_path": "/data/reference/blast_db",
+  "input_folder_path": "$HOME/pdb2net/pdb_inputs",
+  "pdb_fasta_path": "$HOME/pdb2net/reference/pdb_seqres.txt",
+  "uniprot_fasta_path": "$HOME/pdb2net/reference/uniprot_sprot.fasta",
+  "sifts_tsv_path": "$HOME/pdb2net/reference/pdb_chain_uniprot.tsv",
+  "output_path": "$HOME/pdb2net/outputs",
+  "blast_db_path": "$HOME/pdb2net/reference/blast_db",
   "blastp_executable": "blastp",
   "open_in_cytoscape": false
 }
@@ -256,7 +256,7 @@ Valid PDB/mmCIF files found in `input_folder_path`
 | File/Folder                 | Description                                                                    |
 | --------------------------- | ------------------------------------------------------------------------------ |
 | `runtime_analysis.txt`      | Timing summary (parsing, classification, BLAST, interaction, exports)          |
-| `manifest.json` / `run_summary.json` | Machine-readable run status, inputs, generated files, counts, config snapshot, warnings, and errors |
+| `manifest.json` / `run_summary.json` | Machine-readable run status, inputs, generated files, counts, config snapshot, contract/package versions, warnings, and errors |
 | `*.cx2`                     | Cytoscape networks (Chain/Protein/Combined), portable CX2                      |
 | `detailed_interactions.csv` | Per-atom residue/atom distance pairs (if `export_detailed_interactions: true`) |
 | `error_in_batch_log/`                     | Batch/runtime logs                                                             |

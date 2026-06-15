@@ -27,9 +27,14 @@ blast_cache.sqlite3
 logs/
 pdb2net/logs/
 outputs/
+job_outputs/
+jobs/
+tmp_jobs/
 data/
 reference/
 blast_db/
+.env
+*.log
 *.pin
 *.phr
 *.psq

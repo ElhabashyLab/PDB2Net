@@ -29,5 +29,8 @@ dev = [
   "pytest"
 ]
 
+[project.scripts]
+pdb2net = "pdb2net.__main__:main"
+
 [tool.setuptools.packages.find]
 include = ["pdb2net*"]

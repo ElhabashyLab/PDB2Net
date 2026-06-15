@@ -23,9 +23,12 @@ from .input_contract import InputValidationError
 from .logging_utils import get_logger
 from .outputs import (
     RunOutputPaths,
+    collect_generated_outputs,
+    collect_web_outputs,
     create_run_output_paths,
     write_failed_run_manifest,
     write_run_manifest,
+    write_run_summary,
     write_runtime_analysis,
 )
 from .protein_network import create_protein_network
@@ -390,7 +393,7 @@ def _create_linked_identity_network(
         create_cytoscape_network(final_edges, network_title, run_output_path, nodes_data=nodes_data)
 
 
-def run_pipeline(input_path_or_filelist: Union[str, List[str]]) -> None:
+def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: str | None = None) -> RunOutputPaths:
     """Run the full single-process pipeline for a folder or explicit file list."""
     network_config = config["networks"]
     start_time_total = time.time()
@@ -437,6 +440,12 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]]) -> None:
         total_time = time.time() - start_time_total
         write_runtime_analysis(output_paths.log_file, timings.as_dict(), total_time)
         finished_at = datetime.now().isoformat(timespec="seconds")
+        generated_outputs = collect_generated_outputs(output_paths)
+        extra_counts = {
+            "structures": len(combined_data),
+            "chains": sum(len(structure.get("atom_data", [])) for structure in combined_data),
+            "interactions": len(results),
+        }
         write_run_manifest(
             output_paths.manifest_file,
             input_files=file_paths,
@@ -446,18 +455,27 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]]) -> None:
             started_at=started_at,
             finished_at=finished_at,
             total_time=total_time,
+            input_path=str(input_path_or_filelist) if not isinstance(input_path_or_filelist, list) else None,
+            generated_outputs=generated_outputs,
+            extra_counts=extra_counts,
         )
+        write_run_summary(output_paths)
+        if web_output_dir:
+            collect_web_outputs(output_paths, web_output_dir)
         logger.info("Run finished successfully in %.1f seconds", total_time)
+        return output_paths
     except Exception as exc:
         logger.error("Run failed: %s", exc)
         if not isinstance(input_path_or_filelist, list):
-            write_failed_run_manifest(
+            output_paths = write_failed_run_manifest(
                 config["output_path"],
                 input_path=str(input_path_or_filelist),
                 config_snapshot=_config_snapshot(network_config),
                 error=exc,
                 started_at=started_at,
             )
+            if web_output_dir:
+                collect_web_outputs(output_paths, web_output_dir)
         raise
     finally:
         tree_cache.clear()

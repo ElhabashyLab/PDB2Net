@@ -204,12 +204,49 @@ For automated webserver jobs, keep `open_in_cytoscape: false`, set
 `structure_model_policy: "first"` unless you intentionally want all models from
 multi-model structures represented as separate chain nodes.
 
-## Run the Tool  
-Once all dependencies are installed, you can run the tool with:
-> python3 -m pdb2net.main
+## Run the Tool
+
+Once all dependencies and reference files are configured, run PDB2Net headlessly
+with explicit input and output folders:
+
+```bash
+python3 -m pdb2net run \
+  --input-dir /path/to/input_structures \
+  --output-dir /path/to/pdb2net_outputs \
+  --headless
+```
+
+If the package is installed, the console command is also available:
+
+```bash
+pdb2net run \
+  --input-dir /path/to/input_structures \
+  --output-dir /path/to/pdb2net_outputs \
+  --headless
+```
+
+The legacy config-driven entry point remains available:
+
+```bash
+python3 -m pdb2net.main
+```
 
 - Output goes to a **timestamped** subfolder in `output_path`, e.g.:
 ""/…/Networks/2025-10-20_18-32-45/"
+
+For backend-style jobs, add `--web-output-dir` to collect stable
+user-facing outputs:
+
+```bash
+python3 -m pdb2net run \
+  --input-dir /path/to/job/inputs \
+  --output-dir /path/to/job/work \
+  --web-output-dir /path/to/job/outputs \
+  --headless
+```
+
+See [`docs/server_backend_usage.md`](docs/server_backend_usage.md) for the
+worker-facing output contract.
 
 ## **User input**  
 Valid PDB/mmCIF files found in `input_folder_path`
@@ -218,7 +255,8 @@ Valid PDB/mmCIF files found in `input_folder_path`
 
 | File/Folder                 | Description                                                                    |
 | --------------------------- | ------------------------------------------------------------------------------ |
-| `log.txt`                   | Timing summary (parsing, classification, BLAST, interaction, exports)          |
+| `runtime_analysis.txt`      | Timing summary (parsing, classification, BLAST, interaction, exports)          |
+| `manifest.json` / `run_summary.json` | Machine-readable run status, inputs, generated files, counts, config snapshot, warnings, and errors |
 | `*.cx2`                     | Cytoscape networks (Chain/Protein/Combined), portable CX2                      |
 | `detailed_interactions.csv` | Per-atom residue/atom distance pairs (if `export_detailed_interactions: true`) |
 | `error_in_batch_log/`                     | Batch/runtime logs                                                             |
@@ -269,4 +307,3 @@ If you have any questions or inquiries, please feel free to contact Hadeer Elhab
 
 # License
 - The **PDB2NET code** in this repository is licensed under the [MIT License](./LICENSE).
-

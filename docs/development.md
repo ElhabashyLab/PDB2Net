@@ -13,10 +13,31 @@ python3 -m pip install --upgrade pip setuptools wheel
 python3 -m pip install -e ".[dev]"
 ```
 
+After the venv exists, run development commands through the venv interpreter
+unless you have explicitly activated it:
+
+```bash
+.venv/bin/python -m pytest
+.venv/bin/python scripts/check_environment.py
+```
+
+This matters because the system `python3` may point to a different Python
+version without development dependencies. For example, a shell can have
+`python3` from Conda while this project uses `.venv/bin/python` with Python
+3.11 or 3.12 and `pytest` installed.
+
 If editable install is not needed, installing the pinned runtime dependencies is enough:
 
 ```bash
 python3 -m pip install -r requirements.txt
+```
+
+If editable install needs to be refreshed in an offline or sandboxed
+environment, avoid build isolation so pip uses the build tooling already
+installed in the venv:
+
+```bash
+.venv/bin/python -m pip install --no-build-isolation --no-deps -e .
 ```
 
 ## Local Configuration
@@ -66,6 +87,30 @@ If Matplotlib warns that its default config directory is not writable, set a tem
 ```bash
 export MPLCONFIGDIR=/tmp/pdb2net-matplotlib
 ```
+
+## Packaging Checks
+
+PDB2Net is intended to run as an installed package in worker containers. The
+wheel must include the shared config defaults and OS-specific config files, but
+must not include `pdb2net/configs/config.local.json`, which is reserved for
+machine-local paths and is ignored by Git.
+
+Check this from outside the source tree so Python imports the installed copy,
+not the working directory:
+
+```bash
+PDB2NET_PY="$PWD/.venv/bin/python"
+.venv/bin/python -m pip install --no-build-isolation --no-deps \
+  --target /tmp/pdb2net-package-check .
+cd /tmp
+PYTHONPATH=/tmp/pdb2net-package-check "$PDB2NET_PY" -c 'import pdb2net, pathlib; root = pathlib.Path(pdb2net.__file__).parent; print(root); print((root / "configs/config.base.json").exists()); print((root / "configs/config.local.json").exists())'
+```
+
+Expected result:
+
+- `configs/config.base.json` exists in the installed copy
+- `configs/config.local.json` does not exist in the installed copy
+- `pdb2net --help` and `pdb2net run --help` work after installation
 
 ## Full Pipeline Requirements
 

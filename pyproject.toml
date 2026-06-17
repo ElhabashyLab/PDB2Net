@@ -32,5 +32,20 @@ dev = [
 [project.scripts]
 pdb2net = "pdb2net.__main__:main"
 
+[tool.setuptools]
+include-package-data = false
+
 [tool.setuptools.packages.find]
 include = ["pdb2net*"]
+
+[tool.setuptools.package-data]
+pdb2net = [
+  "configs/config.base.json",
+  "configs/config.darwin.json",
+  "configs/config.linux.json",
+  "configs/config.windows.json",
+  "configs/config.local.example.json",
+]
+
+[tool.setuptools.exclude-package-data]
+pdb2net = ["configs/config.local.json"]

@@ -15,7 +15,12 @@ pdb2net run \
   --headless
 ```
 
-Without an installed console script, use:
+For production worker images, install PDB2Net as a Python package and use the
+`pdb2net` console script. Do not rely on mounting `../PDB2Net` into the worker
+and running from the source tree.
+
+The module form is useful for local development or transitional deployments
+where the console script is not installed:
 
 ```bash
 python3 -m pdb2net run \
@@ -25,10 +30,44 @@ python3 -m pdb2net run \
   --headless
 ```
 
+Use Python 3.11 or 3.12 in the worker image. The project is developed and
+tested against those versions; avoid Python 3.13 unless the dependency stack is
+explicitly verified there.
+
+## Package Installation Requirements
+
+The installed package includes PDB2Net's shared default configuration files:
+
+- `pdb2net/configs/config.base.json`
+- `pdb2net/configs/config.linux.json`
+- `pdb2net/configs/config.windows.json`
+- `pdb2net/configs/config.darwin.json`
+- `pdb2net/configs/config.local.example.json`
+
+It intentionally does not include `pdb2net/configs/config.local.json`, because
+that file is for machine-specific paths and may contain local reference data
+locations. Server deployments should provide reference data paths through
+environment variables or a per-job `--config` file.
+
+Before switching a worker image to `PDB2NET_COMMAND=pdb2net`, verify the
+installed package from outside the source tree:
+
+```bash
+python3 -m pip install .
+cd /tmp
+python3 -c 'import pdb2net, pathlib; root = pathlib.Path(pdb2net.__file__).parent; print((root / "configs/config.base.json").exists()); print((root / "configs/config.local.json").exists())'
+pdb2net --help
+```
+
+Expected output for the config check is `True` for `config.base.json` and
+`False` for `config.local.json`.
+
 ## Required Configuration
 
-Provide reference data through `pdb2net/configs/config.local.json`, an explicit
-`--config` file, or environment variables:
+For web workers, provide reference data through an explicit `--config` file or
+environment variables. `pdb2net/configs/config.local.json` is acceptable for a
+local workstation checkout, but should not be used as the production deployment
+mechanism for installed worker packages.
 
 - `PDB2NET_PDB_FASTA`: `pdb_seqres.txt`
 - `PDB2NET_SIFTS_TSV`: `pdb_chain_uniprot.tsv`

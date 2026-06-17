@@ -7,6 +7,7 @@ PDB2Net extracts protein interaction networks from PDB/mmCIF structure files and
 ## Runtime
 
 - Use `python3`, preferably Python 3.11 or 3.12.
+- This repository normally has a local `.venv`. Prefer `.venv/bin/python` for tests and packaging checks when it exists. The system `python3` may point to a different interpreter without dev dependencies.
 - Do not assume a `python` executable exists.
 - The legacy script entry point is:
 
@@ -18,6 +19,12 @@ python3 -m pdb2net.main
 
 ```bash
 python3 -m pdb2net run --input-dir /path/to/inputs --output-dir /path/to/outputs --headless
+```
+
+- When validating the installed console script, use the package entry point:
+
+```bash
+pdb2net run --input-dir /path/to/inputs --output-dir /path/to/outputs --headless
 ```
 
 - Keep Cytoscape optional for automated work. Prefer `open_in_cytoscape: false` for checks, fixtures, and headless runs.
@@ -34,6 +41,16 @@ Configuration is layered in this order:
 5. environment variable overrides
 
 Use `config.local.json` or environment variables for machine-specific paths. Do not commit local reference data paths, generated outputs, BLAST databases, or large datasets.
+
+Packaging must include the distributable defaults in `pdb2net/configs/` (`config.base.json` and OS-specific configs), but must not include `config.local.json`. Verify installed-package config availability from outside the source tree so Python cannot import the working copy by accident.
+
+```bash
+python3 -m pip install --no-build-isolation --no-deps --target /tmp/pdb2net-package-check .
+cd /tmp
+PYTHONPATH=/tmp/pdb2net-package-check python3 -c 'import pdb2net, pathlib; root = pathlib.Path(pdb2net.__file__).parent; print((root / "configs/config.base.json").exists()); print((root / "configs/config.local.json").exists())'
+```
+
+Expected output is `True` for `config.base.json` and `False` for `config.local.json`.
 
 ## Output Contract
 
@@ -72,8 +89,10 @@ outputs/
 
 ## Good First Verification Targets
 
-- `python3 scripts/check_environment.py`
+- `.venv/bin/python -m pytest` when `.venv` exists.
+- `.venv/bin/python scripts/check_environment.py` or `python3 scripts/check_environment.py`.
 - Config loading with a temporary config directory or `PDB2NET_CONFIG_FILE`.
 - File extension and PDB ID parsing.
 - Distance detection on small synthetic atom data.
 - Headless CX2 export with tiny node/edge fixtures.
+- Installed-package check for `pdb2net/configs/config.base.json`.

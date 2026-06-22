@@ -14,7 +14,7 @@ authors = [
   { name = "Hadeer Elhabashy" }
 ]
 dependencies = [
-  "biopython==1.84",
+  "biopython==1.87",
   "gemmi",
   "matplotlib",
   "networkx",

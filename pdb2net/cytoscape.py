@@ -305,6 +305,9 @@ def create_cytoscape_network(
     except Exception as e:
         if _verbose_enabled():
             print(f"[cytoscape] Error creating network: {e}")
+        # The portable CX2 artifact is the output contract even when the
+        # optional live Cytoscape integration is unavailable.
+        export_cx2_headless(network_title, run_output_path, nodes_df, edges_df, color_map, positions)
         return
 
     if combined_network:
@@ -406,17 +409,19 @@ def create_cytoscape_network(
             if _verbose_enabled():
                 print(f"[cytoscape] Layout failed (non-fatal): {e}")
 
-    try:
-        export_cx2_headless(network_title, run_output_path, nodes_df, edges_df, color_map, positions)
-    except Exception as e:
-        if _verbose_enabled():
-            print(f"[cytoscape] Error exporting: {e}")
+    # Do not turn serialization/disk failures into a successful run with
+    # silently missing artifacts.
+    export_cx2_headless(network_title, run_output_path, nodes_df, edges_df, color_map, positions)
 
 
 def generate_nodes_from_atom_data(atom_data, pdb_id=None):
     """Create Cytoscape chain nodes from parsed atom/chain data."""
-    def count_lengths(res_list):
-        return count_polymer_lengths((res.get("residue_name") for res in res_list or []))
+    def count_lengths(chain):
+        if "aa_len" in chain or "nt_len" in chain:
+            return int(chain.get("aa_len", 0)), int(chain.get("nt_len", 0))
+        return count_polymer_lengths(
+            (res.get("residue_name") for res in chain.get("residues") or [])
+        )
 
     nodes = []
     for chain in atom_data:
@@ -432,7 +437,7 @@ def generate_nodes_from_atom_data(atom_data, pdb_id=None):
         matched_id = str(chain.get("matched_id") or "")
         representative_accession = str(chain.get("representative_accession") or "")
         annotation_confidence = str(chain.get("annotation_confidence") or "")
-        aa_len, nt_len = count_lengths(chain.get("residues"))
+        aa_len, nt_len = count_lengths(chain)
         node_pdb_id = str(pdb_id or chain.get("_parent_pdb_id") or uid_pdb_id or "")
         node_chain_id = str(chain.get("chain_id") or uid_chain_id or "")
         source_file = str(

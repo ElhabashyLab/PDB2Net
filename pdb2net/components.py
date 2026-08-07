@@ -36,19 +36,35 @@ def build_identity_edges(
     uniprot_to_chains: Mapping[str, Iterable[str]],
     chain_to_pdb: Mapping[str, str],
 ) -> List[Dict[str, Any]]:
-    """Create cross-PDB identity bridge edges between chains with the same UniProt ID."""
+    """Create a deterministic cross-PDB spanning tree for each UniProt group.
+
+    Every chain participates when the accession occurs in at least two PDBs,
+    while same-PDB identity edges remain excluded.  The spanning tree avoids a
+    quadratic complete multipartite graph without fragmenting components.
+    """
     identity_edges: List[Dict[str, Any]] = []
     for chains in uniprot_to_chains.values():
-        sorted_chains = sorted(chain for chain in chains if chain in chain_to_pdb)
-        if len(sorted_chains) < 2:
+        by_pdb: Dict[str, List[str]] = {}
+        for chain in sorted(set(chains)):
+            pdb_id = chain_to_pdb.get(chain)
+            if pdb_id:
+                by_pdb.setdefault(pdb_id, []).append(chain)
+        ordered_groups = [by_pdb[pdb_id] for pdb_id in sorted(by_pdb)]
+        if len(ordered_groups) < 2:
             continue
 
-        for index in range(len(sorted_chains) - 1):
-            chain_a = sorted_chains[index]
-            chain_b = sorted_chains[index + 1]
-            if chain_to_pdb.get(chain_a) == chain_to_pdb.get(chain_b):
-                continue
-
+        first_anchor = ordered_groups[0][0]
+        second_anchor = ordered_groups[1][0]
+        pairs = [
+            (first_anchor, chain)
+            for group in ordered_groups[1:]
+            for chain in group
+        ]
+        pairs.extend(
+            (second_anchor, chain)
+            for chain in ordered_groups[0][1:]
+        )
+        for chain_a, chain_b in pairs:
             identity_edges.append({
                 "chain_a": chain_a,
                 "chain_b": chain_b,

@@ -316,6 +316,7 @@ def calculate_distances_with_ckdtree(combined_data: List[Dict[str, Any]]) -> Lis
                         "file_path": file_path,
                         "chain_a": chain_a["unique_chain_id"],
                         "chain_b": chain_b["unique_chain_id"],
+                        "ca_neighbors": int(ca_neighbors),
                         "all_atoms_count": int(all_atoms_count),
                         "interaction_type": interaction_type,
                     })

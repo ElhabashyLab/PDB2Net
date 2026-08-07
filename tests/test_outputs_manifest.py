@@ -25,6 +25,10 @@ def test_write_run_manifest_is_additive_and_machine_readable(tmp_path: Path) -> 
         started_at="2026-01-02T03:04:05",
         finished_at="2026-01-02T03:04:06",
         total_time=1.25,
+        annotations={"chains_total": 1, "by_source": {"sifts": 1}},
+        references={"manifest_id": "mini-ref-v1"},
+        resources={"input": {"total_bytes": 123}},
+        skipped_outputs=[{"name": "Combined_Network_X", "reason": "combined_graph_limit_exceeded"}],
     )
 
     manifest = json.loads(Path(paths.manifest_file).read_text(encoding="utf-8"))
@@ -38,6 +42,10 @@ def test_write_run_manifest_is_additive_and_machine_readable(tmp_path: Path) -> 
     assert manifest["outputs"]["runtime_analysis"] == paths.log_file
     assert manifest["config"]["open_in_cytoscape"] is False
     assert manifest["counts"]["input_files"] == 1
+    assert manifest["annotations"]["by_source"] == {"sifts": 1}
+    assert manifest["references"]["manifest_id"] == "mini-ref-v1"
+    assert manifest["resources"]["input"]["total_bytes"] == 123
+    assert manifest["skipped_outputs"][0]["name"] == "Combined_Network_X"
 
 
 def test_write_failed_run_manifest_records_error_code(tmp_path: Path) -> None:
@@ -80,6 +88,10 @@ def test_collect_web_outputs_creates_stable_summary_networks_and_interactions(tm
         started_at="2026-01-02T03:04:05",
         finished_at="2026-01-02T03:04:06",
         total_time=1.25,
+        annotations={"chains_total": 1},
+        references={"manifest_id": "mini-ref-v1"},
+        resources={"input": {"total_bytes": 123}},
+        skipped_outputs=[{"name": "Combined_Network_X", "reason": "combined_graph_limit_exceeded"}],
     )
     write_run_summary(paths)
 
@@ -102,5 +114,9 @@ def test_collect_web_outputs_creates_stable_summary_networks_and_interactions(tm
     assert summary["input_path"] is None
     assert summary["networks"]
     assert summary["interactions"]
-    assert summary["counts"] == {"networks": 3, "interactions": 1}
+    assert summary["counts"] == {"networks": 3, "interactions": 1, "skipped_outputs": 1}
     assert summary["config"]["open_in_cytoscape"] is False
+    assert summary["annotations"] == {"chains_total": 1}
+    assert summary["references"]["manifest_id"] == "mini-ref-v1"
+    assert summary["resources"]["input"]["total_bytes"] == 123
+    assert summary["skipped_outputs"][0]["name"] == "Combined_Network_X"

@@ -13,7 +13,7 @@ from typing import Any, Mapping
 from . import __version__
 from .input_contract import InputValidationError
 
-OUTPUT_CONTRACT_VERSION = "1.0"
+OUTPUT_CONTRACT_VERSION = "1.1"
 
 
 @dataclass(frozen=True)
@@ -118,6 +118,10 @@ def write_run_manifest(
     input_path: str | None = None,
     generated_outputs: Mapping[str, Any] | None = None,
     extra_counts: Mapping[str, Any] | None = None,
+    annotations: Mapping[str, Any] | None = None,
+    references: Mapping[str, Any] | None = None,
+    resources: Mapping[str, Any] | None = None,
+    skipped_outputs: list[Mapping[str, Any]] | None = None,
 ) -> None:
     """Write an additive per-run manifest for webserver/job tracking."""
     generated = dict(generated_outputs or collect_generated_outputs(output_paths))
@@ -146,6 +150,10 @@ def write_run_manifest(
             "interaction_csv_files": list(generated.get("interaction_csv_files", [])),
         },
         "counts": counts,
+        "annotations": dict(annotations or {}),
+        "references": dict(references or {}),
+        "resources": dict(resources or {}),
+        "skipped_outputs": [dict(entry) for entry in (skipped_outputs or [])],
         "config": dict(config_snapshot),
         "errors": list(errors or []),
         "warnings": list(warnings or []),
@@ -227,7 +235,12 @@ def collect_web_outputs(output_paths: RunOutputPaths, web_output_dir: str) -> di
         "counts": {
             "networks": len(copied_networks),
             "interactions": len(copied_interactions),
+            "skipped_outputs": len(internal_summary.get("skipped_outputs", [])),
         },
+        "annotations": internal_summary.get("annotations", {}),
+        "references": internal_summary.get("references", {}),
+        "resources": internal_summary.get("resources", {}),
+        "skipped_outputs": internal_summary.get("skipped_outputs", []),
         "config": internal_summary.get("config", {}),
         "errors": internal_summary.get("errors", []),
         "warnings": internal_summary.get("warnings", []),

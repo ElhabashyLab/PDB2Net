@@ -124,6 +124,12 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
         "PDB2NET_PP_MIN_ALL_ATOM_CONTACTS": ("interaction_filters", "protein_protein_min_all_atom_contacts"),
         "PDB2NET_PNA_MIN_ALL_ATOM_CONTACTS": ("interaction_filters", "protein_nucleic_acid_min_all_atom_contacts"),
         "PDB2NET_NA_MIN_ALL_ATOM_CONTACTS": ("interaction_filters", "nucleic_acid_min_all_atom_contacts"),
+        "PDB2NET_MAX_INPUT_FILES": ("resource_limits", "max_input_files"),
+        "PDB2NET_MAX_TOTAL_INPUT_BYTES": ("resource_limits", "max_total_input_bytes"),
+        "PDB2NET_MAX_SINGLE_INPUT_BYTES": ("resource_limits", "max_single_input_bytes"),
+        "PDB2NET_MAX_PROCESSING_BATCH_BYTES": ("resource_limits", "max_processing_batch_bytes"),
+        "PDB2NET_COMBINED_MAX_NODES": ("combined_graph_limits", "max_nodes"),
+        "PDB2NET_COMBINED_MAX_EDGES": ("combined_graph_limits", "max_edges"),
     }
 
     for env, (key, caster) in flat.items():
@@ -193,6 +199,15 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
     cfg.setdefault("workers", {})
     cfg["workers"].setdefault("parsing", "auto")
     cfg["workers"].setdefault("blast_threads", "auto")
+    cfg.setdefault("resource_limits", {})
+    cfg["resource_limits"].setdefault("max_input_files", None)
+    cfg["resource_limits"].setdefault("max_total_input_bytes", None)
+    cfg["resource_limits"].setdefault("max_single_input_bytes", None)
+    cfg["resource_limits"].setdefault("max_processing_batch_bytes", None)
+    cfg.setdefault("combined_graph_limits", {})
+    cfg["combined_graph_limits"].setdefault("max_nodes", None)
+    cfg["combined_graph_limits"].setdefault("max_edges", None)
+    cfg.setdefault("reference_manifest_id", "")
     cfg.setdefault("layout_mode", "python_fast")
     cfg.setdefault("layout_engine_path", "")
     cfg.setdefault("layout_keep_temp_files", False)

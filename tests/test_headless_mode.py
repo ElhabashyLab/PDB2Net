@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from pdb2net import cytoscape
 
@@ -73,3 +74,44 @@ def test_live_cytoscape_is_only_requested_when_enabled(monkeypatch, tmp_path: Pa
 
     assert calls["requested"]
     assert (tmp_path / "Live_Test_Network.cx2").exists()
+
+
+def test_headless_export_failure_propagates(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setitem(cytoscape.config, "open_in_cytoscape", False)
+    monkeypatch.setattr(
+        cytoscape,
+        "export_cx2_headless",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("disk full")),
+    )
+
+    with pytest.raises(OSError, match="disk full"):
+        cytoscape.create_cytoscape_network(
+            [],
+            "Broken_Export",
+            str(tmp_path),
+            nodes_data=[{"id": "A", "name": "A", "color_group": "Protein"}],
+        )
+
+
+def test_live_creation_failure_still_writes_portable_cx2(monkeypatch, tmp_path: Path) -> None:
+    class BrokenLiveCytoscape:
+        @staticmethod
+        def get_network_list():
+            return []
+
+        @staticmethod
+        def create_network_from_data_frames(**_kwargs):
+            raise RuntimeError("live Cytoscape unavailable")
+
+    monkeypatch.setitem(cytoscape.config, "open_in_cytoscape", True)
+    monkeypatch.setitem(cytoscape.config, "keep_last_n_networks", 46)
+    monkeypatch.setattr(cytoscape, "_get_py4cytoscape", lambda: BrokenLiveCytoscape)
+
+    cytoscape.create_cytoscape_network(
+        [],
+        "Live_Fallback",
+        str(tmp_path),
+        nodes_data=[{"id": "A", "name": "A", "color_group": "Protein"}],
+    )
+
+    assert (tmp_path / "Live_Fallback.cx2").is_file()

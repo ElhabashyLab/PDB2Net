@@ -116,3 +116,41 @@ def test_protein_na_nodes_include_filterable_source_metadata(monkeypatch) -> Non
     assert nodes["PDB1:D"]["molecule_type"] == "DNA"
     assert nodes["PDB1:D"]["source_file"] == "pdb1.cif"
     assert nodes["PDB1:D"]["nt_len"] == 2
+
+
+def test_combined_protein_network_over_limit_is_reported_and_not_exported(monkeypatch) -> None:
+    exported = []
+    monkeypatch.setattr(
+        protein_network,
+        "create_cytoscape_network",
+        lambda edges, title, output_path, nodes_data=None: exported.append(title),
+    )
+    combined_data = [
+        {"pdb_id": "PDB1", "atom_data": [_protein_chain("A", "U1"), _protein_chain("B", "U2")]},
+        {"pdb_id": "PDB2", "atom_data": [_protein_chain("A", "U1"), _protein_chain("B", "U3")]},
+    ]
+    results = [
+        {"chain_a": "PDB1:A", "chain_b": "PDB1:B", "all_atoms_count": 2},
+        {"chain_a": "PDB2:A", "chain_b": "PDB2:B", "all_atoms_count": 3},
+    ]
+
+    skipped = create_protein_network(
+        results,
+        combined_data,
+        "/tmp/unused",
+        {"protein_per_pdb": False, "combined_protein_network": True},
+        combined_graph_limits={"max_nodes": 2, "max_edges": 10},
+    )
+
+    assert exported == []
+    assert skipped == [
+        {
+            "output_type": "network",
+            "network_kind": "combined_protein_network",
+            "name": "Combined_Protein_Network_U1_U2_U3",
+            "reason": "combined_graph_limit_exceeded",
+            "exceeded_limits": ["max_nodes"],
+            "counts": {"nodes": 3, "edges": 2},
+            "limits": {"max_nodes": 2, "max_edges": 10},
+        }
+    ]

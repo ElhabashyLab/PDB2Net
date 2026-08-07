@@ -14,6 +14,14 @@
   },
   "structure_model_policy": "first",
   "workers": { "parsing": "auto", "blast_threads": "auto" },
+  "resource_limits": {
+    "max_input_files": null,
+    "max_total_input_bytes": null,
+    "max_single_input_bytes": null,
+    "max_processing_batch_bytes": null
+  },
+  "combined_graph_limits": { "max_nodes": null, "max_edges": null },
+  "reference_manifest_id": "",
   "layout_mode": "python_fast",
   "layout_engine_path": "",
   "layout_keep_temp_files": false,

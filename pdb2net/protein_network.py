@@ -24,10 +24,11 @@ Notes
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple
 
 from .components import build_identity_edges, find_linked_components, make_component_title
 from .cytoscape import create_cytoscape_network
+from .graph_limits import combined_graph_skip, normalize_combined_graph_limits
 from .residue_types import count_polymer_lengths
 
 
@@ -39,7 +40,8 @@ def create_protein_network(
     *,
     per_pdb_output_path: Optional[str] = None,
     combined_output_path: Optional[str] = None,
-) -> None:
+    combined_graph_limits: Mapping[str, Any] | None = None,
+) -> List[Dict[str, Any]]:
     """Create protein-level networks (per PDB and/or combined).
 
     per_pdb_output_path:
@@ -47,18 +49,24 @@ def create_protein_network(
     combined_output_path:
         Output folder for Combined_Protein_Network.cx2
     """
+    skipped_outputs: List[Dict[str, Any]] = []
+    graph_limits = normalize_combined_graph_limits(combined_graph_limits)
     make_per_pdb = network_config.get("protein_per_pdb", False)
     make_combined = network_config.get("combined_protein_network", False)
     if not make_per_pdb and not make_combined:
         print("Protein network creation is disabled.")
-        return
+        return skipped_outputs
 
     # Default fallbacks (backward compatible)
     per_pdb_out = per_pdb_output_path or run_output_path
     combined_out = combined_output_path or run_output_path
 
-    def count_lengths(res_list: Optional[List[Dict[str, Any]]]) -> Tuple[int, int]:
-        return count_polymer_lengths((res.get("residue_name") for res in res_list or []))
+    def count_lengths(chain: Dict[str, Any]) -> Tuple[int, int]:
+        if "aa_len" in chain or "nt_len" in chain:
+            return int(chain.get("aa_len", 0)), int(chain.get("nt_len", 0))
+        return count_polymer_lengths(
+            (res.get("residue_name") for res in chain.get("residues") or [])
+        )
 
     # --- Collect chain/protein metadata ---
     chain_to_uniprot: Dict[str, str] = {}
@@ -76,7 +84,7 @@ def create_protein_network(
         for chain in structure["atom_data"]:
             chain_id = chain["chain_id"]
             uid = f"{pdb_id}:{chain_id}"
-            aa_len, nt_len = count_lengths(chain.get("residues"))
+            aa_len, nt_len = count_lengths(chain)
             chain_info[uid] = {
                 "molecule_type": (chain.get("molecule_type") or "Unknown").strip(),
                 "molecule_name": chain.get("molecule_name", "Unknown"),
@@ -332,9 +340,23 @@ def create_protein_network(
                 for (up1, up2), weight in sorted(component_edges_by_pair.items())
             ]
             nodes = nodes_from_uniprots(component_uniprots, force_protein_color=False, pdb_scope=None)
+            network_title = make_combined_component_title(component_uniprots)
+            skipped = combined_graph_skip(
+                network_kind="combined_protein_network",
+                name=network_title,
+                node_count=len(nodes),
+                edge_count=len(combined_edges),
+                limits=graph_limits,
+            )
+            if skipped:
+                skipped_outputs.append(skipped)
+                continue
+
             create_cytoscape_network(
                 combined_edges,
-                make_combined_component_title(component_uniprots),
+                network_title,
                 combined_out,
                 nodes_data=nodes,
             )
+
+    return skipped_outputs

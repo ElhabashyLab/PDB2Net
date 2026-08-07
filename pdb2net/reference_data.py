@@ -59,6 +59,35 @@ def load_pdb_fasta(pdb_fasta_path: str) -> Dict[str, Dict[str, str]]:
 
 
 @lru_cache(maxsize=None)
+def load_pdb_fasta_headers(
+    pdb_fasta_path: str,
+    pdb_ids: tuple[str, ...] | None = None,
+) -> Dict[str, Dict[str, str]]:
+    """Return per-chain header metadata without retaining reference sequences.
+
+    Molecule classification only consumes the FASTA header text. Keeping a
+    dedicated lightweight lookup prevents every web job from holding the full
+    PDB SEQRES sequence corpus in memory unnecessarily.
+    """
+    pdb_headers: Dict[str, Dict[str, str]] = {}
+    wanted_ids = {value.lower() for value in pdb_ids} if pdb_ids is not None else None
+    with open(pdb_fasta_path, "r", encoding="utf-8", errors="ignore") as handle:
+        for line in handle:
+            if not line.startswith(">"):
+                continue
+            parts = line.split()
+            fasta_header = parts[0][1:]
+            if "_" not in fasta_header:
+                continue
+            pdb_id, chain_id = fasta_header.split("_", 1)
+            if wanted_ids is not None and pdb_id.lower() not in wanted_ids:
+                continue
+            formatted_key = f"{pdb_id.lower()}_{chain_id.upper()}"
+            pdb_headers[formatted_key] = {"info": " ".join(parts[1:])}
+    return pdb_headers
+
+
+@lru_cache(maxsize=None)
 def load_sifts_mapping(tsv_path: str) -> Dict[str, str]:
     """Load SIFTS PDB-to-UniProt chain mapping from a TSV file."""
     pdb_to_uniprot: Dict[str, str] = {}

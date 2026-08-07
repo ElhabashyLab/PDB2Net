@@ -29,6 +29,9 @@ def test_run_help_includes_optional_diamond_flags(capsys) -> None:
     captured = capsys.readouterr()
     assert "--diamond-uniref90" in captured.out
     assert "--diamond-uniref90-db" in captured.out
+    assert "--diamond-threads" in captured.out
+    assert "--diamond-iterate" in captured.out
+    assert "--diamond-sensitivity" in captured.out
 
 
 def test_run_returns_nonzero_for_missing_input_dir(tmp_path, capsys) -> None:

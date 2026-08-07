@@ -100,10 +100,20 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
         "PDB2NET_BLASTP": ("blastp_executable", str),
         "PDB2NET_DIAMOND": ("diamond.executable", str),
         "PDB2NET_DIAMOND_UNIREF90_DB": ("diamond.uniref90_db_path", str),
+        "PDB2NET_DIAMOND_TEMP_DIR": ("diamond.temp_dir", str),
+        "PDB2NET_DIAMOND_THREADS": ("diamond.threads", int),
+        "PDB2NET_DIAMOND_BLOCK_SIZE": ("diamond.block_size", float),
+        "PDB2NET_DIAMOND_INDEX_CHUNKS": ("diamond.index_chunks", int),
+        "PDB2NET_DIAMOND_MAX_TARGET_SEQS": ("diamond.max_target_seqs", int),
+        "PDB2NET_DIAMOND_BATCH_MAX_SEQUENCES": ("diamond.batch_max_sequences", int),
+        "PDB2NET_DIAMOND_BATCH_MAX_FASTA_BYTES": ("diamond.batch_max_fasta_bytes", int),
+        "PDB2NET_DIAMOND_ITERATE": ("diamond.iterate", _bool_from_env),
+        "PDB2NET_DIAMOND_SENSITIVITY": ("diamond.sensitivity", str),
         "PDB2NET_OPEN_IN_CYTOSCAPE": ("open_in_cytoscape", _bool_from_env),
         "PDB2NET_EXPORT_DETAILED_INTERACTIONS": ("export_detailed_interactions", _bool_from_env),
         "PDB2NET_DIAMOND_ENABLED": ("diamond.enabled", _bool_from_env),
         "PDB2NET_STRUCTURE_MODEL_POLICY": ("structure_model_policy", str),
+        "PDB2NET_REFERENCE_MANIFEST_ID": ("reference_manifest_id", str),
     }
     nested: Dict[str, Tuple[str, str]] = {
         "PDB2NET_WORKERS_PARSING": ("workers", "parsing"),
@@ -156,6 +166,7 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
         "blastp_executable",
         "diamond.uniref90_db_path",
         "diamond.executable",
+        "diamond.temp_dir",
         "layout_engine_path",
     ]:
         if "." in key:
@@ -190,7 +201,15 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
     cfg["diamond"].setdefault("enabled", False)
     cfg["diamond"].setdefault("executable", "diamond")
     cfg["diamond"].setdefault("uniref90_db_path", "")
+    cfg["diamond"].setdefault("temp_dir", "")
+    cfg["diamond"].setdefault("threads", 6)
+    cfg["diamond"].setdefault("iterate", True)
+    cfg["diamond"].setdefault("sensitivity", "sensitive")
+    cfg["diamond"].setdefault("block_size", 1.0)
+    cfg["diamond"].setdefault("index_chunks", 4)
     cfg["diamond"].setdefault("max_target_seqs", 50)
+    cfg["diamond"].setdefault("batch_max_sequences", 5000)
+    cfg["diamond"].setdefault("batch_max_fasta_bytes", 50 * 1024 * 1024)
     cfg["diamond"].setdefault("assign_uniprot_id", "never")
     if not isinstance(cfg.get("interaction_filters"), dict):
         cfg["interaction_filters"] = {}

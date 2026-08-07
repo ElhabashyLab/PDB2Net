@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .config_loader import config
 from .reference_data import (
-    load_pdb_fasta as _load_pdb_fasta,
+    load_pdb_fasta_headers as _load_pdb_fasta_headers,
     load_sifts_mapping as _load_sifts_mapping,
     load_uniprot_names,
 )
@@ -46,7 +46,9 @@ def load_sifts_mapping(tsv_path: str) -> None:
     if _sifts_loaded:
         return
 
-    pdb_to_uniprot = dict(_load_sifts_mapping(tsv_path))
+    # The reference loader already owns an immutable-by-convention cached
+    # mapping. Reuse it instead of duplicating a potentially large hash table.
+    pdb_to_uniprot = _load_sifts_mapping(tsv_path)
     _sifts_loaded = True
 
 
@@ -56,22 +58,27 @@ def load_uniprot_fasta(fasta_path: str) -> None:
     if _uniprot_loaded:
         return
 
-    uniprot_dict = dict(load_uniprot_names(fasta_path))
+    # Reuse the cached mapping directly. A shallow ``dict(...)`` copy keeps all
+    # strings alive and duplicates the large hash table for no functional gain.
+    uniprot_dict = load_uniprot_names(fasta_path)
     _uniprot_loaded = True
 
 
-def load_pdb_fasta(pdb_fasta_path: str) -> Dict[str, Dict[str, str]]:
-    """Parse pdb_seqres.txt-like FASTA and return per-chain info/sequences.
+def load_pdb_fasta(
+    pdb_fasta_path: str,
+    pdb_ids: tuple[str, ...] | None = None,
+) -> Dict[str, Dict[str, str]]:
+    """Parse PDB SEQRES headers needed for per-chain molecule classification.
 
     Returns
     -------
     dict
         {
-          "pdbid_CHAIN": {"info": <header tail>, "sequence": <seq>},
+          "pdbid_CHAIN": {"info": <header tail>},
           ...
         }
     """
-    return _load_pdb_fasta(pdb_fasta_path)
+    return _load_pdb_fasta_headers(pdb_fasta_path, pdb_ids)
 
 
 def determine_from_fasta(search_key: str, pdb_fasta: Dict[str, Dict[str, str]]) -> Tuple[str, str, Optional[str]]:
@@ -141,7 +148,11 @@ def determine_molecule_info(pdb_id: str, chain_id: str, pdb_fasta: Dict[str, Dic
     return name, mol_type, uniprot_id
 
 
-def process_molecule_info(combined_data: List[Dict[str, Any]]) -> None:
+def process_molecule_info(
+    combined_data: List[Dict[str, Any]],
+    *,
+    pdb_fasta_headers: Dict[str, Dict[str, str]] | None = None,
+) -> None:
     """Assign molecule names and types to all chains in the dataset (in place).
 
     This function lazy-loads:
@@ -159,7 +170,14 @@ def process_molecule_info(combined_data: List[Dict[str, Any]]) -> None:
     load_sifts_mapping(SIFTS_TSV_PATH)
     load_uniprot_fasta(UNIPROT_FASTA_PATH)
 
-    pdb_fasta = load_pdb_fasta(PDB_FASTA_PATH)
+    requested_pdb_ids = tuple(
+        sorted({str(structure.get("pdb_id") or "").lower() for structure in combined_data})
+    )
+    pdb_fasta = (
+        pdb_fasta_headers
+        if pdb_fasta_headers is not None
+        else load_pdb_fasta(PDB_FASTA_PATH, requested_pdb_ids)
+    )
 
     for structure_data in combined_data:
         pdb_id = structure_data["pdb_id"].lower()

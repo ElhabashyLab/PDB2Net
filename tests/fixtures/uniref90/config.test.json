@@ -1,0 +1,16 @@
+{
+  "diamond": {
+    "enabled": true,
+    "executable": "diamond",
+    "uniref90_db_path": "REPLACED_BY_TEST",
+    "threads": 6,
+    "iterate": true,
+    "sensitivity": "sensitive",
+    "block_size": 1.0,
+    "index_chunks": 4,
+    "max_target_seqs": 50,
+    "batch_max_sequences": 5000,
+    "batch_max_fasta_bytes": 52428800,
+    "assign_uniprot_id": "high_confidence"
+  }
+}

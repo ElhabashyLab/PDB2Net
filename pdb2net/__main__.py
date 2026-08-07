@@ -35,6 +35,26 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--blastp", help="blastp executable name or path.")
     run.add_argument("--diamond", help="DIAMOND executable name or path for optional UniRef90 fallback.")
     run.add_argument("--diamond-uniref90-db", help="DIAMOND UniRef90 database path or prefix for optional fallback.")
+    run.add_argument("--diamond-threads", type=int, help="Threads used by each DIAMOND search process.")
+    run.add_argument("--diamond-block-size", type=float, help="DIAMOND block size in billions of sequence letters.")
+    run.add_argument("--diamond-index-chunks", type=int, help="Number of DIAMOND index chunks.")
+    run.add_argument("--diamond-max-target-seqs", type=int, help="Maximum DIAMOND targets retained per query.")
+    run.add_argument("--diamond-batch-max-sequences", type=int, help="Maximum sequences per DIAMOND query chunk.")
+    run.add_argument("--diamond-batch-max-fasta-bytes", type=int, help="Maximum FASTA bytes per DIAMOND query chunk.")
+    run.add_argument("--diamond-temp-dir", help="Parent directory for DIAMOND temporary query data.")
+    run.add_argument(
+        "--diamond-sensitivity",
+        choices=[
+            "default",
+            "fast",
+            "mid-sensitive",
+            "sensitive",
+            "more-sensitive",
+            "very-sensitive",
+            "ultra-sensitive",
+        ],
+        help="DIAMOND sensitivity mode.",
+    )
     run.add_argument(
         "--diamond-assign-uniprot-id",
         choices=["never", "high_confidence", "always"],
@@ -60,6 +80,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="Disable optional DIAMOND/UniRef90 fallback.",
     )
     run.set_defaults(diamond_uniref90=None)
+    diamond_iterate_group = run.add_mutually_exclusive_group()
+    diamond_iterate_group.add_argument(
+        "--diamond-iterate",
+        dest="diamond_iterate",
+        action="store_true",
+        help="Enable DIAMOND iterative search.",
+    )
+    diamond_iterate_group.add_argument(
+        "--no-diamond-iterate",
+        dest="diamond_iterate",
+        action="store_false",
+        help="Disable DIAMOND iterative search.",
+    )
+    run.set_defaults(diamond_iterate=None)
     _add_bool_pair(
         run,
         "export-detailed-interactions",
@@ -95,6 +129,20 @@ def _apply_run_overrides(args: argparse.Namespace, config: dict[str, Any]) -> No
         config["diamond"]["assign_uniprot_id"] = args.diamond_assign_uniprot_id
     if args.diamond_uniref90 is not None:
         config["diamond"]["enabled"] = args.diamond_uniref90
+    diamond_values = {
+        "threads": args.diamond_threads,
+        "block_size": args.diamond_block_size,
+        "index_chunks": args.diamond_index_chunks,
+        "max_target_seqs": args.diamond_max_target_seqs,
+        "batch_max_sequences": args.diamond_batch_max_sequences,
+        "batch_max_fasta_bytes": args.diamond_batch_max_fasta_bytes,
+        "temp_dir": str(Path(args.diamond_temp_dir).expanduser()) if args.diamond_temp_dir else None,
+        "sensitivity": args.diamond_sensitivity,
+        "iterate": args.diamond_iterate,
+    }
+    for key, value in diamond_values.items():
+        if value is not None:
+            config["diamond"][key] = value
 
     if args.headless:
         config["open_in_cytoscape"] = False

@@ -47,6 +47,7 @@ import tempfile
 import threading
 import uuid
 import hashlib
+import json
 import sqlite3
 from datetime import datetime
 from collections import Counter
@@ -100,6 +101,12 @@ _UNIPROT_ACCESSION_PATTERN = (
     r"(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|"
     r"[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})"
 )
+
+
+def _is_uniprotkb_accession(value: Any) -> bool:
+    """Return whether ``value`` is a complete UniProtKB accession or isoform ID."""
+    accession = str(value or "").strip()
+    return re.fullmatch(rf"{_UNIPROT_ACCESSION_PATTERN}(?:-[0-9]+)?", accession) is not None
 
 
 def _diag_inc(key: str, n: int = 1) -> None:
@@ -182,8 +189,66 @@ _CACHE_CONN: sqlite3.Connection | None = None
 _CACHE_DB_SIG: str | None = None
 
 
+def _search_policy_payload() -> Dict[str, Any]:
+    """Return result-relevant search settings used to namespace cache rows."""
+    diamond_cfg = _diamond_config()
+    return {
+        "swissprot": {
+            "max_target_seqs_default": BLAST_MAX_TARGET_SEQS_DEFAULT,
+            "max_target_seqs_short": BLAST_MAX_TARGET_SEQS_SHORT,
+            "short_query_length": BLAST_SHORT_QUERY_LENGTH,
+            "very_short_query_length": BLAST_VERY_SHORT_QUERY_LENGTH,
+            "use_blastp_short": BLAST_USE_BLASTP_SHORT,
+            "max_hsps": BLAST_MAX_HSPS,
+            "max_x_fraction": BLAST_MAX_X_FRACTION,
+            "thresholds": {
+                "short": _blast_search_parameters(20)[:4],
+                "medium": _blast_search_parameters(100)[:4],
+                "long": _blast_search_parameters(200)[:4],
+            },
+            "selection_policy": {
+                "version": 1,
+                "dynamic_margin_fraction": 0.05,
+                "dynamic_margin_floor": 4.0,
+                "dynamic_margin_cap": 10.0,
+                "perfect_tie_min_length": 80,
+                "perfect_tie_min_pident": 99.0,
+                "perfect_tie_min_qcov": 0.95,
+                "canonical_accession_validation": "uniprotkb-fullmatch-v1",
+            },
+        },
+        "diamond": {
+            "enabled": diamond_uniref90_enabled(),
+            "sensitivity": str(diamond_cfg.get("sensitivity") or "sensitive").strip().lower(),
+            "iterate": bool(diamond_cfg.get("iterate", True)),
+            # DIAMOND documents a small sensitivity effect from block size,
+            # so it belongs to the result policy rather than the chunk policy.
+            "block_size": _positive_float_config(diamond_cfg.get("block_size"), 1.0),
+            "max_target_seqs": _positive_int_config(diamond_cfg.get("max_target_seqs"), 50),
+            "assign_uniprot_id": str(diamond_cfg.get("assign_uniprot_id") or "never").strip().lower(),
+            "thresholds": {
+                "short": _diamond_thresholds(20),
+                "medium": _diamond_thresholds(100),
+                "long": _diamond_thresholds(200),
+            },
+            "selection_policy": {
+                "version": 1,
+                "dynamic_margin_fraction": 0.05,
+                "dynamic_margin_floor": 4.0,
+                "dynamic_margin_cap": 10.0,
+                "ambiguity_escape_min_pident": 99.0,
+                "ambiguity_escape_min_qcov": 0.95,
+                "high_confidence_min_pident": 95.0,
+                "high_confidence_min_qcov": 0.90,
+                "high_confidence_max_evalue": 1e-20,
+                "canonical_accession_validation": "uniprotkb-fullmatch-v1",
+            },
+        },
+    }
+
+
 def _db_signature() -> str:
-    """Compute a lightweight signature for the active sequence-search databases."""
+    """Compute a signature for active databases and result-affecting policies."""
     try:
         st = os.stat(UNIPROT_FASTA_PATH)
         swissprot_sig = f"uniprot_fasta:{st.st_size}:{st.st_mtime_ns}"
@@ -207,7 +272,9 @@ def _db_signature() -> str:
         except Exception:
             diamond_sig = f"diamond_uniref90:{db_path}:missing"
 
-    return f"{swissprot_sig}|{diamond_sig}"
+    policy_json = json.dumps(_search_policy_payload(), sort_keys=True, separators=(",", ":"))
+    policy_sig = hashlib.sha256(policy_json.encode("utf-8")).hexdigest()
+    return f"{swissprot_sig}|{diamond_sig}|policy:{policy_sig}"
 
 
 def _seq_cache_key(sequence: str) -> str:
@@ -389,6 +456,50 @@ class BlastHit:
     matched_id: str = ""
     representative_accession: str = ""
     confidence: str = "high"
+
+
+class SequenceSearchError(RuntimeError):
+    """Raised when an external sequence-search process fails operationally."""
+
+
+@dataclass(frozen=True)
+class _SearchOutcome:
+    """Internal tri-state result for a completed or failed search query."""
+
+    status: str
+    hit: Optional[BlastHit] = None
+    error: str = ""
+
+    @property
+    def is_error(self) -> bool:
+        return self.status == "error"
+
+
+def _hit_outcome(hit: BlastHit) -> _SearchOutcome:
+    return _SearchOutcome(status="hit", hit=hit)
+
+
+def _no_hit_outcome() -> _SearchOutcome:
+    return _SearchOutcome(status="no_hit")
+
+
+def _error_outcome(message: str) -> _SearchOutcome:
+    return _SearchOutcome(status="error", error=message)
+
+
+def _coerce_search_outcome(value: Any) -> _SearchOutcome:
+    """Normalize legacy test hooks returning ``BlastHit | None``."""
+    if isinstance(value, _SearchOutcome):
+        return value
+    if isinstance(value, BlastHit):
+        return _hit_outcome(value)
+    return _no_hit_outcome()
+
+
+def _outcome_hit_or_raise(outcome: _SearchOutcome, backend: str) -> Optional[BlastHit]:
+    if outcome.is_error:
+        raise SequenceSearchError(f"{backend} search failed: {outcome.error}")
+    return outcome.hit
 
 
 def _diamond_config() -> Dict[str, Any]:
@@ -581,317 +692,326 @@ def _protein_name_from_uniprot_title(stitle: str) -> Optional[str]:
     return None
 
 
-def _run_blastp_swissprot_search(query_sequence: str, label: str = "", debug: bool = False) -> Optional[BlastHit]:
-    """Run BLASTP for a given protein sequence and return a robust Swiss-Prot match."""
-    debug = bool(debug or _DEBUG_BLAST)
-
-    _diag_inc("blast_calls")
-
-    # --- Ambiguity handling (softened) ---
-    # Old behavior: fixed margin of 10 bitscore points.
-    # New behavior: dynamic margin based on best bitscore, with small relaxations
-    # when best is reviewed (sp) or clearly better in qcov/pident.
-    min_bitscore_margin_cap: float = 10.0
-    margin_floor: float = 4.0
-    margin_fraction_of_best: float = 0.05  # 5% of best bitscore (clamped to floor/cap)
-    margin_relax: float = 2.0              # subtract when "safer" conditions apply
-    min_margin_after_relax: float = 2.0
-
-    # --- "Perfect-tie acceptance" guardrails ---
-    allow_perfect_tie_if_qlen_at_least: int = 80
-    perfect_min_pident: float = 99.0
-    perfect_min_qcov: float = 0.95
-
-    # --- Slight qcov slack only for clearly strong hits ---
-    qcov_slack: float = 0.05
-    strong_bitscore_bonus: float = 40.0
-    strong_pident_bonus: float = 5.0
-
-    qlen0 = len(query_sequence)
-
-    # --- Length-dependent thresholds ---
-    if qlen0 < 80:
-        max_evalue = 1e-6
-        min_query_coverage = 0.85
-        min_pident = 35.0
-        min_bitscore = 60.0
-    elif qlen0 < 200:
-        max_evalue = 1e-10
-        min_query_coverage = 0.70
-        min_pident = 30.0
-        min_bitscore = 70.0
+def _blast_search_parameters(qlen: int) -> Tuple[float, float, float, float, int, Optional[str]]:
+    """Return thresholds and process options for one Swiss-Prot query."""
+    if qlen < 80:
+        thresholds = (1e-6, 0.85, 35.0, 60.0)
+    elif qlen < 200:
+        thresholds = (1e-10, 0.70, 30.0, 70.0)
     else:
-        max_evalue = 1e-20
-        min_query_coverage = 0.60
-        min_pident = 25.0
-        min_bitscore = 80.0
+        thresholds = (1e-20, 0.60, 25.0, 80.0)
+    max_targets = BLAST_MAX_TARGET_SEQS_SHORT if qlen < BLAST_SHORT_QUERY_LENGTH else BLAST_MAX_TARGET_SEQS_DEFAULT
+    blast_task = "blastp-short" if BLAST_USE_BLASTP_SHORT and qlen < BLAST_VERY_SHORT_QUERY_LENGTH else None
+    return (*thresholds, max_targets, blast_task)
 
-    max_targets = BLAST_MAX_TARGET_SEQS_SHORT if qlen0 < BLAST_SHORT_QUERY_LENGTH else BLAST_MAX_TARGET_SEQS_DEFAULT
-    blast_task = "blastp-short" if BLAST_USE_BLASTP_SHORT and qlen0 < BLAST_VERY_SHORT_QUERY_LENGTH else None
 
-    unique_id = str(uuid.uuid4())[:8]
-    prefix = f"[BLASTDBG][{label or unique_id}]"
+def _select_blastp_swissprot_hit(
+    query_sequence: str,
+    rows: List[str],
+    *,
+    use_qcovs: bool,
+    label: str = "",
+    debug: bool = False,
+) -> Optional[BlastHit]:
+    """Apply the established Swiss-Prot thresholds to one query's rows."""
+    qlen0 = len(query_sequence)
+    max_evalue, min_query_coverage, min_pident, min_bitscore, _max_targets, _task = (
+        _blast_search_parameters(qlen0)
+    )
+    prefix = f"[BLASTDBG][{label or _seq_cache_key(query_sequence)[:8]}]"
+    seen_any = False
+    seen_pass_evalue = False
+    seen_pass_qcov = False
+    seen_pass_pident = False
+    seen_pass_bitscore = False
+    best_per_accession: Dict[str, Tuple[int, float, float, float, float, str, str]] = {}
+    raw_top: List[Tuple[str, str, float, float, float, float, float]] = []
 
-    try:
-        with tempfile.TemporaryDirectory(prefix="pdb2net-blast-") as temp_dir:
-            query_file = os.path.join(temp_dir, f"query_{unique_id}.fasta")
-            output_file = os.path.join(temp_dir, f"blast_results_{unique_id}.txt")
+    for index, line in enumerate(rows):
+        cols = line.rstrip("\n").split("\t")
+        if (use_qcovs and len(cols) < 11) or (not use_qcovs and len(cols) < 10):
+            continue
+        dbtag, accession = _extract_dbtag_and_accession(cols[1].strip())
+        try:
+            pident = float(cols[2])
+            qstart = int(float(cols[4]))
+            qend = int(float(cols[5]))
+            qlen = int(float(cols[6]))
+            evalue = float(cols[8] if use_qcovs else cols[7])
+            bitscore = float(cols[9] if use_qcovs else cols[8])
+            title = cols[10] if use_qcovs else cols[9]
+        except (TypeError, ValueError):
+            continue
+        if qlen <= 0:
+            continue
 
-            if debug:
-                print(
-                    f"{prefix} qlen={qlen0} thr: evalue<={max_evalue:g}, "
-                    f"qcov>={min_query_coverage:.2f}, pident>={min_pident:.1f}, bitscore>={min_bitscore:.1f}, "
-                    f"max_targets={max_targets}, max_hsps={BLAST_MAX_HSPS}, task={blast_task or 'default'}"
-                )
+        if use_qcovs:
+            try:
+                qcov = float(cols[7]) / 100.0
+            except (TypeError, ValueError):
+                qcov = max(0.0, min(1.0, abs(qend - qstart) + 1) / float(qlen))
+        else:
+            qcov = max(0.0, min(1.0, abs(qend - qstart) + 1) / float(qlen))
 
-            with open(query_file, "w", encoding="utf-8") as f:
-                f.write(f">query\n{query_sequence}\n")
+        seen_any = True
+        reviewed = 1 if dbtag == "sp" else 0
+        if index < 5:
+            raw_top.append((dbtag, accession, pident, qcov, evalue, bitscore, min_query_coverage))
+        seen_pass_evalue = seen_pass_evalue or evalue <= max_evalue
+        seen_pass_qcov = seen_pass_qcov or qcov >= min_query_coverage
+        seen_pass_pident = seen_pass_pident or pident >= min_pident
+        seen_pass_bitscore = seen_pass_bitscore or bitscore >= min_bitscore
 
-            db_prefix = os.path.join(BLAST_DB_PATH, "uniprot_db")
-            if debug and not os.path.exists(db_prefix + ".pin"):
-                print(f"{prefix} WARNING: BLAST DB seems missing: {db_prefix}.pin not found")
+        if evalue > max_evalue:
+            continue
+        qcov_threshold = min_query_coverage
+        if bitscore >= min_bitscore + 40.0 and pident >= min_pident + 5.0:
+            qcov_threshold = max(0.0, qcov_threshold - 0.05)
+        if qcov < qcov_threshold or pident < min_pident or bitscore < min_bitscore:
+            continue
 
-            # Preferred coverage signal: qcovs (query coverage per subject, reported by BLAST)
-            # Fallback: compute qcov from qstart/qend span if qcovs is unsupported.
-            outfmt_with_qcovs = "6 qseqid sseqid pident length qstart qend qlen qcovs evalue bitscore stitle"
-            outfmt_span_only = "6 qseqid sseqid pident length qstart qend qlen evalue bitscore stitle"
+        current = (reviewed, bitscore, evalue, qcov, pident, accession, title)
+        previous = best_per_accession.get(accession)
+        if previous is None or current[:5] > previous[:5]:
+            best_per_accession[accession] = current
 
-            def _run_blast(outfmt: str) -> subprocess.CompletedProcess[str]:
-                blast_cmd = [
-                    BLAST_EXECUTABLE,
-                    "-query", query_file,
-                    "-db", db_prefix,
-                    "-out", output_file,
-                    "-evalue", str(max_evalue),
-                    "-max_target_seqs", str(max_targets),
-                    "-outfmt", outfmt,
-                ]
-                if BLAST_MAX_HSPS > 0:
-                    blast_cmd.extend(["-max_hsps", str(BLAST_MAX_HSPS)])
-                if blast_task:
-                    blast_cmd.extend(["-task", blast_task])
-                return subprocess.run(blast_cmd, capture_output=True, text=True)
-
-            use_qcovs = True
-            result = _run_blast(outfmt_with_qcovs)
-            if result.returncode != 0:
-                stderr = (result.stderr or "").lower()
-                if "qcovs" in stderr or "outfmt" in stderr or "unknown" in stderr or "unrecognized" in stderr:
-                    use_qcovs = False
-                    result = _run_blast(outfmt_span_only)
-
-            if result.returncode != 0:
-                _diag_inc("blast_error")
-                if debug:
-                    stderr = (result.stderr or "").strip()
-                    print(f"{prefix} BLAST ERROR returncode={result.returncode} stderr={stderr[:400]}")
-                return None
-
-            if not os.path.exists(output_file):
-                _diag_inc("blast_no_output")
-                if debug:
-                    print(f"{prefix} No BLAST output file produced.")
-                return None
-
-            seen_any = False
-            seen_pass_evalue = False
-            seen_pass_qcov = False
-            seen_pass_pident = False
-            seen_pass_bitscore = False
-
-            # Best hit per DISTINCT accession:
-            # (reviewed, bitscore, evalue, qcov, pident, accession, title)
-            best_per_accession: Dict[str, Tuple[int, float, float, float, float, str, str]] = {}
-
-            # For debug on why nothing passed thresholds
-            raw_top: List[Tuple[str, str, float, float, float, float, float]] = []  # (dbtag, acc, pident, qcov, evalue, bitscore, qcov_thr)
-
-            with open(output_file, "r", encoding="utf-8") as f:
-                for i, line in enumerate(f):
-                    cols = line.rstrip("\n").split("\t")
-                    if (use_qcovs and len(cols) < 11) or ((not use_qcovs) and len(cols) < 10):
-                        continue
-
-                    sseqid = cols[1].strip()
-                    dbtag, accession = _extract_dbtag_and_accession(sseqid)
-
-                    try:
-                        pident = float(cols[2])
-                        qstart = int(float(cols[4]))
-                        qend = int(float(cols[5]))
-                        qlen = int(float(cols[6]))
-                        evalue = float(cols[8] if use_qcovs else cols[7])
-                        bitscore = float(cols[9] if use_qcovs else cols[8])
-                        title = cols[10] if use_qcovs else cols[9]
-                    except Exception:
-                        continue
-
-                    if qlen <= 0:
-                        continue
-
-                    if use_qcovs:
-                        try:
-                            qcov = float(cols[7]) / 100.0
-                        except Exception:
-                            qcov = max(0.0, min(1.0, abs(qend - qstart) + 1) / float(qlen))
-                    else:
-                        qcov = max(0.0, min(1.0, abs(qend - qstart) + 1) / float(qlen))
-
-                    seen_any = True
-                    reviewed = 1 if dbtag == "sp" else 0
-
-                    if i < 5:
-                        raw_top.append((dbtag, accession, pident, qcov, evalue, bitscore, min_query_coverage))
-
-                    if evalue <= max_evalue:
-                        seen_pass_evalue = True
-                    if qcov >= min_query_coverage:
-                        seen_pass_qcov = True
-                    if pident >= min_pident:
-                        seen_pass_pident = True
-                    if bitscore >= min_bitscore:
-                        seen_pass_bitscore = True
-
-                    if evalue > max_evalue:
-                        continue
-
-                    # qcov slack for clearly strong hits
-                    qcov_thr = min_query_coverage
-                    if bitscore >= (min_bitscore + strong_bitscore_bonus) and pident >= (min_pident + strong_pident_bonus):
-                        qcov_thr = max(0.0, qcov_thr - qcov_slack)
-
-                    if qcov < qcov_thr:
-                        continue
-                    if pident < min_pident:
-                        continue
-                    if bitscore < min_bitscore:
-                        continue
-
-                    prev = best_per_accession.get(accession)
-                    cur = (reviewed, bitscore, evalue, qcov, pident, accession, title)
-                    if prev is None:
-                        best_per_accession[accession] = cur
-                    else:
-                        # Keep the better one (prefer reviewed, higher bitscore, lower evalue, higher qcov/pident)
-                        if cur[:5] > prev[:5]:
-                            best_per_accession[accession] = cur
-
-            if not seen_any:
-                _diag_inc("fail_no_hits")
-                if debug:
-                    print(f"{prefix} NO_HITS: BLAST returned no rows.")
-                return None
-
-            if not best_per_accession:
-                # Diagnostics: understand what failed
-                if not seen_pass_evalue:
-                    _diag_inc("fail_evalue")
-                elif not seen_pass_qcov:
-                    _diag_inc("fail_qcov")
-                elif not seen_pass_pident:
-                    _diag_inc("fail_pident")
-                elif not seen_pass_bitscore:
-                    _diag_inc("fail_bitscore")
-                else:
-                    _diag_inc("fail_thresholds_other")
-
-                if debug:
-                    print(f"{prefix} NO_PASS: no accession passed thresholds.")
-                    for dbtag, acc, pid, qcov, ev, bs, qthr in raw_top:
-                        print(f"{prefix}   top: {dbtag}|{acc} pid={pid:.1f} qcov={qcov:.2f} ev={ev:.2g} bs={bs:.1f} (qthr={qthr:.2f})")
-                return None
-
-            # Rank hits by (reviewed, bitscore, -evalue, qcov, pident)
-            ranked = sorted(best_per_accession.values(), key=lambda x: (x[0], x[1], -x[2], x[3], x[4]), reverse=True)
-            best = ranked[0]
-
-            best_reviewed, best_bitscore, best_evalue, best_qcov, best_pident, best_acc, best_title = best
-
-            # Compute dynamic bitscore margin
-            dynamic_margin = best_bitscore * margin_fraction_of_best
-            dynamic_margin = max(margin_floor, min(min_bitscore_margin_cap, dynamic_margin))
-
-            # Relax margin slightly if best is reviewed or clearly better in coverage/identity
-            relax = 0.0
-            if best_reviewed == 1:
-                relax += margin_relax
-            # If best is significantly higher in coverage/identity than runner-up, relax a bit
-            if len(ranked) > 1:
-                rb = ranked[1]
-                if (best_qcov - rb[3]) >= 0.10 or (best_pident - rb[4]) >= 10.0:
-                    relax += margin_relax
-
-            effective_margin = max(min_margin_after_relax, dynamic_margin - relax)
-
-            # Ambiguity rule: reject if there is another accession close in bitscore
-            ambiguous = False
-            ties = []
-            for cand in ranked[1:]:
-                _, cand_bitscore, _, cand_qcov, cand_pident, cand_acc, cand_title = cand
-                if (best_bitscore - cand_bitscore) <= effective_margin:
-                    ambiguous = True
-                    ties.append((cand_acc, cand_bitscore, cand_qcov, cand_pident, cand_title))
-                else:
-                    break
-
-            # Escape hatch: accept perfect ties for longer queries if both are near-perfect
-            if ambiguous and qlen0 >= allow_perfect_tie_if_qlen_at_least and ties:
-                # Identify top contender among ties (prefer reviewed)
-                contender = ranked[1]
-                cont_reviewed, cont_bitscore, cont_evalue, cont_qcov, cont_pident, cont_acc, cont_title = contender
-
-                if (
-                    best_pident >= perfect_min_pident
-                    and best_qcov >= perfect_min_qcov
-                    and cont_pident >= perfect_min_pident
-                    and cont_qcov >= perfect_min_qcov
-                ):
-                    # deterministically pick reviewed if different
-                    if best_reviewed != cont_reviewed:
-                        chosen = best if best_reviewed > cont_reviewed else contender
-                    else:
-                        # otherwise pick best bitscore, then lexicographic accession
-                        if best_bitscore != cont_bitscore:
-                            chosen = best if best_bitscore > cont_bitscore else contender
-                        else:
-                            chosen = best if best_acc <= cont_acc else contender
-
-                    best_reviewed, best_bitscore, best_evalue, best_qcov, best_pident, best_acc, best_title = chosen
-                    _diag_inc("accepted_perfect_tie")
-                    ambiguous = False
-
-            if ambiguous:
-                _diag_inc("fail_ambiguous_margin")
-                if debug:
-                    print(
-                        f"{prefix} AMBIGUOUS: best={('sp' if best_reviewed else 'tr')}|{best_acc} "
-                        f"bitscore={best_bitscore:.1f} margin={effective_margin:.1f} ties={len(ties)}"
-                    )
-                    for acc, bs, qc, pid, tt in ties[:5]:
-                        print(f"{prefix}   tie: {acc} bs={bs:.1f} qcov={qc:.2f} pid={pid:.1f}")
-                return None
-
-            _diag_inc("accepted")
-            return BlastHit(
-                accession=best_acc,
-                reviewed=bool(best_reviewed),
-                bitscore=best_bitscore,
-                evalue=best_evalue,
-                qcov=best_qcov,
-                pident=best_pident,
-                title=best_title,
-                source="blastp_swissprot",
-                database="Swiss-Prot",
-                matched_id=best_acc,
-                representative_accession=best_acc,
-                confidence="high",
-            )
-
-    except Exception as e:
-        _diag_inc("blast_exception")
+    if not seen_any:
+        _diag_inc("fail_no_hits")
         if debug:
-            print(f"{prefix} EXCEPTION: {e}")
+            print(f"{prefix} NO_HITS: BLAST returned no rows.")
         return None
+    if not best_per_accession:
+        if not seen_pass_evalue:
+            _diag_inc("fail_evalue")
+        elif not seen_pass_qcov:
+            _diag_inc("fail_qcov")
+        elif not seen_pass_pident:
+            _diag_inc("fail_pident")
+        elif not seen_pass_bitscore:
+            _diag_inc("fail_bitscore")
+        else:
+            _diag_inc("fail_thresholds_other")
+        if debug:
+            print(f"{prefix} NO_PASS: no accession passed thresholds.")
+            for dbtag, accession, pident, qcov, evalue, bitscore, qcov_threshold in raw_top:
+                print(
+                    f"{prefix}   top: {dbtag}|{accession} pid={pident:.1f} qcov={qcov:.2f} "
+                    f"ev={evalue:.2g} bs={bitscore:.1f} (qthr={qcov_threshold:.2f})"
+                )
+        return None
+
+    ranked = sorted(
+        best_per_accession.values(),
+        key=lambda hit: (hit[0], hit[1], -hit[2], hit[3], hit[4]),
+        reverse=True,
+    )
+    best = ranked[0]
+    best_reviewed, best_bitscore, best_evalue, best_qcov, best_pident, best_acc, best_title = best
+    dynamic_margin = max(4.0, min(10.0, best_bitscore * 0.05))
+    relax = 2.0 if best_reviewed == 1 else 0.0
+    if len(ranked) > 1:
+        runner_up = ranked[1]
+        if best_qcov - runner_up[3] >= 0.10 or best_pident - runner_up[4] >= 10.0:
+            relax += 2.0
+    effective_margin = max(2.0, dynamic_margin - relax)
+
+    ties = []
+    for candidate in ranked[1:]:
+        _, candidate_bitscore, _, candidate_qcov, candidate_pident, candidate_acc, candidate_title = candidate
+        if best_bitscore - candidate_bitscore <= effective_margin:
+            ties.append((candidate_acc, candidate_bitscore, candidate_qcov, candidate_pident, candidate_title))
+        else:
+            break
+
+    ambiguous = bool(ties)
+    if ambiguous and qlen0 >= 80:
+        contender = ranked[1]
+        (
+            contender_reviewed,
+            contender_bitscore,
+            _contender_evalue,
+            contender_qcov,
+            contender_pident,
+            contender_acc,
+            _contender_title,
+        ) = contender
+        if (
+            best_pident >= 99.0
+            and best_qcov >= 0.95
+            and contender_pident >= 99.0
+            and contender_qcov >= 0.95
+        ):
+            if best_reviewed != contender_reviewed:
+                chosen = best if best_reviewed > contender_reviewed else contender
+            elif best_bitscore != contender_bitscore:
+                chosen = best if best_bitscore > contender_bitscore else contender
+            else:
+                chosen = best if best_acc <= contender_acc else contender
+            best_reviewed, best_bitscore, best_evalue, best_qcov, best_pident, best_acc, best_title = chosen
+            _diag_inc("accepted_perfect_tie")
+            ambiguous = False
+
+    if ambiguous:
+        _diag_inc("fail_ambiguous_margin")
+        if debug:
+            print(
+                f"{prefix} AMBIGUOUS: best={('sp' if best_reviewed else 'tr')}|{best_acc} "
+                f"bitscore={best_bitscore:.1f} margin={effective_margin:.1f} ties={len(ties)}"
+            )
+        return None
+
+    _diag_inc("accepted")
+    return BlastHit(
+        accession=best_acc,
+        reviewed=bool(best_reviewed),
+        bitscore=best_bitscore,
+        evalue=best_evalue,
+        qcov=best_qcov,
+        pident=best_pident,
+        title=best_title,
+        source="blastp_swissprot",
+        database="Swiss-Prot",
+        matched_id=best_acc,
+        representative_accession=best_acc,
+        confidence="high",
+    )
+
+
+def _run_blastp_swissprot_batch(
+    queries: List[Tuple[str, str, str]],
+    *,
+    max_workers: int = 1,
+    debug: bool = False,
+) -> Dict[str, _SearchOutcome]:
+    """Run bounded Swiss-Prot Multi-FASTA chunks grouped by BLAST task."""
+    results = {
+        key: _error_outcome("Swiss-Prot search was not executed")
+        for key, _sequence, _label in queries
+    }
+    if not queries:
+        return results
+    debug = bool(debug or _DEBUG_BLAST)
+    blast_cfg = config.get("blast", {}) if isinstance(config.get("blast"), dict) else {}
+    max_sequences = _positive_int_config(blast_cfg.get("batch_max_sequences"), 5000)
+    max_fasta_bytes = _positive_int_config(blast_cfg.get("batch_max_fasta_bytes"), 50 * 1024 * 1024)
+    groups: Dict[Tuple[float, int, Optional[str]], List[Tuple[str, str, str]]] = {}
+    for query in queries:
+        _qcov, _pident, _bitscore, max_targets, task = _blast_search_parameters(len(query[1]))[1:]
+        max_evalue = _blast_search_parameters(len(query[1]))[0]
+        groups.setdefault((max_evalue, max_targets, task), []).append(query)
+
+    jobs: List[Tuple[float, int, Optional[str], List[Tuple[str, str, str]]]] = []
+    for (max_evalue, max_targets, task), group_queries in groups.items():
+        for chunk in _chunk_sequence_queries(
+            group_queries,
+            max_sequences=max_sequences,
+            max_fasta_bytes=max_fasta_bytes,
+        ):
+            jobs.append((max_evalue, max_targets, task, chunk))
+
+    def run_job(
+        job: Tuple[float, int, Optional[str], List[Tuple[str, str, str]]]
+    ) -> Dict[str, _SearchOutcome]:
+        max_evalue, max_targets, task, chunk = job
+        chunk_results = {
+            key: _error_outcome("Swiss-Prot batch did not complete")
+            for key, _sequence, _label in chunk
+        }
+        unique_id = str(uuid.uuid4())[:8]
+        prefix = f"[BLASTDBG][batch {unique_id}]"
+        _diag_inc("blast_calls")
+        try:
+            with tempfile.TemporaryDirectory(prefix="pdb2net-blast-") as temp_dir:
+                query_file = os.path.join(temp_dir, "queries.fasta")
+                output_file = os.path.join(temp_dir, "blast_results.tsv")
+                query_ids: Dict[str, Tuple[str, str, str]] = {}
+                with open(query_file, "w", encoding="utf-8") as handle:
+                    for query_index, (key, sequence, label) in enumerate(chunk):
+                        query_id = "query" if len(chunk) == 1 else f"q{query_index:06d}"
+                        query_ids[query_id] = (key, sequence, label)
+                        handle.write(f">{query_id}\n{sequence}\n")
+
+                db_prefix = os.path.join(BLAST_DB_PATH, "uniprot_db")
+                outfmt_qcovs = "6 qseqid sseqid pident length qstart qend qlen qcovs evalue bitscore stitle"
+                outfmt_span = "6 qseqid sseqid pident length qstart qend qlen evalue bitscore stitle"
+
+                def run_process(outfmt: str) -> subprocess.CompletedProcess[str]:
+                    command = [
+                        BLAST_EXECUTABLE,
+                        "-query", query_file,
+                        "-db", db_prefix,
+                        "-out", output_file,
+                        "-evalue", str(max_evalue),
+                        "-max_target_seqs", str(max_targets),
+                        "-outfmt", outfmt,
+                    ]
+                    if BLAST_MAX_HSPS > 0:
+                        command.extend(["-max_hsps", str(BLAST_MAX_HSPS)])
+                    if task:
+                        command.extend(["-task", task])
+                    return subprocess.run(command, capture_output=True, text=True)
+
+                use_qcovs = True
+                process_result = run_process(outfmt_qcovs)
+                if process_result.returncode != 0:
+                    stderr = (process_result.stderr or "").lower()
+                    if any(token in stderr for token in ("qcovs", "outfmt", "unknown", "unrecognized")):
+                        use_qcovs = False
+                        process_result = run_process(outfmt_span)
+                if process_result.returncode != 0:
+                    _diag_inc("blast_error")
+                    error = (process_result.stderr or "").strip()
+                    for key in chunk_results:
+                        chunk_results[key] = _error_outcome(
+                            f"BLASTP exited with code {process_result.returncode}: {error[:400]}"
+                        )
+                    if debug:
+                        print(f"{prefix} ERROR: {error[:400]}")
+                    return chunk_results
+                if not os.path.exists(output_file):
+                    _diag_inc("blast_no_output")
+                    for key in chunk_results:
+                        chunk_results[key] = _error_outcome("BLASTP did not create its output file")
+                    return chunk_results
+
+                rows_by_query: Dict[str, List[str]] = {query_id: [] for query_id in query_ids}
+                with open(output_file, "r", encoding="utf-8") as handle:
+                    for line in handle:
+                        query_id = line.split("\t", 1)[0]
+                        if query_id in rows_by_query:
+                            rows_by_query[query_id].append(line)
+                for query_id, (key, sequence, label) in query_ids.items():
+                    hit = _select_blastp_swissprot_hit(
+                        sequence,
+                        rows_by_query[query_id],
+                        use_qcovs=use_qcovs,
+                        label=label,
+                        debug=debug,
+                    )
+                    chunk_results[key] = _hit_outcome(hit) if hit is not None else _no_hit_outcome()
+        except Exception as exc:
+            _diag_inc("blast_exception")
+            for key in chunk_results:
+                chunk_results[key] = _error_outcome(f"BLASTP batch exception: {exc}")
+            if debug:
+                print(f"{prefix} EXCEPTION: {exc}")
+        return chunk_results
+
+    worker_count = max(1, min(_positive_int_config(max_workers, 1), len(jobs)))
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        for chunk_results in executor.map(run_job, jobs):
+            results.update(chunk_results)
+    return results
+
+
+def _run_blastp_swissprot_search(query_sequence: str, label: str = "", debug: bool = False) -> Optional[BlastHit]:
+    """Run Swiss-Prot BLASTP for one query via the bounded batch path."""
+    outcome = _run_blastp_swissprot_batch(
+        [("query", query_sequence, label)],
+        max_workers=1,
+        debug=debug,
+    )["query"]
+    return _outcome_hit_or_raise(outcome, "Swiss-Prot BLASTP")
 
 
 def _extract_uniref90_representative(sseqid: str, title: str = "") -> Tuple[str, str]:
@@ -924,134 +1044,287 @@ def _diamond_thresholds(qlen: int) -> Tuple[float, float, float, float]:
     return 1e-20, 0.60, 25.0, 80.0
 
 
-def _run_diamond_uniref90_search(query_sequence: str, label: str = "", debug: bool = False) -> Optional[BlastHit]:
-    """Run optional DIAMOND search against UniRef90 and return a conservative fallback hit."""
-    if not diamond_uniref90_enabled():
-        return None
+def _positive_int_config(raw: Any, default: int) -> int:
+    """Return a positive integer config value, falling back for invalid input."""
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
 
-    debug = bool(debug or _DEBUG_BLAST)
+
+def _positive_float_config(raw: Any, default: float) -> float:
+    """Return a positive float config value, falling back for invalid input."""
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
+def _chunk_sequence_queries(
+    queries: List[Tuple[str, str, str]],
+    *,
+    max_sequences: int,
+    max_fasta_bytes: int,
+) -> List[List[Tuple[str, str, str]]]:
+    """Split ``(key, sequence, label)`` queries at FASTA count/byte boundaries.
+
+    A single sequence larger than the configured byte limit is kept as its own
+    chunk; silently dropping it would change annotation semantics.
+    """
+    chunks: List[List[Tuple[str, str, str]]] = []
+    current: List[Tuple[str, str, str]] = []
+    current_bytes = 0
+
+    for key, sequence, label in queries:
+        record_bytes = len(f">{key}\n{sequence}\n".encode("utf-8"))
+        exceeds_count = len(current) >= max_sequences
+        exceeds_bytes = bool(current) and current_bytes + record_bytes > max_fasta_bytes
+        if exceeds_count or exceeds_bytes:
+            chunks.append(current)
+            current = []
+            current_bytes = 0
+        current.append((key, sequence, label))
+        current_bytes += record_bytes
+
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def _select_diamond_hit(
+    query_sequence: str,
+    rows: List[str],
+    *,
+    label: str = "",
+    debug: bool = False,
+) -> Optional[BlastHit]:
+    """Select one conservative UniRef90 hit from rows for a single query."""
     qlen0 = len(query_sequence)
     max_evalue, min_query_coverage, min_pident, min_bitscore = _diamond_thresholds(qlen0)
-    max_targets = int(_diamond_config().get("max_target_seqs", 50))
+    prefix = f"[DIAMONDDBG][{label or _seq_cache_key(query_sequence)[:8]}]"
+    best_per_match: Dict[str, Tuple[float, float, float, float, str, str, str]] = {}
+    seen_any = False
+
+    for line in rows:
+        cols = line.rstrip("\n").split("\t")
+        if len(cols) < 10:
+            continue
+
+        sseqid = cols[1].strip()
+        try:
+            pident = float(cols[2])
+            qstart = int(float(cols[4]))
+            qend = int(float(cols[5]))
+            qlen = int(float(cols[6]))
+            evalue = float(cols[7])
+            bitscore = float(cols[8])
+            title = cols[9]
+        except (TypeError, ValueError):
+            continue
+
+        if qlen <= 0:
+            continue
+
+        seen_any = True
+        qcov = max(0.0, min(1.0, (abs(qend - qstart) + 1) / float(qlen)))
+        if (
+            evalue > max_evalue
+            or qcov < min_query_coverage
+            or pident < min_pident
+            or bitscore < min_bitscore
+        ):
+            continue
+
+        matched_id, representative = _extract_uniref90_representative(sseqid, title)
+        if not matched_id:
+            continue
+
+        cur = (bitscore, -evalue, qcov, pident, matched_id, representative, title)
+        prev = best_per_match.get(matched_id)
+        if prev is None or cur[:4] > prev[:4]:
+            best_per_match[matched_id] = cur
+
+    if not seen_any:
+        _diag_inc("diamond_fail_no_hits")
+        return None
+    if not best_per_match:
+        _diag_inc("diamond_fail_thresholds")
+        return None
+
+    ranked = sorted(best_per_match.values(), reverse=True)
+    best_bitscore, neg_evalue, best_qcov, best_pident, best_id, representative, best_title = ranked[0]
+    best_evalue = -neg_evalue
+
+    dynamic_margin = max(4.0, min(10.0, best_bitscore * 0.05))
+    if len(ranked) > 1 and (best_bitscore - ranked[1][0]) <= dynamic_margin:
+        if not (best_pident >= 99.0 and best_qcov >= 0.95):
+            _diag_inc("diamond_fail_ambiguous_margin")
+            return None
+
+    confidence = "high" if best_pident >= 95.0 and best_qcov >= 0.90 and best_evalue <= 1e-20 else "medium"
+    _diag_inc("diamond_accepted")
+    if debug:
+        print(
+            f"{prefix} HIT: {best_id} qcov={best_qcov:.2f} "
+            f"pid={best_pident:.1f} conf={confidence}"
+        )
+    return BlastHit(
+        accession=representative or best_id,
+        reviewed=False,
+        bitscore=best_bitscore,
+        evalue=best_evalue,
+        qcov=best_qcov,
+        pident=best_pident,
+        title=best_title,
+        source="diamond_uniref90",
+        database="UniRef90",
+        matched_id=best_id,
+        representative_accession=representative,
+        confidence=confidence,
+    )
+
+
+def _run_diamond_uniref90_batch(
+    queries: List[Tuple[str, str, str]],
+    *,
+    debug: bool = False,
+) -> Dict[str, _SearchOutcome]:
+    """Run one DIAMOND Multi-FASTA process per bounded query chunk."""
+    results = {
+        key: _error_outcome("DIAMOND search was not executed")
+        for key, _sequence, _label in queries
+    }
+    if not queries:
+        return results
+    if not diamond_uniref90_enabled():
+        return {key: _no_hit_outcome() for key in results}
+
+    debug = bool(debug or _DEBUG_BLAST)
+    diamond_cfg = _diamond_config()
+    max_sequences = _positive_int_config(diamond_cfg.get("batch_max_sequences"), 5000)
+    max_fasta_bytes = _positive_int_config(diamond_cfg.get("batch_max_fasta_bytes"), 50 * 1024 * 1024)
+    threads = _positive_int_config(diamond_cfg.get("threads"), 6)
+    max_targets = _positive_int_config(diamond_cfg.get("max_target_seqs"), 50)
+    index_chunks = _positive_int_config(diamond_cfg.get("index_chunks"), 4)
+    block_size = _positive_float_config(diamond_cfg.get("block_size"), 1.0)
+
     executable = get_diamond_executable()
     db_path = get_diamond_uniref90_db_path()
-    unique_id = str(uuid.uuid4())[:8]
-    prefix = f"[DIAMONDDBG][{label or unique_id}]"
+    sensitivity = str(diamond_cfg.get("sensitivity") or "sensitive").strip().lower()
+    iterate = bool(diamond_cfg.get("iterate", True))
+    temp_base = str(diamond_cfg.get("temp_dir") or "").strip() or None
+    chunks = _chunk_sequence_queries(
+        queries,
+        max_sequences=max_sequences,
+        max_fasta_bytes=max_fasta_bytes,
+    )
 
-    try:
-        with tempfile.TemporaryDirectory(prefix="pdb2net-diamond-") as temp_dir:
-            query_file = os.path.join(temp_dir, f"query_{unique_id}.fasta")
-            output_file = os.path.join(temp_dir, f"diamond_results_{unique_id}.txt")
+    for chunk_index, chunk in enumerate(chunks, start=1):
+        prefix = f"[DIAMONDDBG][batch {chunk_index}/{len(chunks)}]"
+        try:
+            with tempfile.TemporaryDirectory(prefix="pdb2net-diamond-", dir=temp_base) as temp_dir:
+                query_file = os.path.join(temp_dir, "queries.fasta")
+                output_file = os.path.join(temp_dir, "diamond_results.tsv")
+                query_ids: Dict[str, Tuple[str, str, str]] = {}
 
-            with open(query_file, "w", encoding="utf-8") as handle:
-                handle.write(f">query\n{query_sequence}\n")
+                with open(query_file, "w", encoding="utf-8") as handle:
+                    for query_index, (key, sequence, label) in enumerate(chunk):
+                        query_id = "query" if len(chunk) == 1 else f"q{query_index:06d}"
+                        query_ids[query_id] = (key, sequence, label)
+                        handle.write(f">{query_id}\n{sequence}\n")
 
-            cmd = [
-                executable,
-                "blastp",
-                "--db", db_path,
-                "--query", query_file,
-                "--out", output_file,
-                "--evalue", str(max_evalue),
-                "--max-target-seqs", str(max_targets),
-                "--outfmt", "6", "qseqid", "sseqid", "pident", "length",
-                "qstart", "qend", "qlen", "evalue", "bitscore", "stitle",
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode != 0:
-                _diag_inc("diamond_error")
-                if debug:
-                    stderr = (result.stderr or "").strip()
-                    print(f"{prefix} DIAMOND ERROR returncode={result.returncode} stderr={stderr[:400]}")
-                return None
+                # Use the loosest query-length threshold for the process and apply
+                # exact per-query thresholds while parsing its rows below.
+                process_evalue = max(_diamond_thresholds(len(sequence))[0] for _, sequence, _ in chunk)
+                cmd = [
+                    executable,
+                    "blastp",
+                    "--db", db_path,
+                    "--query", query_file,
+                    "--out", output_file,
+                    "--evalue", str(process_evalue),
+                    "--threads", str(threads),
+                    "--block-size", str(block_size),
+                    "--index-chunks", str(index_chunks),
+                    "--max-target-seqs", str(max_targets),
+                    "--tmpdir", temp_dir,
+                    "--outfmt", "6", "qseqid", "sseqid", "pident", "length",
+                    "qstart", "qend", "qlen", "evalue", "bitscore", "stitle",
+                ]
+                if iterate:
+                    cmd.append("--iterate")
+                if sensitivity and sensitivity != "default":
+                    cmd.append(f"--{sensitivity}")
 
-            if not os.path.exists(output_file):
-                _diag_inc("diamond_no_output")
-                return None
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                if result.returncode != 0:
+                    _diag_inc("diamond_error")
+                    error = (result.stderr or "").strip()
+                    for key, _sequence, _label in chunk:
+                        results[key] = _error_outcome(
+                            f"DIAMOND exited with code {result.returncode}: {error[:400]}"
+                        )
+                    if debug:
+                        print(f"{prefix} ERROR returncode={result.returncode} stderr={error[:400]}")
+                    continue
+                if not os.path.exists(output_file):
+                    _diag_inc("diamond_no_output")
+                    for key, _sequence, _label in chunk:
+                        results[key] = _error_outcome("DIAMOND did not create its output file")
+                    continue
 
-            best_per_match: Dict[str, Tuple[float, float, float, float, str, str, str]] = {}
-            seen_any = False
-            with open(output_file, "r", encoding="utf-8") as handle:
-                for line in handle:
-                    cols = line.rstrip("\n").split("\t")
-                    if len(cols) < 10:
-                        continue
+                rows_by_query: Dict[str, List[str]] = {query_id: [] for query_id in query_ids}
+                with open(output_file, "r", encoding="utf-8") as handle:
+                    for line in handle:
+                        query_id = line.split("\t", 1)[0]
+                        if query_id in rows_by_query:
+                            rows_by_query[query_id].append(line)
 
-                    sseqid = cols[1].strip()
-                    try:
-                        pident = float(cols[2])
-                        qstart = int(float(cols[4]))
-                        qend = int(float(cols[5]))
-                        qlen = int(float(cols[6]))
-                        evalue = float(cols[7])
-                        bitscore = float(cols[8])
-                        title = cols[9]
-                    except Exception:
-                        continue
+                for query_id, (key, sequence, label) in query_ids.items():
+                    hit = _select_diamond_hit(
+                        sequence,
+                        rows_by_query[query_id],
+                        label=label,
+                        debug=debug,
+                    )
+                    results[key] = _hit_outcome(hit) if hit is not None else _no_hit_outcome()
+        except Exception as exc:
+            _diag_inc("diamond_exception")
+            for key, _sequence, _label in chunk:
+                results[key] = _error_outcome(f"DIAMOND batch exception: {exc}")
+            if debug:
+                print(f"{prefix} EXCEPTION: {exc}")
 
-                    if qlen <= 0:
-                        continue
+    return results
 
-                    seen_any = True
-                    qcov = max(0.0, min(1.0, (abs(qend - qstart) + 1) / float(qlen)))
-                    if evalue > max_evalue or qcov < min_query_coverage or pident < min_pident or bitscore < min_bitscore:
-                        continue
 
-                    matched_id, representative = _extract_uniref90_representative(sseqid, title)
-                    if not matched_id:
-                        continue
-
-                    cur = (bitscore, -evalue, qcov, pident, matched_id, representative, title)
-                    prev = best_per_match.get(matched_id)
-                    if prev is None or cur[:4] > prev[:4]:
-                        best_per_match[matched_id] = cur
-
-            if not seen_any:
-                _diag_inc("diamond_fail_no_hits")
-                return None
-            if not best_per_match:
-                _diag_inc("diamond_fail_thresholds")
-                return None
-
-            ranked = sorted(best_per_match.values(), reverse=True)
-            best_bitscore, neg_evalue, best_qcov, best_pident, best_id, representative, best_title = ranked[0]
-            best_evalue = -neg_evalue
-
-            dynamic_margin = max(4.0, min(10.0, best_bitscore * 0.05))
-            if len(ranked) > 1 and (best_bitscore - ranked[1][0]) <= dynamic_margin:
-                if not (best_pident >= 99.0 and best_qcov >= 0.95):
-                    _diag_inc("diamond_fail_ambiguous_margin")
-                    return None
-
-            confidence = "high" if best_pident >= 95.0 and best_qcov >= 0.90 and best_evalue <= 1e-20 else "medium"
-            _diag_inc("diamond_accepted")
-            return BlastHit(
-                accession=representative or best_id,
-                reviewed=False,
-                bitscore=best_bitscore,
-                evalue=best_evalue,
-                qcov=best_qcov,
-                pident=best_pident,
-                title=best_title,
-                source="diamond_uniref90",
-                database="UniRef90",
-                matched_id=best_id,
-                representative_accession=representative,
-                confidence=confidence,
-            )
-    except Exception as exc:
-        _diag_inc("diamond_exception")
-        if debug:
-            print(f"{prefix} EXCEPTION: {exc}")
-        return None
+def _run_diamond_uniref90_search(query_sequence: str, label: str = "", debug: bool = False) -> Optional[BlastHit]:
+    """Run the optional DIAMOND fallback for one query via the batch path."""
+    outcome = _run_diamond_uniref90_batch(
+        [("query", query_sequence, label)],
+        debug=debug,
+    )["query"]
+    return _outcome_hit_or_raise(outcome, "DIAMOND/UniRef90")
 
 
 def run_blast_search(query_sequence: str, label: str = "", debug: bool = False) -> Optional[BlastHit]:
     """Run Swiss-Prot BLASTP, then optional DIAMOND/UniRef90 fallback."""
-    hit = _run_blastp_swissprot_search(query_sequence, label=label, debug=debug)
-    if hit is not None:
-        return hit
-    return _run_diamond_uniref90_search(query_sequence, label=label, debug=debug)
+    swissprot = _run_blastp_swissprot_batch(
+        [("query", query_sequence, label)],
+        max_workers=1,
+        debug=debug,
+    )["query"]
+    if swissprot.is_error:
+        return _outcome_hit_or_raise(swissprot, "Swiss-Prot BLASTP")
+    if swissprot.hit is not None:
+        return swissprot.hit
+    diamond = _run_diamond_uniref90_batch(
+        [("query", query_sequence, label)],
+        debug=debug,
+    )["query"]
+    return _outcome_hit_or_raise(diamond, "DIAMOND/UniRef90")
 
 
 def classify_molecule_type(chain_data: Dict[str, Any], label: str = "", debug: bool = False) -> str:
@@ -1129,8 +1402,10 @@ def parallel_blast_search(parsed_data: List[Dict[str, Any]], max_workers: int = 
                     assign_policy == "high_confidence" and hit.confidence == "high"
                 )
 
-            if assign_uniprot:
+            if assign_uniprot and _is_uniprotkb_accession(hit.accession):
                 chain["uniprot_id"] = hit.accession
+            elif assign_uniprot:
+                _diag_inc("skip_non_uniprotkb_accession")
             chain["molecule_type"] = "Protein"
 
             name = _protein_name_from_uniprot_title(hit.title) if hit.title else None
@@ -1252,20 +1527,68 @@ def parallel_blast_search(parsed_data: List[Dict[str, Any]], max_workers: int = 
     if len(to_blast) > 40:
         to_blast.sort(key=lambda t: t[0])
 
-    # Run BLAST only for unique, uncached sequences
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures: List[Tuple[Any, str, List[Tuple[Dict[str, Any], str]]]] = []
+    # Swiss-Prot remains the first fallback. DIAMOND receives only the unique,
+    # uncached sequences for which Swiss-Prot did not produce an accepted hit.
+    swissprot_queries: List[Tuple[str, str, str]] = []
+    for _qlen, seq_key, seq, targets in to_blast:
+        label0 = targets[0][1] if targets else ""
+        label_call = f"{label0} (+{len(targets) - 1} dup)" if len(targets) > 1 else label0
+        swissprot_queries.append((seq_key, seq, label_call))
+    search_results = {
+        key: _coerce_search_outcome(value)
+        for key, value in _run_blastp_swissprot_batch(
+            swissprot_queries,
+            max_workers=max_workers,
+            debug=debug,
+        ).items()
+    }
 
+    diamond_queries: List[Tuple[str, str, str]] = []
+    if diamond_uniref90_enabled():
         for _qlen, seq_key, seq, targets in to_blast:
+            swissprot_outcome = search_results.get(
+                seq_key,
+                _error_outcome("Swiss-Prot batch omitted the query result"),
+            )
+            if swissprot_outcome.status != "no_hit":
+                continue
             label0 = targets[0][1] if targets else ""
             label_call = f"{label0} (+{len(targets) - 1} dup)" if len(targets) > 1 else label0
-            futures.append((executor.submit(run_blast_search, seq, label_call, debug), seq_key, targets))
+            diamond_queries.append((seq_key, seq, label_call))
 
-        for future, seq_key, targets in futures:
-            hit = future.result()
+        if diamond_queries:
+            search_results.update(
+                {
+                    key: _coerce_search_outcome(value)
+                    for key, value in _run_diamond_uniref90_batch(
+                        diamond_queries,
+                        debug=debug,
+                    ).items()
+                }
+            )
+
+    search_errors: List[str] = []
+    for _qlen, seq_key, _seq, targets in to_blast:
+        outcome = search_results.get(
+            seq_key,
+            _error_outcome("Sequence-search batch omitted the query result"),
+        )
+        hit = outcome.hit
+        if outcome.is_error:
+            _diag_inc("search_error")
+            search_errors.append(f"{seq_key[:12]}: {outcome.error}")
+            if debug:
+                print(f"[BLASTRES][{targets[0][1] if targets else seq_key}] SEARCH_ERROR: {outcome.error}")
+        else:
             _cache_put(seq_key, hit)
 
-            for chain, label in targets:
-                _apply_result(chain, label, hit)
+        for chain, label in targets:
+            _apply_result(chain, label, hit)
+
+    if search_errors:
+        raise SequenceSearchError(
+            f"Sequence search failed for {len(search_errors)} unique query sequence(s); "
+            f"first error: {search_errors[0]}"
+        )
 
     _diag_print_summary()

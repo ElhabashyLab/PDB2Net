@@ -4,14 +4,15 @@ PDB2Net is a batch pipeline for turning PDB/mmCIF structure files into protein a
 
 ## Pipeline
 
-1. Discover valid `.pdb`, `.cif`, and `.mmcif` files from the configured input folder.
-2. Parse structures with Gemmi.
-3. Extract chain, residue, and atom data.
+1. Discover valid `.pdb`, `.cif`, and `.mmcif` files and validate configured input limits.
+2. Group files into optional raw-size-bounded processing batches.
+3. Parse each batch with Gemmi and extract chain, residue, and atom data.
 4. Annotate chains using SIFTS and PDB/UniProt FASTA reference files.
-5. Run BLAST fallback for unresolved protein chains.
-6. Detect interactions with SciPy `cKDTree` distance searches.
-7. Export chain-level and protein-level networks as CX2.
-8. Optionally create networks in a running Cytoscape session.
+5. Run BLAST/DIAMOND fallback for unresolved protein chains.
+6. Detect interactions with SciPy `cKDTree` distance searches and optionally write detailed tables.
+7. Compact completed structures to chain metadata and polymer lengths, releasing atom coordinates.
+8. Export per-PDB and combined chain/protein networks as CX2 from the accumulated summaries.
+9. Optionally create networks in a running Cytoscape session.
 
 ## Main Modules
 
@@ -27,9 +28,11 @@ PDB2Net is a batch pipeline for turning PDB/mmCIF structure files into protein a
 - `pdb2net/cx2_export.py`: headless CX2 JSON generation.
 - `pdb2net/cytoscape.py`: live Cytoscape/py4cytoscape integration and the public network export entry point.
 - `pdb2net/protein_network.py`: aggregation from chain interactions to protein-level networks.
-- `pdb2net/outputs.py`: per-run output folder creation and runtime summary logs.
+- `pdb2net/outputs.py`: per-run output folders and the versioned run/web output contract.
 - `pdb2net/batching.py`: streamed batch sizing, timeout handling, and skipped-batch logging.
 - `pdb2net/pipeline.py`: single-run orchestration, worker selection, parsing, annotation, interaction detection, and export sequencing.
+- `pdb2net/precomputed_store.py`: optional profile-namespaced, validated per-PDB
+  chain/edge artifacts plus targeted cache population and cached network assembly.
 - `pdb2net/main.py`: stable public entry points for single-run and batch execution.
 
 ## External Inputs
@@ -46,6 +49,14 @@ The full pipeline depends on reference files that are intentionally not committe
 In headless mode, PDB2Net writes CX2 files directly and does not require Cytoscape. This is the preferred mode for automated checks and server runs.
 
 In desktop mode, PDB2Net connects to Cytoscape through py4cytoscape, creates networks in the UI, applies styles, and also exports CX2.
+
+The optional precomputed mode changes only the input adapter: `precompute`
+persists compact annotated chains and standard-profile edges, and `assemble`
+feeds validated entries into the same network exporters. It does not persist
+raw coordinates or detailed atom-pair CSVs. Profile namespaces prevent silent
+mixing across scientific/reference policies, while store ownership, daily mirror
+promotion, obsolete-ID retention, and rollback remain deployment concerns.
+The ordinary local `run --input-dir` path does not require this store.
 
 ## Configuration
 

@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install external search tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ncbi-blast+ diamond-aligner
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip "setuptools>=80.9.0"
+          python -m pip install --no-build-isolation -e ".[dev]"
+      - name: Run tests
+        run: python -m pytest -q
+      - name: Verify installed package data outside source tree
+        run: |
+          python -m pip install --no-build-isolation --no-deps --target /tmp/pdb2net-package-check .
+          cd /tmp
+          PYTHONPATH=/tmp/pdb2net-package-check python -c 'import pdb2net, pathlib; root = pathlib.Path(pdb2net.__file__).parent; assert (root / "configs/config.base.json").is_file(); assert not (root / "configs/config.local.json").exists()'

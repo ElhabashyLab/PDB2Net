@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 message: "If you use PDB2Net, please cite the manuscript or repository."
 title: "PDB2Net: Automated extraction of biomolecular interaction networks from three-dimensional structures"
-version: "0.2.0rc1"
-date-released: "2026-06-15"
+version: "0.2.0rc3"
+date-released: "2026-07-15"
 license: MIT
 repository-code: "https://github.com/ElhabashyLab/PDB2Net"
 authors:

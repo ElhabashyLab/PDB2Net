@@ -17,10 +17,11 @@ Notes
 
 from __future__ import annotations
 
+import csv
+import gzip
 import os
 import re
-import csv
-from typing import Any, Dict, List, Optional
+from typing import IO, Any, Dict, List, Optional
 
 import gemmi
 
@@ -28,7 +29,7 @@ from .config_loader import config
 from .reference_data import load_valid_pdb_ids as _load_valid_pdb_ids
 
 # --- Allowed file extensions for structural inputs ---
-ALLOWED_EXTENSIONS = {".pdb", ".cif", ".mmcif"}
+ALLOWED_EXTENSIONS = {".pdb", ".ent", ".cif", ".mmcif"}
 
 # Path to `pdb_seqres.txt` (set in configuration)
 PDB_FASTA_PATH = config["pdb_fasta_path"]
@@ -49,8 +50,32 @@ def load_valid_pdb_ids() -> set[str]:
         return set()
 
 
-# Load PDB IDs once at import time to avoid repeated disk I/O.
-VALID_PDB_IDS = load_valid_pdb_ids()
+# Loaded only when raw/archive filenames need canonical-ID validation.  A pure
+# precomputed cache-hit process must not scan the full PDB FASTA at import time.
+# Keeping this public name preserves the existing test/legacy monkeypatch hook.
+VALID_PDB_IDS: set[str] | None = None
+
+
+def _valid_pdb_ids() -> set[str]:
+    global VALID_PDB_IDS
+    if VALID_PDB_IDS is None:
+        VALID_PDB_IDS = load_valid_pdb_ids()
+    return VALID_PDB_IDS
+
+
+def _structure_extension(file_path: str) -> str:
+    """Return the structure extension, ignoring one optional gzip suffix."""
+    filename = os.path.basename(file_path)
+    if filename.lower().endswith(".gz"):
+        filename = filename[:-3]
+    return os.path.splitext(filename)[1].lower()
+
+
+def _open_structure_text(file_path: str) -> IO[str]:
+    """Open plain or gzip-compressed structure content as text."""
+    if file_path.lower().endswith(".gz"):
+        return gzip.open(file_path, "rt", encoding="utf-8", errors="ignore")
+    return open(file_path, "r", encoding="utf-8", errors="ignore")
 
 
 def is_valid_file(file_path: str) -> bool:
@@ -64,17 +89,18 @@ def is_valid_file(file_path: str) -> bool:
     Returns
     -------
     bool
-        True if the extension is one of {'.pdb', '.cif', '.mmcif'}.
+        True if the extension is one of {'.pdb', '.ent', '.cif', '.mmcif'},
+        optionally followed by '.gz'.
     """
-    _, ext = os.path.splitext(file_path)
-    return ext.lower() in ALLOWED_EXTENSIONS
+    return _structure_extension(file_path) in ALLOWED_EXTENSIONS
 
 
 def extract_pdb_id_from_filename(file_path: str) -> Optional[str]:
     """Try to extract a valid 4-character PDB ID from the filename.
 
-    The filename (without extension) must match the canonical pattern:
-    one digit followed by three alphanumerics (e.g., 1abc, 7xyz).
+    The filename (without extension) may be a bare PDB ID or one of the
+    canonical archive forms ``pdb1abc`` and ``pdb_00001abc``. The resolved ID
+    is still checked against ``VALID_PDB_IDS``.
 
     Parameters
     ----------
@@ -90,19 +116,27 @@ def extract_pdb_id_from_filename(file_path: str) -> Optional[str]:
     """
     filename = os.path.basename(file_path)
     stem = filename.split(".")[0]
-    match = re.match(r"^([0-9][A-Za-z0-9]{3})$", stem)
-    if match:
+    patterns = (
+        r"^([0-9][A-Za-z0-9]{3})$",
+        r"^pdb([0-9][A-Za-z0-9]{3})$",
+        r"^pdb_0000([0-9][A-Za-z0-9]{3})$",
+    )
+    for pattern in patterns:
+        match = re.match(pattern, stem, flags=re.IGNORECASE)
+        if not match:
+            continue
         pdb_id = match.group(1).upper()
-        if pdb_id in VALID_PDB_IDS:
+        if pdb_id in _valid_pdb_ids():
             return pdb_id
         print(f"Warning: File {filename} contains a canonical-looking PDB ID not found in pdb_seqres.txt: {pdb_id}.")
+        break
     return None
 
 
 def extract_pdb_id_from_file(file_path: str) -> Optional[str]:
     """Extract a PDB ID by scanning file contents (HEADER/data_/loop constructs).
 
-    For PDB (.pdb):
+    For PDB (.pdb/.ent):
         - Uses the last token on 'HEADER' lines as PDB ID candidate.
 
     For CIF/mmCIF (.cif/.mmcif):
@@ -122,15 +156,14 @@ def extract_pdb_id_from_file(file_path: str) -> Optional[str]:
         Uppercased PDB ID when 4 characters and present in VALID_PDB_IDS;
         otherwise None (a warning is printed if a 4-char candidate is invalid).
     """
-    _, ext = os.path.splitext(file_path)
-    ext = ext.lower()
+    ext = _structure_extension(file_path)
 
     try:
-        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+        with _open_structure_text(file_path) as f:
             for line in f:
                 pdb_id: Optional[str] = None
 
-                if ext == ".pdb" and line.startswith("HEADER"):
+                if ext in {".pdb", ".ent"} and line.startswith("HEADER"):
                     # PDB convention: last token is typically the 4-char id
                     pdb_id = line.split()[-1].strip().upper()
 
@@ -146,7 +179,7 @@ def extract_pdb_id_from_file(file_path: str) -> Optional[str]:
                             pdb_id = parts[-1].strip().upper()
 
                 if pdb_id:
-                    if len(pdb_id) == 4 and pdb_id in VALID_PDB_IDS:
+                    if len(pdb_id) == 4 and pdb_id in _valid_pdb_ids():
                         return pdb_id
                     if len(pdb_id) == 4:
                         print(
@@ -193,7 +226,7 @@ def get_pdb_id(file_path: str) -> str:
 
 
 def parse_structure(file_path: str, pdb_id: str) -> Optional[gemmi.Structure]:
-    """Load a PDB/mmCIF structure with Gemmi.
+    """Load a plain or gzip-compressed PDB/mmCIF structure with Gemmi.
 
     Parameters
     ----------

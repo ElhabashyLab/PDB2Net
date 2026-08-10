@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gzip
+import os
 from pathlib import Path
 
 import pytest
@@ -245,6 +246,71 @@ def test_input_signature_change_is_detected_after_read(
     with pytest.raises(InputValidationError) as error:
         file_parser.read_validated_structure_bytes(str(source))
     _assert_code(error, "INPUT_CHANGED_DURING_PROCESSING")
+
+
+def test_same_length_input_rewrite_with_restored_mtime_changes_digest(tmp_path: Path) -> None:
+    source = tmp_path / "stable.cif"
+    original = _minimal_mmcif("1abc")
+    replacement = _minimal_mmcif("2xyz")
+    assert len(original) == len(replacement)
+    source.write_bytes(original)
+    before_stat = source.stat()
+    expected_signature = file_parser.input_file_signature(source)
+    expected_sha256 = file_parser.input_file_sha256(
+        source,
+        expected_signature=expected_signature,
+    )
+
+    source.write_bytes(replacement)
+    os.utime(source, ns=(before_stat.st_atime_ns, before_stat.st_mtime_ns))
+
+    assert file_parser.input_file_sha256(source) != expected_sha256
+    with pytest.raises(InputValidationError) as error:
+        file_parser.read_validated_structure_bytes(
+            str(source),
+            expected_signature=expected_signature,
+            expected_sha256=expected_sha256,
+        )
+    _assert_code(error, "INPUT_CHANGED_DURING_PROCESSING")
+
+
+def test_parse_worker_enforces_forwarded_gzip_expansion_limit(tmp_path: Path) -> None:
+    source = tmp_path / "bounded.cif.gz"
+    source.write_bytes(gzip.compress(_minimal_mmcif("1abc"), mtime=0))
+    signature = file_parser.input_file_signature(source)
+
+    with pytest.raises(InputValidationError) as error:
+        pipeline.process_single_file(
+            str(source),
+            expected_signature=signature,
+            maximum_expanded_bytes=8,
+        )
+    _assert_code(error, "INPUT_FILE_EXPANDED_BYTES_LIMIT_EXCEEDED")
+
+
+def test_duplicate_public_chain_node_ids_are_rejected_across_batches() -> None:
+    seen: dict[str, str] = {}
+    pipeline._register_unique_chain_ids(
+        [
+            {
+                "file_path": "/inputs/first.cif",
+                "atom_data": [{"unique_chain_id": "FOO:BAR:X"}],
+            }
+        ],
+        seen,
+    )
+
+    with pytest.raises(InputValidationError) as error:
+        pipeline._register_unique_chain_ids(
+            [
+                {
+                    "file_path": "/inputs/second.cif",
+                    "atom_data": [{"unique_chain_id": "FOO:BAR:X"}],
+                }
+            ],
+            seen,
+        )
+    _assert_code(error, "DUPLICATE_CHAIN_NODE_ID")
 
 
 def _protein_chain(unique_id: str, chain_id: str, model_index: int, offset: float) -> dict:

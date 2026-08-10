@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 from typing import Any, Mapping
 
+from .artifact_names import portable_artifact_stem
 from .visual_style import VISUAL_TUNING, get_network_visual_profile
 
 
@@ -184,7 +185,7 @@ def export_cx2_headless(
 ) -> None:
     """Write one deterministic CX2 document with inline attributes/layout."""
     os.makedirs(run_output_path, exist_ok=True)
-    out_path = Path(run_output_path) / f"{network_title}.cx2"
+    out_path = Path(run_output_path) / f"{portable_artifact_stem(network_title)}.cx2"
     profile = get_network_visual_profile(network_title)
 
     raw_nodes = _records(nodes_df)
@@ -348,7 +349,7 @@ def export_cx2_headless(
         visual_props,
         {"status": [{"error": "", "success": True}]},
     ]
-    with out_path.open("w", encoding="utf-8") as handle:
+    with out_path.open("x", encoding="utf-8") as handle:
         json.dump(cx, handle, ensure_ascii=False, indent=2, allow_nan=False)
         handle.write("\n")
 

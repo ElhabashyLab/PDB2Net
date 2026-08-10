@@ -1,4 +1,5 @@
 import json
+import itertools
 import shutil
 import subprocess
 from pathlib import Path
@@ -708,6 +709,66 @@ def test_cache_signature_tracks_result_policies_but_not_chunk_sizes(
     assert "thresholds" in payload["diamond"]
     assert "batch_max_sequences" not in payload["swissprot"]
     assert "batch_max_sequences" not in payload["diamond"]
+
+
+def test_cache_signature_tracks_every_blast_component_and_reference_manifest(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fasta = tmp_path / "uniprot_sprot.fasta"
+    fasta.write_text(">sp|P11111|TEST\nAAAA\n", encoding="utf-8")
+    blast_dir = tmp_path / "blast"
+    blast_dir.mkdir()
+    for suffix in ("pin", "phr", "psq"):
+        (blast_dir / f"uniprot_db.{suffix}").write_bytes(suffix.encode("ascii"))
+    monkeypatch.setattr(uniprot_matcher, "UNIPROT_FASTA_PATH", str(fasta))
+    monkeypatch.setattr(uniprot_matcher, "BLAST_DB_PATH", str(blast_dir))
+    monkeypatch.setitem(uniprot_matcher.config, "diamond", {"enabled": False})
+    monkeypatch.setitem(uniprot_matcher.config, "reference_manifest_id", "release-a")
+    baseline = uniprot_matcher._db_signature()
+
+    (blast_dir / "uniprot_db.psq").write_bytes(b"changed component")
+    component_changed = uniprot_matcher._db_signature()
+    monkeypatch.setitem(uniprot_matcher.config, "reference_manifest_id", "release-b")
+
+    assert component_changed != baseline
+    assert uniprot_matcher._db_signature() != component_changed
+    assert uniprot_matcher._search_policy_payload()["swissprot"]["selection_policy"]["version"] == 2
+
+
+def _swissprot_row(accession: str, *, pident: float = 100.0, bitscore: float = 250.0) -> str:
+    return (
+        f"query\tsp|{accession}|TEST\t{pident}\t100\t1\t100\t100\t100\t"
+        f"1e-80\t{bitscore}\tsp|{accession}|TEST Synthetic protein"
+    )
+
+
+def test_perfect_swissprot_ties_are_deterministic_across_all_row_orders() -> None:
+    rows = [_swissprot_row(accession) for accession in ("P33333", "P22222", "P11111")]
+    selected = {
+        uniprot_matcher._select_blastp_swissprot_hit(
+            "A" * 100,
+            list(permutation),
+            use_qcovs=True,
+        ).accession
+        for permutation in itertools.permutations(rows)
+    }
+
+    assert selected == {"P11111"}
+
+
+def test_perfect_tie_escape_requires_every_contender_to_be_near_perfect() -> None:
+    hit = uniprot_matcher._select_blastp_swissprot_hit(
+        "A" * 100,
+        [
+            _swissprot_row("P11111", pident=100.0, bitscore=250.0),
+            _swissprot_row("P22222", pident=99.5, bitscore=249.0),
+            _swissprot_row("P33333", pident=98.0, bitscore=248.0),
+        ],
+        use_qcovs=True,
+    )
+
+    assert hit is None
 
 
 def test_high_confidence_uniref_upi_does_not_assign_canonical_uniprot_id(

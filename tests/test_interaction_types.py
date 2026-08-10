@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pdb2net import distances
@@ -20,6 +21,13 @@ from pdb2net.uniprot_matcher import classify_molecule_type
 )
 def test_determine_interaction_type_contract(left: str, right: str, expected: str | None) -> None:
     assert determine_interaction_type(left, right) == expected
+
+
+def test_dense_kdtree_contact_count_does_not_change_scientific_result() -> None:
+    left = distances.cKDTree(np.zeros((1_000, 3), dtype=float))
+    right = distances.cKDTree(np.zeros((1_000, 3), dtype=float))
+
+    assert distances.count_nearby_atoms(left, right, 1.0) == 1_000_000
 
 
 @pytest.mark.parametrize(

@@ -132,7 +132,7 @@ def test_real_gemmi_to_store_to_headless_cx2_matches_raw_pipeline(
     monkeypatch.setattr(
         pipeline,
         "_parse_input_files",
-        lambda paths: [
+        lambda paths, **_kwargs: [
             parsed
             for path in paths
             if (parsed := pipeline.process_single_file(path)) is not None

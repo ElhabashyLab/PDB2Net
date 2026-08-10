@@ -8,6 +8,7 @@ import pytest
 from pdb2net.cytoscape import generate_nodes_from_atom_data
 from pdb2net.cx2_export import export_cx2_headless
 from pdb2net.detailed_results_exporter import DETAILED_INTERACTION_COLUMNS, export_detailed_interactions
+from pdb2net.artifact_names import MAX_ARTIFACT_STEM_BYTES, portable_artifact_stem
 from pdb2net.visual_style import get_network_visual_profile
 
 
@@ -152,19 +153,42 @@ def test_headless_cx2_is_deterministic_and_sorts_nodes_and_edges(tmp_path: Path)
         [{"source": "B", "target": "A", "interaction": "interacts_with", "all_atoms_count": 1}]
     )
     positions = {"A": {"x": 0, "y": 1}, "B": {"x": 2, "y": 3}}
-    export_cx2_headless("stable", str(tmp_path), nodes, edges, {}, positions)
-    first = (tmp_path / "stable.cx2").read_bytes()
+    first_dir = tmp_path / "first"
+    second_dir = tmp_path / "second"
+    export_cx2_headless("stable", str(first_dir), nodes, edges, {}, positions)
+    first = (first_dir / "stable.cx2").read_bytes()
 
     export_cx2_headless(
         "stable",
-        str(tmp_path),
+        str(second_dir),
         nodes.iloc[::-1],
         edges.iloc[::-1],
         {},
         positions,
     )
 
-    assert (tmp_path / "stable.cx2").read_bytes() == first
+    assert (second_dir / "stable.cx2").read_bytes() == first
+
+
+def test_artifact_stems_are_portable_bounded_and_collision_resistant() -> None:
+    assert portable_artifact_stem("Chain_Interaction_Network_1ABC") == "Chain_Interaction_Network_1ABC"
+    first = portable_artifact_stem("local:name?" + "x" * 300)
+    second = portable_artifact_stem("local|name?" + "x" * 300)
+
+    assert len(first.encode("utf-8")) <= MAX_ARTIFACT_STEM_BYTES
+    assert len(second.encode("utf-8")) <= MAX_ARTIFACT_STEM_BYTES
+    assert first != second
+    assert ":" not in first and "?" not in first
+
+
+def test_headless_export_does_not_overwrite_an_existing_artifact(tmp_path: Path) -> None:
+    nodes = pd.DataFrame([{"id": "A", "name": "A", "tooltip": "", "color_group": "Protein"}])
+    edges = pd.DataFrame(columns=["source", "target", "interaction", "all_atoms_count"])
+    positions = {"A": {"x": 0.0, "y": 0.0}}
+    export_cx2_headless("stable", str(tmp_path), nodes, edges, {}, positions)
+
+    with pytest.raises(FileExistsError):
+        export_cx2_headless("stable", str(tmp_path), nodes, edges, {}, positions)
 
 
 @pytest.mark.parametrize("bad_value", [math.nan, math.inf, -math.inf])

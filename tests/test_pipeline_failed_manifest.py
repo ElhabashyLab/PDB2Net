@@ -80,6 +80,28 @@ def test_run_pipeline_writes_failed_web_summary_for_empty_input_folder(tmp_path:
     assert summary["interactions"] == []
 
 
+def test_web_run_requires_reference_manifest_before_input_inspection(
+    tmp_path: Path, monkeypatch
+) -> None:
+    output_root = tmp_path / "outputs"
+    web_root = tmp_path / "web_outputs"
+    input_dir = tmp_path / "inputs"
+    input_dir.mkdir()
+    (input_dir / "input.cif").write_text("data_local\n_entry.id local\n", encoding="utf-8")
+    monkeypatch.setitem(pipeline.config, "output_path", str(output_root))
+    monkeypatch.setitem(pipeline.config, "reference_manifest_id", "")
+    monkeypatch.setattr(
+        pipeline,
+        "inspect_input_files",
+        lambda _paths: (_ for _ in ()).throw(AssertionError("input inspection must not start")),
+    )
+
+    with pytest.raises(InputValidationError) as error:
+        pipeline.run_pipeline(str(input_dir), web_output_dir=str(web_root))
+
+    assert error.value.code == "REFERENCE_MANIFEST_ID_REQUIRED"
+
+
 def test_reference_preflight_reports_missing_files(tmp_path: Path, monkeypatch) -> None:
     output_root = tmp_path / "outputs"
     input_dir = tmp_path / "inputs"
@@ -115,7 +137,8 @@ def test_run_pipeline_fails_when_no_structure_parses(tmp_path: Path, monkeypatch
     input_dir.mkdir()
     (input_dir / "bad.cif").write_text("data_bad\n", encoding="utf-8")
     monkeypatch.setitem(pipeline.config, "output_path", str(output_root))
-    monkeypatch.setattr(pipeline, "_parse_input_files", lambda _files: [])
+    monkeypatch.setattr(pipeline, "_validate_required_reference_files", lambda: None)
+    monkeypatch.setattr(pipeline, "_parse_input_files", lambda _files, **_kwargs: [])
 
     with pytest.raises(InputValidationError) as exc_info:
         pipeline.run_pipeline(str(input_dir))

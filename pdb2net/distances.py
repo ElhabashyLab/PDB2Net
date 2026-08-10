@@ -119,8 +119,9 @@ def count_nearby_atoms(tree_a: Optional[cKDTree], tree_b: Optional[cKDTree], rad
     """
     if not tree_a or not tree_b:
         return 0
-    # query_ball_point returns a list of neighbor indices per query point
-    return sum(len(neigh) for neigh in tree_a.query_ball_point(tree_b.data, r=radius))
+    # count_neighbors returns the same pair count without materializing every
+    # matching atom index, which can otherwise require quadratic Python memory.
+    return int(tree_a.count_neighbors(tree_b, radius))
 
 
 def determine_interaction_type(mol_type_a: Optional[str], mol_type_b: Optional[str]) -> Optional[str]:

@@ -131,8 +131,8 @@ def test_parser_scheduler_never_submits_more_than_worker_count(tmp_path: Path, m
     observed_pending = []
 
     class ImmediateFuture:
-        def __init__(self, fn, argument):
-            self._result = fn(argument)
+        def __init__(self, fn, *arguments):
+            self._result = fn(*arguments)
 
         def result(self):
             return self._result
@@ -147,8 +147,8 @@ def test_parser_scheduler_never_submits_more_than_worker_count(tmp_path: Path, m
         def __exit__(self, exc_type, exc, traceback):
             return False
 
-        def submit(self, fn, argument):
-            return ImmediateFuture(fn, argument)
+        def submit(self, fn, *arguments):
+            return ImmediateFuture(fn, *arguments)
 
     def fake_wait(pending, return_when):
         observed_pending.append(len(pending))
@@ -161,7 +161,7 @@ def test_parser_scheduler_never_submits_more_than_worker_count(tmp_path: Path, m
     monkeypatch.setattr(
         pipeline,
         "process_single_file",
-        lambda path: {"file_path": path, "pdb_id": Path(path).stem, "atom_data": []},
+        lambda path, *_args: {"file_path": path, "pdb_id": Path(path).stem, "atom_data": []},
     )
 
     parsed = pipeline._parse_input_files([str(path) for path in paths])
@@ -273,7 +273,7 @@ def test_staged_pipeline_runs_expensive_stages_per_batch_and_exports_once(tmp_pa
     distance_batches = []
     exported = []
 
-    def fake_parse(paths):
+    def fake_parse(paths, **_kwargs):
         parsed_batches.append([Path(path).name for path in paths])
         return [
             {

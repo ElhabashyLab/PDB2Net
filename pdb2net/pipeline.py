@@ -24,6 +24,7 @@ from .distances import calculate_distances_with_ckdtree, coords_cache, tree_cach
 from .file_parser import (
     FileSignature,
     get_structure_identity,
+    input_file_sha256,
     input_file_signature,
     is_valid_file,
     parse_structure_input,
@@ -91,6 +92,7 @@ class InputInventory:
     file_sizes: tuple[int, ...]
     expanded_file_sizes: tuple[int, ...] | None = None
     file_signatures: tuple[FileSignature, ...] | None = None
+    file_sha256: tuple[str, ...] | None = None
 
     @property
     def total_bytes(self) -> int:
@@ -132,6 +134,8 @@ def process_single_file(
     file_path: str,
     pdb_id_override: str | Mapping[str, Any] | None = None,
     expected_signature: FileSignature | None = None,
+    expected_sha256: str | None = None,
+    maximum_expanded_bytes: int | None = None,
 ) -> Optional[Dict[str, Any]]:
     """Process a single PDB/mmCIF file end-to-end for the parsing stage."""
     if pdb_id_override:
@@ -144,7 +148,12 @@ def process_single_file(
                 identity = StructureIdentity("local", str(pdb_id_override))
     else:
         identity = None
-    parsed = parse_structure_input(file_path, expected_signature=expected_signature)
+    parsed = parse_structure_input(
+        file_path,
+        expected_signature=expected_signature,
+        expected_sha256=expected_sha256,
+        maximum_expanded_bytes=maximum_expanded_bytes,
+    )
     parsed_identity = StructureIdentity.from_mapping(parsed["structure_identity"])
     if identity is not None and identity.key != parsed_identity.key:
         raise InputValidationError(
@@ -350,15 +359,25 @@ def _preflight_structure_identities(
 ) -> dict[str, StructureIdentity]:
     """Resolve unique run identities before expensive parsing and annotation."""
     signatures = inventory.file_signatures or tuple(input_file_signature(path) for path in file_paths)
+    digests = inventory.file_sha256 or tuple(
+        input_file_sha256(path, expected_signature=signature)
+        for path, signature in zip(file_paths, signatures)
+    )
+    maximum_expanded_bytes = _resource_limits()["max_single_input_expanded_bytes"]
     resolved: dict[str, StructureIdentity] = {}
     seen: dict[str, str] = {}
-    for file_path, expected_signature in zip(file_paths, signatures):
+    for file_path, expected_signature, expected_sha256 in zip(file_paths, signatures, digests):
         if input_file_signature(file_path) != expected_signature:
             raise InputValidationError(
                 "INPUT_CHANGED_DURING_PROCESSING",
                 f"Input file changed before identity resolution: {Path(file_path).name}",
             )
-        identity = get_structure_identity(file_path)
+        identity = get_structure_identity(
+            file_path,
+            expected_signature=expected_signature,
+            expected_sha256=expected_sha256,
+            maximum_expanded_bytes=maximum_expanded_bytes,
+        )
         if input_file_signature(file_path) != expected_signature:
             raise InputValidationError(
                 "INPUT_CHANGED_DURING_PROCESSING",
@@ -389,6 +408,7 @@ def inspect_input_files(file_paths: List[str]) -> InputInventory:
     file_sizes: List[int] = []
     expanded_file_sizes: List[int] = []
     file_signatures: List[FileSignature] = []
+    file_sha256: List[str] = []
     for file_path in file_paths:
         path = Path(file_path)
         try:
@@ -407,10 +427,12 @@ def inspect_input_files(file_paths: List[str]) -> InputInventory:
             )
         file_sizes.append(size)
 
-        _payload, expanded_size = read_validated_structure_bytes(
+        _payload, expanded_size, raw_sha256 = read_validated_structure_bytes(
             str(path),
+            expected_signature=signature,
             maximum_expanded_bytes=limits["max_single_input_expanded_bytes"],
             collect=False,
+            include_sha256=True,
         )
         maximum_expanded = limits["max_single_input_expanded_bytes"]
         if maximum_expanded is not None and expanded_size > maximum_expanded:
@@ -427,6 +449,7 @@ def inspect_input_files(file_paths: List[str]) -> InputInventory:
                 f"configured processing batch limit of {max_batch} bytes.",
             )
         expanded_file_sizes.append(expanded_size)
+        file_sha256.append(raw_sha256)
         if input_file_signature(path) != signature:
             raise InputValidationError(
                 "INPUT_CHANGED_DURING_PROCESSING",
@@ -438,6 +461,7 @@ def inspect_input_files(file_paths: List[str]) -> InputInventory:
         tuple(file_sizes),
         tuple(expanded_file_sizes),
         tuple(file_signatures),
+        tuple(file_sha256),
     )
     max_total = limits["max_total_input_bytes"]
     if max_total is not None and inventory.total_bytes > max_total:
@@ -513,7 +537,14 @@ def _validate_required_reference_files() -> None:
         )
 
 
-def _parse_input_files(file_paths: List[str]) -> List[Dict[str, Any]]:
+def _parse_input_files(
+    file_paths: List[str],
+    *,
+    expected_identities: Mapping[str, StructureIdentity] | None = None,
+    expected_signatures: Mapping[str, FileSignature] | None = None,
+    expected_sha256: Mapping[str, str] | None = None,
+    maximum_expanded_bytes: int | None = None,
+) -> List[Dict[str, Any]]:
     """Parse files with at most one submitted task per parsing worker."""
     configured_workers = resolve_workers(config.get("workers", {}).get("parsing"), kind="parsing")
     parsing_workers = min(configured_workers, max(1, len(file_paths)))
@@ -525,7 +556,24 @@ def _parse_input_files(file_paths: List[str]) -> List[Dict[str, Any]]:
 
         while next_index < len(file_paths) or pending:
             while next_index < len(file_paths) and len(pending) < parsing_workers:
-                future = executor.submit(process_single_file, file_paths[next_index])
+                file_path = file_paths[next_index]
+                expected_identity = (
+                    expected_identities.get(file_path) if expected_identities is not None else None
+                )
+                expected_signature = (
+                    expected_signatures.get(file_path) if expected_signatures is not None else None
+                )
+                expected_digest = (
+                    expected_sha256.get(file_path) if expected_sha256 is not None else None
+                )
+                future = executor.submit(
+                    process_single_file,
+                    file_path,
+                    expected_identity.as_dict() if expected_identity is not None else None,
+                    expected_signature,
+                    expected_digest,
+                    maximum_expanded_bytes,
+                )
                 pending[future] = next_index
                 next_index += 1
 
@@ -539,6 +587,37 @@ def _parse_input_files(file_paths: List[str]) -> List[Dict[str, Any]]:
         for index in range(len(file_paths))
         if (result := indexed_results.get(index)) is not None
     ]
+
+
+def _register_unique_chain_ids(
+    structures: List[Dict[str, Any]],
+    seen: dict[str, str],
+) -> None:
+    """Reject public chain-node IDs that would alias across a run."""
+    for structure in structures:
+        file_label = Path(str(structure.get("file_path") or "input")).name
+        for chain in structure.get("atom_data", []):
+            unique_id = str(chain.get("unique_chain_id") or "")
+            if not unique_id:
+                raise InputValidationError(
+                    "INVALID_CHAIN_NODE_ID",
+                    f"Parsed chain in {file_label} has no public node ID.",
+                )
+            previous = seen.get(unique_id)
+            if previous is not None:
+                raise InputValidationError(
+                    "DUPLICATE_CHAIN_NODE_ID",
+                    f"Inputs {previous} and {file_label} produce the same chain node ID {unique_id!r}.",
+                )
+            seen[unique_id] = file_label
+
+
+def _validate_web_reference_manifest(web_output_dir: str | None) -> None:
+    if web_output_dir and not str(config.get("reference_manifest_id") or "").strip():
+        raise InputValidationError(
+            "REFERENCE_MANIFEST_ID_REQUIRED",
+            "Web-output runs require a non-empty reference_manifest_id before processing starts.",
+        )
 
 
 def _run_blast_annotation(combined_data: List[Dict[str, Any]]) -> None:
@@ -1158,6 +1237,7 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
         _validate_analysis_config()
         network_annotation_config()
         file_paths = discover_input_files(input_path_or_filelist)
+        _validate_web_reference_manifest(web_output_dir)
         inventory = inspect_input_files(file_paths)
         _combined_graph_limits()
         preflight_identities = _preflight_structure_identities(file_paths, inventory)
@@ -1174,6 +1254,16 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
         results: List[Dict[str, Any]] = []
         processing_batches = 0
         parsing_workers_used = 0
+        seen_chain_ids: dict[str, str] = {}
+        signatures_by_path = {
+            path: signature
+            for path, signature in zip(file_paths, inventory.file_signatures or ())
+        }
+        digests_by_path = {
+            path: digest
+            for path, digest in zip(file_paths, inventory.file_sha256 or ())
+        }
+        maximum_expanded_bytes = _resource_limits()["max_single_input_expanded_bytes"]
         for processing_batches, batch_paths in enumerate(
             create_processing_batches(file_paths, inventory),
             start=1,
@@ -1197,7 +1287,13 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
             )
 
             start_time = time.time()
-            batch_data = _parse_input_files(batch_paths)
+            batch_data = _parse_input_files(
+                batch_paths,
+                expected_identities=preflight_identities,
+                expected_signatures=signatures_by_path,
+                expected_sha256=digests_by_path,
+                maximum_expanded_bytes=maximum_expanded_bytes,
+            )
             timings.parsing += time.time() - start_time
             if not batch_data:
                 continue
@@ -1206,10 +1302,6 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
                     "NO_PARSEABLE_STRUCTURES",
                     "One or more structure inputs did not produce a parsed structure.",
                 )
-            signatures_by_path = {
-                path: signature
-                for path, signature in zip(file_paths, inventory.file_signatures or ())
-            }
             for source_path, parsed_structure in zip(batch_paths, batch_data):
                 expected_identity = preflight_identities[source_path]
                 if isinstance(parsed_structure.get("structure_identity"), Mapping):
@@ -1227,6 +1319,8 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
                         "INPUT_CHANGED_DURING_PROCESSING",
                         f"Input file changed while parsing {Path(source_path).name}.",
                     )
+
+            _register_unique_chain_ids(batch_data, seen_chain_ids)
 
             start_time = time.time()
             process_molecule_info(batch_data)

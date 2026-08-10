@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 from contextlib import contextmanager
+import hashlib
 import os
 import re
 import stat
@@ -29,7 +30,7 @@ PDB_FASTA_PATH = str(config.get("pdb_fasta_path") or "")
 ALLOWED_EXTENSIONS = {".pdb", ".ent", ".cif", ".mmcif"}
 GZIP_MAGIC = b"\x1f\x8b"
 IO_CHUNK_BYTES = 1024 * 1024
-FileSignature = tuple[int, int, int, int]
+FileSignature = tuple[int, int, int, int, int]
 
 
 def load_valid_pdb_ids() -> set[str]:
@@ -88,7 +89,13 @@ def input_file_signature(file_path: str | os.PathLike[str]) -> FileSignature:
             "INPUT_FILE_NOT_REGULAR",
             f"Structure input is not a regular file: {Path(path).name}",
         )
-    return (result.st_dev, result.st_ino, result.st_size, result.st_mtime_ns)
+    return (
+        result.st_dev,
+        result.st_ino,
+        result.st_size,
+        result.st_mtime_ns,
+        result.st_ctime_ns,
+    )
 
 
 def _raise_changed(file_path: str) -> None:
@@ -99,7 +106,13 @@ def _raise_changed(file_path: str) -> None:
 
 
 def _stat_signature(result: os.stat_result) -> FileSignature:
-    return (result.st_dev, result.st_ino, result.st_size, result.st_mtime_ns)
+    return (
+        result.st_dev,
+        result.st_ino,
+        result.st_size,
+        result.st_mtime_ns,
+        result.st_ctime_ns,
+    )
 
 
 @contextmanager
@@ -159,7 +172,7 @@ def _read_validated_gzip(
     expected_signature: FileSignature,
     maximum: int | None,
     collect: bool,
-) -> tuple[bytes, int]:
+) -> tuple[bytes, int, str]:
     """Inflate every gzip member, checking every trailer and a shared limit."""
     output: list[bytes] | None = [] if collect else None
     prefix = bytearray()
@@ -167,6 +180,7 @@ def _read_validated_gzip(
     pending = b""
     raw_eof = False
     member_count = 0
+    raw_digest = hashlib.sha256()
 
     try:
         with _open_regular_input(file_path, expected_signature) as raw:
@@ -174,6 +188,7 @@ def _read_validated_gzip(
                 while len(pending) < 2 and not raw_eof:
                     chunk = raw.read(IO_CHUNK_BYTES)
                     if chunk:
+                        raw_digest.update(chunk)
                         pending += chunk
                     else:
                         raw_eof = True
@@ -196,6 +211,7 @@ def _read_validated_gzip(
                                 "INVALID_GZIP_INPUT",
                                 f"Gzip input is truncated or has no valid trailer: {Path(file_path).name}",
                             )
+                        raw_digest.update(chunk)
                         pending = chunk
                     before = pending
                     try:
@@ -256,17 +272,48 @@ def _read_validated_gzip(
             "NESTED_GZIP_INPUT",
             f"Nested gzip input is not supported: {Path(file_path).name}",
         )
-    return (b"".join(output) if output is not None else b"", total)
+    return (b"".join(output) if output is not None else b"", total, raw_digest.hexdigest())
+
+
+def input_file_sha256(
+    file_path: str | os.PathLike[str],
+    *,
+    expected_signature: FileSignature | None = None,
+) -> str:
+    """Hash one regular input while binding the read to its inspected metadata."""
+    path = os.fspath(file_path)
+    current_signature = input_file_signature(path)
+    if expected_signature is not None and current_signature != expected_signature:
+        _raise_changed(path)
+    signature = expected_signature or current_signature
+    digest = hashlib.sha256()
+    try:
+        with _open_regular_input(path, signature) as handle:
+            while chunk := handle.read(IO_CHUNK_BYTES):
+                digest.update(chunk)
+    except OSError as exc:
+        raise InputValidationError(
+            "INPUT_FILE_READ_FAILED", f"Cannot read structure input: {Path(path).name}"
+        ) from exc
+    if input_file_signature(path) != signature:
+        _raise_changed(path)
+    return digest.hexdigest()
 
 
 def read_validated_structure_bytes(
     file_path: str,
     *,
+    expected_signature: FileSignature | None = None,
+    expected_sha256: str | None = None,
     maximum_expanded_bytes: int | None = None,
     collect: bool = True,
-) -> tuple[bytes, int]:
+    include_sha256: bool = False,
+) -> tuple[bytes, int] | tuple[bytes, int, str]:
     """Validate suffix/magic and return the single expanded structure stream."""
-    signature = input_file_signature(file_path)
+    current_signature = input_file_signature(file_path)
+    if expected_signature is not None and current_signature != expected_signature:
+        _raise_changed(file_path)
+    signature = expected_signature or current_signature
     if not is_valid_file(file_path):
         raise InputValidationError(
             "UNSUPPORTED_INPUT_SUFFIX",
@@ -290,7 +337,7 @@ def read_validated_structure_bytes(
         )
 
     if compressed_suffix:
-        payload, expanded = _read_validated_gzip(
+        payload, expanded, raw_sha256 = _read_validated_gzip(
             file_path,
             expected_signature=signature,
             maximum=maximum_expanded_bytes,
@@ -314,8 +361,18 @@ def read_validated_structure_bytes(
                 ) from exc
         else:
             payload = b""
+        if collect:
+            raw_sha256 = hashlib.sha256(payload).hexdigest()
+        elif expected_sha256 is not None or include_sha256:
+            raw_sha256 = input_file_sha256(file_path, expected_signature=signature)
+        else:
+            raw_sha256 = ""
+    if expected_sha256 is not None and raw_sha256 != expected_sha256:
+        _raise_changed(file_path)
     if input_file_signature(file_path) != signature:
         _raise_changed(file_path)
+    if include_sha256:
+        return payload, expanded, raw_sha256
     return payload, expanded
 
 
@@ -423,11 +480,19 @@ def resolve_structure_identity(
     *,
     text: str | None = None,
     block: Any | None = None,
+    expected_signature: FileSignature | None = None,
+    expected_sha256: str | None = None,
+    maximum_expanded_bytes: int | None = None,
 ) -> tuple[StructureIdentity, list[dict[str, Any]], list[dict[str, Any]]]:
     """Resolve every content claim, rejecting conflicts and warning on filenames."""
     extension = _structure_extension(file_path)
     if text is None:
-        payload, _ = read_validated_structure_bytes(file_path)
+        payload, _ = read_validated_structure_bytes(
+            file_path,
+            expected_signature=expected_signature,
+            expected_sha256=expected_sha256,
+            maximum_expanded_bytes=maximum_expanded_bytes,
+        )
         try:
             text = payload.decode("utf-8-sig")
         except UnicodeDecodeError as exc:
@@ -523,8 +588,19 @@ def extract_pdb_id_from_file(file_path: str) -> Optional[str]:
     return identity.display_id if identity and identity.source == "pdb" else None
 
 
-def get_structure_identity(file_path: str) -> StructureIdentity:
-    identity, _warnings, _claims = resolve_structure_identity(file_path)
+def get_structure_identity(
+    file_path: str,
+    *,
+    expected_signature: FileSignature | None = None,
+    expected_sha256: str | None = None,
+    maximum_expanded_bytes: int | None = None,
+) -> StructureIdentity:
+    identity, _warnings, _claims = resolve_structure_identity(
+        file_path,
+        expected_signature=expected_signature,
+        expected_sha256=expected_sha256,
+        maximum_expanded_bytes=maximum_expanded_bytes,
+    )
     if identity.source != "pdb" and not extract_structure_identity_from_filename(file_path):
         print(f"Info: No canonical PDB ID found. Using filename as structure ID: {identity.display_id}")
     return identity
@@ -538,6 +614,7 @@ def parse_structure_input(
     file_path: str,
     *,
     expected_signature: FileSignature | None = None,
+    expected_sha256: str | None = None,
     maximum_expanded_bytes: int | None = None,
 ) -> Dict[str, Any]:
     """Parse exactly one validated structure and retain enriched-mmCIF data."""
@@ -546,6 +623,8 @@ def parse_structure_input(
         _raise_changed(file_path)
     payload, _expanded = read_validated_structure_bytes(
         file_path,
+        expected_signature=expected_signature or before,
+        expected_sha256=expected_sha256,
         maximum_expanded_bytes=maximum_expanded_bytes,
     )
     try:

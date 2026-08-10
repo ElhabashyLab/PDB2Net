@@ -29,8 +29,8 @@ Key behaviors
 - Ambiguity handling (softened, but guarded):
     - Dynamic bitscore margin based on best hit strength (floor/cap)
     - Small relaxations when best is reviewed (sp) or clearly better in qcov/pident
-    - Escape hatch: accept "perfect ties" for qlen >= 80 when BOTH top hits are near-perfect
-      (high identity + high coverage), choosing deterministically with preference for reviewed entries.
+    - Escape hatch: accept "perfect ties" for qlen >= 80 when every contender is near-perfect
+      (high identity + high coverage), choosing from a complete deterministic ranking.
 
 Debugging
 ---------
@@ -207,7 +207,7 @@ def _search_policy_payload() -> Dict[str, Any]:
                 "long": _blast_search_parameters(200)[:4],
             },
             "selection_policy": {
-                "version": 1,
+                "version": 2,
                 "dynamic_margin_fraction": 0.05,
                 "dynamic_margin_floor": 4.0,
                 "dynamic_margin_cap": 10.0,
@@ -249,18 +249,43 @@ def _search_policy_payload() -> Dict[str, Any]:
 
 def _db_signature() -> str:
     """Compute a signature for active databases and result-affecting policies."""
+    reference_manifest_id = str(config.get("reference_manifest_id") or "").strip()
+
+    fasta_signature: tuple[str, int, int, int] | None = None
     try:
         st = os.stat(UNIPROT_FASTA_PATH)
-        swissprot_sig = f"uniprot_fasta:{st.st_size}:{st.st_mtime_ns}"
+        if os.path.isfile(UNIPROT_FASTA_PATH):
+            fasta_signature = (
+                os.path.abspath(UNIPROT_FASTA_PATH),
+                st.st_size,
+                st.st_mtime_ns,
+                st.st_ctime_ns,
+            )
     except Exception:
-        swissprot_sig = ""
+        pass
 
-    if not swissprot_sig:
-        try:
-            st = os.stat(os.path.join(BLAST_DB_PATH, "uniprot_db.pin"))
-            swissprot_sig = f"blast_db:{st.st_size}:{st.st_mtime_ns}"
-        except Exception:
-            swissprot_sig = "unknown"
+    blast_components: list[tuple[str, int, int, int]] = []
+    try:
+        with os.scandir(BLAST_DB_PATH) as entries:
+            for entry in entries:
+                if not entry.name.startswith("uniprot_db.") or not entry.is_file(
+                    follow_symlinks=False
+                ):
+                    continue
+                st = entry.stat(follow_symlinks=False)
+                blast_components.append(
+                    (entry.name, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
+                )
+    except Exception:
+        pass
+    swissprot_payload = {
+        "blast_db_path": os.path.abspath(BLAST_DB_PATH),
+        "components": sorted(blast_components),
+        "fasta": fasta_signature,
+        "reference_manifest_id": reference_manifest_id,
+    }
+    swissprot_json = json.dumps(swissprot_payload, sort_keys=True, separators=(",", ":"))
+    swissprot_sig = hashlib.sha256(swissprot_json.encode("utf-8")).hexdigest()
 
     diamond_sig = "diamond:off"
     if diamond_uniref90_enabled():
@@ -274,7 +299,7 @@ def _db_signature() -> str:
 
     policy_json = json.dumps(_search_policy_payload(), sort_keys=True, separators=(",", ":"))
     policy_sig = hashlib.sha256(policy_json.encode("utf-8")).hexdigest()
-    return f"{swissprot_sig}|{diamond_sig}|policy:{policy_sig}"
+    return f"swissprot:{swissprot_sig}|{diamond_sig}|policy:{policy_sig}"
 
 
 def _seq_cache_key(sequence: str) -> str:
@@ -802,8 +827,7 @@ def _select_blastp_swissprot_hit(
 
     ranked = sorted(
         best_per_accession.values(),
-        key=lambda hit: (hit[0], hit[1], -hit[2], hit[3], hit[4]),
-        reverse=True,
+        key=lambda hit: (-hit[0], -hit[1], hit[2], -hit[3], -hit[4], hit[5]),
     )
     best = ranked[0]
     best_reviewed, best_bitscore, best_evalue, best_qcov, best_pident, best_acc, best_title = best
@@ -815,41 +839,20 @@ def _select_blastp_swissprot_hit(
             relax += 2.0
     effective_margin = max(2.0, dynamic_margin - relax)
 
-    ties = []
-    for candidate in ranked[1:]:
-        _, candidate_bitscore, _, candidate_qcov, candidate_pident, candidate_acc, candidate_title = candidate
-        if best_bitscore - candidate_bitscore <= effective_margin:
-            ties.append((candidate_acc, candidate_bitscore, candidate_qcov, candidate_pident, candidate_title))
-        else:
-            break
+    ties = [
+        candidate
+        for candidate in ranked[1:]
+        if best_bitscore - candidate[1] <= effective_margin
+    ]
 
     ambiguous = bool(ties)
-    if ambiguous and qlen0 >= 80:
-        contender = ranked[1]
-        (
-            contender_reviewed,
-            contender_bitscore,
-            _contender_evalue,
-            contender_qcov,
-            contender_pident,
-            contender_acc,
-            _contender_title,
-        ) = contender
-        if (
-            best_pident >= 99.0
-            and best_qcov >= 0.95
-            and contender_pident >= 99.0
-            and contender_qcov >= 0.95
-        ):
-            if best_reviewed != contender_reviewed:
-                chosen = best if best_reviewed > contender_reviewed else contender
-            elif best_bitscore != contender_bitscore:
-                chosen = best if best_bitscore > contender_bitscore else contender
-            else:
-                chosen = best if best_acc <= contender_acc else contender
-            best_reviewed, best_bitscore, best_evalue, best_qcov, best_pident, best_acc, best_title = chosen
-            _diag_inc("accepted_perfect_tie")
-            ambiguous = False
+    contenders = [best, *ties]
+    if ambiguous and qlen0 >= 80 and all(
+        candidate[4] >= 99.0 and candidate[3] >= 0.95
+        for candidate in contenders
+    ):
+        _diag_inc("accepted_perfect_tie")
+        ambiguous = False
 
     if ambiguous:
         _diag_inc("fail_ambiguous_margin")

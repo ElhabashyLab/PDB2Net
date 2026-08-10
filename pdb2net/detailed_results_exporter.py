@@ -23,6 +23,8 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree
 
+from .artifact_names import portable_artifact_stem
+
 
 DETAILED_INTERACTION_COLUMNS = [
     "PDB_ID",
@@ -121,5 +123,6 @@ def export_detailed_interactions(
 
     df = pd.DataFrame(detailed_interactions, columns=DETAILED_INTERACTION_COLUMNS)
     os.makedirs(run_output_path, exist_ok=True)
-    output_file = os.path.join(run_output_path, f"{pdb_id}_detailed_interactions.csv")
-    df.to_csv(output_file, index=False)
+    output_stem = portable_artifact_stem(f"{pdb_id}_detailed_interactions")
+    output_file = os.path.join(run_output_path, f"{output_stem}.csv")
+    df.to_csv(output_file, index=False, mode="x")

@@ -1442,6 +1442,20 @@ def parallel_blast_search(parsed_data: List[Dict[str, Any]], max_workers: int = 
             uniq = chain.get("unique_chain_id", f"{pdb_id}:{chain_id}")
             label = f"{uniq} ({os.path.basename(str(file_path))})"
 
+            # An enriched SIFTS file can intentionally map one chain to
+            # multiple best UniProt accessions (for example fusion proteins).
+            # Preserve that ambiguity instead of replacing it with one BLAST
+            # hit and thereby creating a misleading protein identity node.
+            if (
+                chain.get("embedded_uniprot_status") == "ambiguous_multi_mapping"
+                and chain.get("annotation_source") == "embedded_sifts"
+            ):
+                _diag_inc("pre_skip_embedded_ambiguous")
+                continue
+            if chain.get("external_sifts_status") == "ambiguous_external_mapping":
+                _diag_inc("pre_skip_external_ambiguous")
+                continue
+
             if chain.get("uniprot_id") not in [None, "Unknown"]:
                 _diag_inc("pre_skip_has_uniprot")
                 if debug:

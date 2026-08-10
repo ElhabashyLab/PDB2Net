@@ -22,6 +22,7 @@ from typing import Any, Dict, List
 
 from .config_loader import config
 from .residue_types import AMINO_ACIDS, DNA_RESIDUES, RNA_RESIDUES, normalize_residue_name
+from .structure_identity import ChainIdentity, StructureIdentity
 
 
 # Set of allowed residue names for proteins and nucleic acids.
@@ -74,6 +75,11 @@ def process_structure(structure_data: Dict[str, Any]) -> Dict[str, Any]:
     file_path = structure_data["file_path"]
     pdb_id = structure_data["pdb_id"]
     structure: gemmi.Structure = structure_data["structure"]
+    identity_raw = structure_data.get("structure_identity")
+    if isinstance(identity_raw, dict):
+        identity = StructureIdentity.from_mapping(identity_raw)
+    else:
+        identity = StructureIdentity("local", str(pdb_id))
 
     atom_data: List[Dict[str, Any]] = []
 
@@ -86,9 +92,13 @@ def process_structure(structure_data: Dict[str, Any]) -> Dict[str, Any]:
     for model_index, model in enumerate(models, start=1):
         for chain in model:
             chain_id = chain.name.strip()
-            unique_chain_id = f"{pdb_id}:{chain_id}"
-            if model_policy == "all":
-                unique_chain_id = f"{pdb_id}:model{model_index}:{chain_id}"
+            chain_identity = ChainIdentity(
+                structure_key=identity.key,
+                structure_display_id=str(pdb_id),
+                chain_id=chain_id,
+                model_index=model_index,
+            )
+            unique_chain_id = chain_identity.node_id(include_model=model_policy == "all")
             residues: List[Dict[str, Any]] = []
             is_valid_chain = False
 
@@ -127,6 +137,9 @@ def process_structure(structure_data: Dict[str, Any]) -> Dict[str, Any]:
                     {
                         "chain_id": chain_id,
                         "unique_chain_id": unique_chain_id,
+                        "chain_identity": chain_identity.as_dict(),
+                        "structure_key": identity.key,
+                        "structure_display_id": str(pdb_id),
                         "model_index": model_index,
                         "molecule_name": "UNKNOWN",    # filled downstream
                         "molecule_type": "UNKNOWN",    # filled downstream

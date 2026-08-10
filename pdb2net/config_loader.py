@@ -114,6 +114,15 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
         "PDB2NET_DIAMOND_ENABLED": ("diamond.enabled", _bool_from_env),
         "PDB2NET_STRUCTURE_MODEL_POLICY": ("structure_model_policy", str),
         "PDB2NET_REFERENCE_MANIFEST_ID": ("reference_manifest_id", str),
+        "PDB2NET_USE_EMBEDDED_SIFTS": ("network_annotations.use_embedded_sifts", _bool_from_env),
+        "PDB2NET_ANNOTATION_TOOLTIP_FIELDS": (
+            "network_annotations.tooltip_fields",
+            lambda value: [field.strip() for field in value.split(",") if field.strip()],
+        ),
+        "PDB2NET_MAX_TOOLTIP_SEGMENTS_PER_DATABASE": (
+            "network_annotations.max_tooltip_segments_per_database",
+            int,
+        ),
     }
     nested: Dict[str, Tuple[str, str]] = {
         "PDB2NET_WORKERS_PARSING": ("workers", "parsing"),
@@ -128,6 +137,8 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
         "PDB2NET_MAX_TOTAL_INPUT_BYTES": ("resource_limits", "max_total_input_bytes"),
         "PDB2NET_MAX_SINGLE_INPUT_BYTES": ("resource_limits", "max_single_input_bytes"),
         "PDB2NET_MAX_PROCESSING_BATCH_BYTES": ("resource_limits", "max_processing_batch_bytes"),
+        "PDB2NET_MAX_TOTAL_INPUT_EXPANDED_BYTES": ("resource_limits", "max_total_input_expanded_bytes"),
+        "PDB2NET_MAX_SINGLE_INPUT_EXPANDED_BYTES": ("resource_limits", "max_single_input_expanded_bytes"),
         "PDB2NET_COMBINED_MAX_NODES": ("combined_graph_limits", "max_nodes"),
         "PDB2NET_COMBINED_MAX_EDGES": ("combined_graph_limits", "max_edges"),
     }
@@ -204,6 +215,12 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
     cfg["resource_limits"].setdefault("max_total_input_bytes", None)
     cfg["resource_limits"].setdefault("max_single_input_bytes", None)
     cfg["resource_limits"].setdefault("max_processing_batch_bytes", None)
+    cfg["resource_limits"].setdefault("max_total_input_expanded_bytes", None)
+    cfg["resource_limits"].setdefault("max_single_input_expanded_bytes", None)
+    cfg.setdefault("network_annotations", {})
+    cfg["network_annotations"].setdefault("use_embedded_sifts", True)
+    cfg["network_annotations"].setdefault("tooltip_fields", ["uniprot"])
+    cfg["network_annotations"].setdefault("max_tooltip_segments_per_database", 20)
     cfg.setdefault("combined_graph_limits", {})
     cfg["combined_graph_limits"].setdefault("max_nodes", None)
     cfg["combined_graph_limits"].setdefault("max_edges", None)

@@ -5,10 +5,12 @@ It uses **Gemmi** for structure parsing, **SciPy cKDTree** for distance-based in
 
 ## Features
 
-- Automatic parsing of `.pdb`, `.cif`, and `.mmCIF` structures  
+- Automatic parsing of `.pdb`, `.cif`, and `.mmCIF` structures, optionally gzip-compressed
+- Content-first structure identity with classic and Extended PDB IDs (`1abc` / `pdb_00001abc`)
 - Distance-based chain interaction detection  
 - Protein-level and chain-level networks  
-- Full UniProt annotation via SIFTS and BLAST+  
+- Full UniProt annotation via SIFTS and BLAST+, including embedded SIFTS in enriched NextGen mmCIF
+- Configurable UniProt, Pfam, CATH, and SCOP2 segment annotations in existing CX2 tooltips
 - Export of chain, protein, and combined networks (CX2 format)  
 - Optional versioned per-PDB precompute store for fast repeated assembly
 
@@ -107,6 +109,11 @@ Now, generate the BLAST database from the downloaded UniProt FASTA file.
     "protein_per_pdb": true,
     "combined_protein_network": true
   },
+  "network_annotations": {
+    "use_embedded_sifts": true,
+    "tooltip_fields": ["uniprot"],
+    "max_tooltip_segments_per_database": 20
+  },
   "distance_thresholds": { "ca_radius": 12.0, "all_atoms_radius": 5.0 },
   "workers": { "parsing": "auto", "blast_threads": "auto" },
   "keep_last_n_networks": 46,
@@ -188,6 +195,11 @@ You can override individual settings via ENV:
 | `PDB2NET_MAX_INPUT_FILES`   | `resource_limits.max_input_files`             |
 | `PDB2NET_MAX_TOTAL_INPUT_BYTES` | `resource_limits.max_total_input_bytes`   |
 | `PDB2NET_MAX_SINGLE_INPUT_BYTES` | `resource_limits.max_single_input_bytes` |
+| `PDB2NET_MAX_TOTAL_INPUT_EXPANDED_BYTES` | `resource_limits.max_total_input_expanded_bytes` |
+| `PDB2NET_MAX_SINGLE_INPUT_EXPANDED_BYTES` | `resource_limits.max_single_input_expanded_bytes` |
+| `PDB2NET_USE_EMBEDDED_SIFTS` | `network_annotations.use_embedded_sifts` |
+| `PDB2NET_ANNOTATION_TOOLTIP_FIELDS` | comma-separated `network_annotations.tooltip_fields` |
+| `PDB2NET_MAX_TOOLTIP_SEGMENTS_PER_DATABASE` | `network_annotations.max_tooltip_segments_per_database` |
 | `PDB2NET_MAX_PROCESSING_BATCH_BYTES` | `resource_limits.max_processing_batch_bytes` |
 | `PDB2NET_COMBINED_MAX_NODES` | `combined_graph_limits.max_nodes`            |
 | `PDB2NET_COMBINED_MAX_EDGES` | `combined_graph_limits.max_edges`            |
@@ -310,6 +322,14 @@ python3 -m pdb2net run \
 See [`docs/server_backend_usage.md`](docs/server_backend_usage.md) for the
 worker-facing output contract.
 
+Uploaded/local enriched NextGen mmCIF files are ordinary supported inputs; no
+separate mode is required. When `network_annotations.use_embedded_sifts` is
+enabled, PDB2Net reads embedded SIFTS segments directly from the same mmCIF
+document. `tooltip_fields` controls which of `uniprot`, `pfam`, `cath`, and
+`scop2` are added to existing network-node tooltips. UniProt is enabled by
+default; the other categories are opt-in. Ambiguous embedded UniProt mappings
+remain explicitly unassigned instead of being guessed.
+
 ### Optional precomputed PDB store
 
 The normal laptop/desktop workflow above remains unchanged and does not require
@@ -336,8 +356,8 @@ entries into the usual CX2 outputs with:
 ```bash
 pdb2net assemble \
   --store /srv/pdb2net/precomputed \
-  --pdb-id 1abc \
-  --pdb-id 2xyz \
+  --pdb-id pdb_00001abc \
+  --pdb-id pdb_00002xyz \
   --output-dir ./outputs \
   --headless
 ```
@@ -348,16 +368,18 @@ recursive full-archive scan:
 ```bash
 pdb2net assemble \
   --store /srv/pdb2net/precomputed \
-  --pdb-id 1abc \
+  --pdb-id pdb_00001abc \
   --output-dir ./outputs \
   --source-dir /srv/pdb/archive \
   --populate-missing \
   --headless
 ```
 
-Precomputed schema 1 requires `structure_model_policy: "first"`, a non-empty
-and operationally versioned `reference_manifest_id`, and
-`export_detailed_interactions: false`. See
+Precomputed schema 2 uses canonical Extended PDB IDs and separates stable
+geometry/interactions from refreshable annotations. A reference-manifest
+change can therefore refresh annotation data while reusing unchanged geometry.
+It requires `structure_model_policy: "first"`, a non-empty and operationally
+versioned `reference_manifest_id`, and `export_detailed_interactions: false`. See
 [`docs/precomputed_store.md`](docs/precomputed_store.md) for the artifact layout,
 archive naming rules, invalidation, and safe promotion procedure.
 

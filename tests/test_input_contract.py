@@ -83,11 +83,11 @@ def test_archive_filename_patterns_normalize_to_valid_pdb_id(filename: str, monk
     assert extract_pdb_id_from_filename(filename) == "1ABC"
 
 
-def test_archive_filename_candidate_still_requires_valid_pdb_membership(monkeypatch, capsys) -> None:
+def test_archive_filename_candidate_does_not_require_legacy_fasta_membership(monkeypatch, capsys) -> None:
     monkeypatch.setattr(file_parser, "VALID_PDB_IDS", {"2XYZ"})
 
-    assert extract_pdb_id_from_filename("pdb_00001abc.cif.gz") is None
-    assert "not found in pdb_seqres.txt: 1ABC" in capsys.readouterr().out
+    assert extract_pdb_id_from_filename("pdb_00001abc.cif.gz") == "1ABC"
+    assert "pdb_seqres" not in capsys.readouterr().out
 
 
 @pytest.mark.parametrize(
@@ -120,7 +120,9 @@ def test_gemmi_parses_gzip_structure_files(tmp_path: Path, extension: str) -> No
         "END\n"
     )
     if extension.startswith(("cif", "mmcif")):
-        content = gemmi.read_pdb_string(pdb_text).make_mmcif_document().as_string()
+        content = gemmi.read_pdb_string(pdb_text).make_mmcif_document().as_string().replace(
+            "data_string", "data_1abc", 1
+        )
     else:
         content = pdb_text
 

@@ -22,7 +22,7 @@ def test_run_pipeline_writes_failed_manifest_for_missing_input_folder(tmp_path: 
     run_summary = json.loads(manifests[0].with_name("run_summary.json").read_text(encoding="utf-8"))
     assert manifest["status"] == "failed"
     assert run_summary["status"] == "failed"
-    assert manifest["output_contract_version"] == "1.1"
+    assert manifest["output_contract_version"] == "1.2"
     assert manifest["pdb2net_version"] == __version__
     assert manifest["errors"][0]["code"] == "INPUT_PATH_NOT_FOUND"
     assert manifest["input_files"] == []
@@ -45,6 +45,19 @@ def test_run_pipeline_writes_failed_manifest_for_empty_input_folder(tmp_path: Pa
     assert manifest["errors"][0]["code"] == "NO_VALID_INPUT_FILES"
 
 
+def test_internal_list_run_keeps_documented_no_failed_manifest_behavior(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output_root = tmp_path / "outputs"
+    missing = tmp_path / "missing.cif"
+    monkeypatch.setitem(pipeline.config, "output_path", str(output_root))
+
+    with pytest.raises(InputValidationError):
+        pipeline.run_pipeline([str(missing)])
+
+    assert not list(output_root.glob("*/manifest.json"))
+
+
 def test_run_pipeline_writes_failed_web_summary_for_empty_input_folder(tmp_path: Path, monkeypatch) -> None:
     output_root = tmp_path / "outputs"
     web_root = tmp_path / "web_outputs"
@@ -57,10 +70,11 @@ def test_run_pipeline_writes_failed_web_summary_for_empty_input_folder(tmp_path:
 
     summary = json.loads((web_root / "summary.json").read_text(encoding="utf-8"))
     assert summary["status"] == "failed"
-    assert summary["output_contract_version"] == "1.1"
+    assert summary["output_contract_version"] == "1.2"
     assert summary["pdb2net_version"] == __version__
     assert summary["input_files"] == []
-    assert summary["input_path"] == str(empty_input)
+    assert "input_path" not in summary
+    assert str(empty_input) not in json.dumps(summary)
     assert summary["errors"][0]["code"] == "NO_VALID_INPUT_FILES"
     assert summary["networks"] == []
     assert summary["interactions"] == []

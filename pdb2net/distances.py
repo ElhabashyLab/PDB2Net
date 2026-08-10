@@ -263,7 +263,9 @@ def calculate_distances_with_ckdtree(combined_data: List[Dict[str, Any]]) -> Lis
         seen_pairs: set[Tuple[str, str]] = set()  # deduplicate unordered chain pairs
 
         for chain_a, chain_b in itertools.combinations(atom_data, 2):
-            # Skip explicit same-chain interactions (should not occur with combinations)
+            # Models are alternative coordinate sets, never physical peers.
+            if chain_a.get("model_index", 1) != chain_b.get("model_index", 1):
+                continue
             if chain_a["chain_id"] == chain_b["chain_id"]:
                 continue
 
@@ -292,6 +294,8 @@ def calculate_distances_with_ckdtree(combined_data: List[Dict[str, Any]]) -> Lis
                 if all_atoms_count >= _required_all_atom_contacts(interaction_type, filters):
                     results.append({
                         "file_path": file_path,
+                        "structure_key": str(file_data.get("structure_identity", {}).get("key") or chain_a.get("structure_key") or ""),
+                        "model_index": int(chain_a.get("model_index", 1)),
                         "chain_a": chain_a["unique_chain_id"],
                         "chain_b": chain_b["unique_chain_id"],
                         "all_atoms_count": int(all_atoms_count),
@@ -314,6 +318,8 @@ def calculate_distances_with_ckdtree(combined_data: List[Dict[str, Any]]) -> Lis
                 if all_atoms_count >= filters["protein_protein_min_all_atom_contacts"]:
                     results.append({
                         "file_path": file_path,
+                        "structure_key": str(file_data.get("structure_identity", {}).get("key") or chain_a.get("structure_key") or ""),
+                        "model_index": int(chain_a.get("model_index", 1)),
                         "chain_a": chain_a["unique_chain_id"],
                         "chain_b": chain_b["unique_chain_id"],
                         "ca_neighbors": int(ca_neighbors),

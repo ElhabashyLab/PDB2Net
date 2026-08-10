@@ -1,7 +1,9 @@
 import json
+import math
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from pdb2net.cytoscape import generate_nodes_from_atom_data
 from pdb2net.cx2_export import export_cx2_headless
@@ -65,10 +67,18 @@ def test_detailed_interactions_csv_columns_are_stable(tmp_path: Path) -> None:
     assert list(df.columns) == DETAILED_INTERACTION_COLUMNS
 
 
-def test_headless_cx2_contains_core_aspects_and_attributes(tmp_path: Path) -> None:
+def test_headless_cx2_uses_only_native_inline_attributes_and_layout(tmp_path: Path) -> None:
     nodes_df = pd.DataFrame(
         [
-            {"id": "A", "name": "A", "tooltip": "node A", "color_group": "Protein"},
+            {
+                "id": "A",
+                "name": "A",
+                "tooltip": "node A",
+                "color_group": "Protein",
+                "pdb_count": "",
+                "source_chains": "",
+                "node_kind": "",
+            },
             {
                 "id": "B",
                 "name": "B",
@@ -104,22 +114,145 @@ def test_headless_cx2_contains_core_aspects_and_attributes(tmp_path: Path) -> No
     cx = json.loads((tmp_path / "Mini_Network.cx2").read_text(encoding="utf-8"))
     aspects = _aspect_map(cx)
 
-    for aspect in [
-        "nodes",
-        "edges",
-        "nodeAttributes",
-        "edgeAttributes",
-        "cartesianLayout",
-        "visualProperties",
-    ]:
+    for aspect in ["nodes", "edges", "visualProperties"]:
         assert aspect in aspects
+    assert {"nodeAttributes", "edgeAttributes", "cartesianLayout"}.isdisjoint(aspects)
 
     assert len(aspects["nodes"]) == 2
     assert len(aspects["edges"]) == 1
-    node_attr_names = {record["n"] for record in aspects["nodeAttributes"]}
-    edge_attr_names = {record["n"] for record in aspects["edgeAttributes"]}
-    assert {"name", "tooltip", "color_group", "pdb_count", "source_chains", "node_kind"}.issubset(node_attr_names)
-    assert {"interaction", "all_atoms_count"}.issubset(edge_attr_names)
+    assert [node["id"] for node in aspects["nodes"]] == [0, 1]
+    assert aspects["nodes"][0]["v"]["name"] == "A"
+    assert aspects["nodes"][0]["x"] == 1.0
+    assert aspects["nodes"][0]["y"] == 2.0
+    assert aspects["nodes"][1]["v"]["pdb_count"] == 2
+    assert aspects["nodes"][1]["v"]["source_chains"] == "PDB1:B, PDB2:B"
+    assert aspects["nodes"][1]["v"]["node_kind"] == "protein"
+    assert aspects["edges"] == [
+        {
+            "id": 0,
+            "s": 0,
+            "t": 1,
+            "v": {"interaction": "Protein-Protein", "all_atoms_count": 3},
+        }
+    ]
+    metadata = {entry["name"]: entry["elementCount"] for entry in aspects["metaData"]}
+    assert metadata["nodes"] == 2
+    assert metadata["edges"] == 1
+    assert aspects["status"] == [{"error": "", "success": True}]
+
+
+def test_headless_cx2_is_deterministic_and_sorts_nodes_and_edges(tmp_path: Path) -> None:
+    nodes = pd.DataFrame(
+        [
+            {"id": "B", "name": "B", "tooltip": "β", "color_group": "Protein"},
+            {"id": "A", "name": "A", "tooltip": "α", "color_group": "Protein"},
+        ]
+    )
+    edges = pd.DataFrame(
+        [{"source": "B", "target": "A", "interaction": "interacts_with", "all_atoms_count": 1}]
+    )
+    positions = {"A": {"x": 0, "y": 1}, "B": {"x": 2, "y": 3}}
+    export_cx2_headless("stable", str(tmp_path), nodes, edges, {}, positions)
+    first = (tmp_path / "stable.cx2").read_bytes()
+
+    export_cx2_headless(
+        "stable",
+        str(tmp_path),
+        nodes.iloc[::-1],
+        edges.iloc[::-1],
+        {},
+        positions,
+    )
+
+    assert (tmp_path / "stable.cx2").read_bytes() == first
+
+
+@pytest.mark.parametrize("bad_value", [math.nan, math.inf, -math.inf])
+def test_headless_cx2_rejects_nonfinite_coordinates_and_attributes(
+    tmp_path: Path, bad_value: float
+) -> None:
+    nodes = pd.DataFrame(
+        [{"id": "A", "name": "A", "tooltip": "", "color_group": "Protein"}]
+    )
+    with pytest.raises(ValueError, match="finite"):
+        export_cx2_headless(
+            "bad-coordinate",
+            str(tmp_path),
+            nodes,
+            pd.DataFrame(columns=["source", "target", "interaction", "all_atoms_count"]),
+            {},
+            {"A": {"x": bad_value, "y": 0.0}},
+        )
+
+    nodes["score"] = [bad_value]
+    with pytest.raises(ValueError, match="finite"):
+        export_cx2_headless(
+            "bad-attribute",
+            str(tmp_path),
+            nodes,
+            pd.DataFrame(columns=["source", "target", "interaction", "all_atoms_count"]),
+            {},
+            {"A": {"x": 0.0, "y": 0.0}},
+        )
+
+
+def test_headless_cx2_rejects_duplicate_nodes_and_edges(tmp_path: Path) -> None:
+    duplicate_nodes = pd.DataFrame(
+        [
+            {"id": "A", "name": "A", "tooltip": "", "color_group": "Protein"},
+            {"id": "A", "name": "A2", "tooltip": "", "color_group": "Protein"},
+        ]
+    )
+    with pytest.raises(ValueError, match="node IDs"):
+        export_cx2_headless("duplicate-nodes", str(tmp_path), duplicate_nodes, pd.DataFrame(), {}, {})
+
+    nodes = pd.DataFrame(
+        [
+            {"id": "A", "name": "A", "tooltip": "", "color_group": "Protein"},
+            {"id": "B", "name": "B", "tooltip": "", "color_group": "Protein"},
+        ]
+    )
+    duplicate_edges = pd.DataFrame(
+        [
+            {"source": "A", "target": "B", "interaction": "x", "all_atoms_count": 1},
+            {"source": "B", "target": "A", "interaction": "x", "all_atoms_count": 2},
+        ]
+    )
+    with pytest.raises(ValueError, match="duplicate"):
+        export_cx2_headless("duplicate-edges", str(tmp_path), nodes, duplicate_edges, {}, {})
+
+
+def test_headless_cx2_omits_missing_optional_attributes_and_rejects_mixed_types(
+    tmp_path: Path,
+) -> None:
+    nodes = pd.DataFrame(
+        [
+            {"id": "A", "name": "A", "tooltip": "", "color_group": "Protein", "score": 1},
+            {"id": "B", "name": "B", "tooltip": "", "color_group": "Protein", "score": ""},
+        ]
+    )
+    export_cx2_headless(
+        "optional",
+        str(tmp_path),
+        nodes,
+        pd.DataFrame(columns=["source", "target", "interaction", "all_atoms_count"]),
+        {},
+        {"A": {"x": 0.0, "y": 0.0}, "B": {"x": 1.0, "y": 1.0}},
+    )
+    aspects = _aspect_map(json.loads((tmp_path / "optional.cx2").read_text(encoding="utf-8")))
+    assert aspects["nodes"][0]["v"]["score"] == 1
+    assert "score" not in aspects["nodes"][1]["v"]
+
+    nodes.loc[1, "score"] = "high"
+    with pytest.raises(ValueError, match="incompatible scalar types"):
+        export_cx2_headless(
+            "mixed",
+            str(tmp_path),
+            nodes,
+            pd.DataFrame(columns=["source", "target", "interaction", "all_atoms_count"]),
+            {},
+            {"A": {"x": 0.0, "y": 0.0}, "B": {"x": 1.0, "y": 1.0}},
+        )
 
 
 def test_component_combined_protein_titles_use_combined_protein_profile() -> None:

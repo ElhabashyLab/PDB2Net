@@ -4,9 +4,20 @@ from __future__ import annotations
 
 import csv
 from functools import lru_cache
+import re
 from typing import Dict, List, Optional
 
 from Bio import SeqIO
+
+
+def _split_structure_chain_token(token: str) -> tuple[str, str] | None:
+    """Split FASTA tokens for legacy and extended IDs at the final underscore."""
+    if "_" not in token:
+        return None
+    structure_id, chain_id = token.rsplit("_", 1)
+    if not structure_id or not chain_id:
+        return None
+    return structure_id, chain_id
 
 
 @lru_cache(maxsize=None)
@@ -19,9 +30,9 @@ def load_valid_pdb_ids(pdb_fasta_path: str) -> set[str]:
                 continue
 
             token = line.split()[0][1:]
-            parts = token.split("_")
-            if parts and len(parts[0]) == 4:
-                valid_pdb_ids.add(parts[0].upper())
+            parsed = _split_structure_chain_token(token)
+            if parsed:
+                valid_pdb_ids.add(parsed[0].upper())
 
     return valid_pdb_ids
 
@@ -40,9 +51,10 @@ def load_pdb_fasta(pdb_fasta_path: str) -> Dict[str, Dict[str, str]]:
 
                 parts = line.split()
                 fasta_header = parts[0][1:]
-                if "_" in fasta_header:
-                    pdb_id, chain_id = fasta_header.split("_", 1)
-                    formatted_key = f"{pdb_id.lower()}_{chain_id.upper()}"
+                parsed = _split_structure_chain_token(fasta_header)
+                if parsed:
+                    pdb_id, chain_id = parsed
+                    formatted_key = f"{pdb_id.lower()}_{chain_id}"
                     pdb_sequences[formatted_key] = {"info": " ".join(parts[1:]), "sequence": ""}
                     current_key = formatted_key
                     current_seq = []
@@ -77,30 +89,92 @@ def load_pdb_fasta_headers(
                 continue
             parts = line.split()
             fasta_header = parts[0][1:]
-            if "_" not in fasta_header:
+            parsed = _split_structure_chain_token(fasta_header)
+            if not parsed:
                 continue
-            pdb_id, chain_id = fasta_header.split("_", 1)
+            pdb_id, chain_id = parsed
             if wanted_ids is not None and pdb_id.lower() not in wanted_ids:
                 continue
-            formatted_key = f"{pdb_id.lower()}_{chain_id.upper()}"
+            formatted_key = f"{pdb_id.lower()}_{chain_id}"
             pdb_headers[formatted_key] = {"info": " ".join(parts[1:])}
     return pdb_headers
 
 
+_UNIPROT_ACCESSION_RE = re.compile(
+    r"^(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})(?:-[0-9]+)?$"
+)
+
+
+def is_uniprot_accession(value: object) -> bool:
+    """Return whether a complete UniProtKB accession (including isoforms) was supplied."""
+    return _UNIPROT_ACCESSION_RE.fullmatch(str(value or "").strip().upper()) is not None
+
+
 @lru_cache(maxsize=None)
-def load_sifts_mapping(tsv_path: str) -> Dict[str, str]:
-    """Load SIFTS PDB-to-UniProt chain mapping from a TSV file."""
-    pdb_to_uniprot: Dict[str, str] = {}
+def load_sifts_segments(tsv_path: str) -> Dict[str, tuple[Dict[str, str], ...]]:
+    """Load every valid external SIFTS segment for each PDB/author-chain pair."""
+    segments: Dict[str, List[Dict[str, str]]] = {}
+    header: list[str] | None = None
     with open(tsv_path, "r", encoding="utf-8", errors="ignore") as handle:
         reader = csv.reader(handle, delimiter="\t")
         for row in reader:
             if not row or len(row) < 3:
                 continue
-            pdb_id = row[0].strip().lower()
-            chain = row[1].strip().upper()
-            uniprot_id = row[2].strip()
+            cleaned = [value.strip() for value in row]
+            first = cleaned[0].lstrip("#").strip().upper()
+            second = cleaned[1].strip().upper()
+            if first == "PDB" and second == "CHAIN":
+                header = [value.lstrip("#").strip().lower() for value in cleaned]
+                continue
+            if cleaned[0].startswith("#"):
+                continue
+            pdb_id = cleaned[0].lower()
+            chain = cleaned[1]
+            uniprot_id = cleaned[2].upper()
+            if not pdb_id or not chain or not is_uniprot_accession(uniprot_id):
+                continue
             key = f"{pdb_id}_{chain}"
-            pdb_to_uniprot[key] = uniprot_id
+            if header is None:
+                names = [
+                    "pdb",
+                    "chain",
+                    "sp_primary",
+                    "res_beg",
+                    "res_end",
+                    "pdb_beg",
+                    "pdb_end",
+                    "sp_beg",
+                    "sp_end",
+                ]
+            else:
+                names = header
+            segment = {
+                names[index] if index < len(names) and names[index] else f"column_{index + 1}": value
+                for index, value in enumerate(cleaned)
+            }
+            segment["pdb"] = pdb_id
+            segment["chain"] = chain
+            segment["accession"] = uniprot_id
+            segments.setdefault(key, []).append(segment)
+
+    result: Dict[str, tuple[Dict[str, str], ...]] = {}
+    for key, values in segments.items():
+        unique = {
+            tuple(sorted(segment.items())): segment
+            for segment in values
+        }
+        result[key] = tuple(unique[item] for item in sorted(unique))
+    return result
+
+
+@lru_cache(maxsize=None)
+def load_sifts_mapping(tsv_path: str) -> Dict[str, str]:
+    """Compatibility view containing only unambiguous chain mappings."""
+    pdb_to_uniprot: Dict[str, str] = {}
+    for key, segments in load_sifts_segments(tsv_path).items():
+        accessions = {segment["accession"] for segment in segments}
+        if len(accessions) == 1:
+            pdb_to_uniprot[key] = next(iter(accessions))
 
     return pdb_to_uniprot
 

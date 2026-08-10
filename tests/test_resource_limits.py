@@ -1,4 +1,5 @@
 import json
+import gzip
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,8 @@ def _set_limits(monkeypatch, **overrides) -> None:
         "max_total_input_bytes": None,
         "max_single_input_bytes": None,
         "max_processing_batch_bytes": None,
+        "max_total_input_expanded_bytes": None,
+        "max_single_input_expanded_bytes": None,
         **overrides,
     }
     monkeypatch.setitem(pipeline.config, "resource_limits", limits)
@@ -61,7 +64,7 @@ def test_invalid_combined_graph_limit_fails_before_reference_loading(
     assert reference_checked == []
 
 
-def test_processing_batches_are_raw_size_bounded_and_stable(tmp_path: Path, monkeypatch) -> None:
+def test_processing_batches_are_expanded_size_bounded_and_stable(tmp_path: Path, monkeypatch) -> None:
     paths = [tmp_path / f"{name}.cif" for name in "abc"]
     for path, size in zip(paths, [6, 4, 7]):
         _write_bytes(path, size)
@@ -72,6 +75,52 @@ def test_processing_batches_are_raw_size_bounded_and_stable(tmp_path: Path, monk
     batches = list(pipeline.create_processing_batches(file_paths, inventory))
 
     assert batches == [file_paths[:2], file_paths[2:]]
+
+
+def test_gzip_expanded_limit_is_enforced_before_parsing(tmp_path: Path, monkeypatch) -> None:
+    source = tmp_path / "large.cif.gz"
+    source.write_bytes(gzip.compress(b"x" * 2_000))
+    _set_limits(monkeypatch, max_single_input_expanded_bytes=1_000)
+
+    with pytest.raises(InputValidationError) as exc_info:
+        pipeline.inspect_input_files([str(source)])
+
+    assert exc_info.value.code == "INPUT_FILE_EXPANDED_BYTES_LIMIT_EXCEEDED"
+
+
+def test_gzip_processing_batches_use_expanded_sizes(tmp_path: Path, monkeypatch) -> None:
+    paths = [tmp_path / "a.cif.gz", tmp_path / "b.cif.gz"]
+    for path in paths:
+        path.write_bytes(gzip.compress(b"x" * 600))
+    _set_limits(monkeypatch, max_processing_batch_bytes=1_000)
+    file_paths = [str(path) for path in paths]
+
+    inventory = pipeline.inspect_input_files(file_paths)
+
+    assert inventory.total_expanded_bytes == 1_200
+    assert list(pipeline.create_processing_batches(file_paths, inventory)) == [[file_paths[0]], [file_paths[1]]]
+
+
+def test_nested_gzip_input_is_rejected(tmp_path: Path, monkeypatch) -> None:
+    source = tmp_path / "nested.cif.gz"
+    source.write_bytes(gzip.compress(gzip.compress(b"data_test\n")))
+    _set_limits(monkeypatch)
+
+    with pytest.raises(InputValidationError) as exc_info:
+        pipeline.inspect_input_files([str(source)])
+
+    assert exc_info.value.code == "NESTED_GZIP_INPUT"
+
+
+def test_empty_gzip_input_is_rejected(tmp_path: Path, monkeypatch) -> None:
+    source = tmp_path / "empty.cif.gz"
+    source.write_bytes(gzip.compress(b""))
+    _set_limits(monkeypatch)
+
+    with pytest.raises(InputValidationError) as exc_info:
+        pipeline.inspect_input_files([str(source)])
+
+    assert exc_info.value.code == "INVALID_GZIP_INPUT"
 
 
 def test_parser_scheduler_never_submits_more_than_worker_count(tmp_path: Path, monkeypatch) -> None:

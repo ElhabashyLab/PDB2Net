@@ -112,11 +112,26 @@ Expected result:
 - `configs/config.local.json` does not exist in the installed copy
 - `pdb2net --help` and `pdb2net run --help` work after installation
 
+## Contract 1.2 Mutation Gate
+
+The release mutation smoke copies Core and Webserver code into temporary
+directories, injects the seven critical contract regressions, and requires the
+targeted tests to fail by assertion. It never edits either working tree:
+
+```bash
+.venv/bin/python scripts/release_mutation_smoke.py \
+  --web-root /path/to/pdb2net-webserver
+```
+
+The gate covers ID normalization, SIFTS ambiguity, gzip EOF validation,
+annotation cache versioning, tooltip-independent cache profiles, forbidden CX1
+aspects, and required Contract-1.2 summary fields.
+
 ## Full Pipeline Requirements
 
 The full pipeline needs:
 
-- a folder with `.pdb`, `.cif`, or `.mmcif` inputs
+- a folder with `.pdb`, `.cif`, or `.mmcif` inputs, optionally gzip-compressed
 - `pdb_seqres.txt`
 - `pdb_chain_uniprot.tsv`
 - `uniprot_sprot.fasta`

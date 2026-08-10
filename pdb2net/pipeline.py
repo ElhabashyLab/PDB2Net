@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import gc
+import math
 import os
 import shutil
 import sys
@@ -20,10 +21,22 @@ from .cytoscape import create_cytoscape_network, generate_nodes_from_atom_data
 from .data_processor import process_structure
 from .detailed_results_exporter import export_detailed_interactions
 from .distances import calculate_distances_with_ckdtree, coords_cache, tree_cache
-from .file_parser import get_pdb_id, is_valid_file, parse_structure
+from .file_parser import (
+    FileSignature,
+    get_structure_identity,
+    input_file_signature,
+    is_valid_file,
+    parse_structure_input,
+    read_validated_structure_bytes,
+)
 from .graph_limits import combined_graph_skip, normalize_combined_graph_limits
 from .input_contract import InputValidationError
 from .logging_utils import get_logger
+from .network_annotations import (
+    apply_embedded_annotations,
+    embedded_annotation_counts,
+    network_annotation_config,
+)
 from .outputs import (
     RunOutputPaths,
     collect_generated_outputs,
@@ -36,6 +49,7 @@ from .outputs import (
 )
 from .protein_network import create_protein_network
 from .residue_types import NUCLEIC_ACID_TYPES, count_polymer_lengths
+from .structure_identity import StructureIdentity, identity_from_official_id
 from .uniprot_matcher import (
     diamond_uniref90_enabled,
     extract_direct_uniprot_accession,
@@ -75,6 +89,8 @@ class InputInventory:
     """Validated input sizes used for limits, batching, and run metadata."""
 
     file_sizes: tuple[int, ...]
+    expanded_file_sizes: tuple[int, ...] | None = None
+    file_signatures: tuple[FileSignature, ...] | None = None
 
     @property
     def total_bytes(self) -> int:
@@ -83,6 +99,18 @@ class InputInventory:
     @property
     def largest_file_bytes(self) -> int:
         return max(self.file_sizes, default=0)
+
+    @property
+    def effective_expanded_file_sizes(self) -> tuple[int, ...]:
+        return self.expanded_file_sizes or self.file_sizes
+
+    @property
+    def total_expanded_bytes(self) -> int:
+        return sum(self.effective_expanded_file_sizes)
+
+    @property
+    def largest_expanded_file_bytes(self) -> int:
+        return max(self.effective_expanded_file_sizes, default=0)
 
 
 def resolve_workers(value: Optional[Union[int, str]], *, kind: str = "parsing") -> int:
@@ -100,17 +128,53 @@ def resolve_workers(value: Optional[Union[int, str]], *, kind: str = "parsing") 
     return max(1, cpu - 1)
 
 
-def process_single_file(file_path: str, pdb_id_override: str | None = None) -> Optional[Dict[str, Any]]:
+def process_single_file(
+    file_path: str,
+    pdb_id_override: str | Mapping[str, Any] | None = None,
+    expected_signature: FileSignature | None = None,
+) -> Optional[Dict[str, Any]]:
     """Process a single PDB/mmCIF file end-to-end for the parsing stage."""
-    try:
-        pdb_id = pdb_id_override or get_pdb_id(file_path)
-        structure = parse_structure(file_path, pdb_id)
-        if not structure:
-            return None
-        return process_structure({"file_path": file_path, "pdb_id": pdb_id, "structure": structure})
-    except Exception as exc:
-        print(f"Error while processing {file_path}: {exc}")
-        return None
+    if pdb_id_override:
+        if isinstance(pdb_id_override, Mapping):
+            identity = StructureIdentity.from_mapping(pdb_id_override)
+        else:
+            try:
+                identity = identity_from_official_id(pdb_id_override)
+            except ValueError:
+                identity = StructureIdentity("local", str(pdb_id_override))
+    else:
+        identity = None
+    parsed = parse_structure_input(file_path, expected_signature=expected_signature)
+    parsed_identity = StructureIdentity.from_mapping(parsed["structure_identity"])
+    if identity is not None and identity.key != parsed_identity.key:
+        raise InputValidationError(
+            "INPUT_CHANGED_DURING_PROCESSING",
+            f"Resolved identity changed while processing {Path(file_path).name}.",
+        )
+    identity = identity or parsed_identity
+    processed = process_structure(
+        {
+            "file_path": file_path,
+            "pdb_id": identity.display_id,
+            "structure_identity": identity.as_dict(),
+            "structure": parsed["structure"],
+        }
+    )
+    annotation_cfg = network_annotation_config()
+    apply_embedded_annotations(
+        processed["atom_data"],
+        parsed["embedded_annotations"],
+        use_embedded_sifts=annotation_cfg["use_embedded_sifts"],
+    )
+    processed["structure_identity"] = identity.as_dict()
+    processed["identity_claims"] = parsed.get("identity_claims", [])
+    processed["input_warnings"] = list(parsed.get("identity_warnings", [])) + list(
+        parsed.get("embedded_annotations", {}).get("warnings", [])
+    )
+    processed["input_format"] = parsed["input_format"]
+    processed["input_kind"] = parsed["input_kind"]
+    processed["embedded_annotation_counts"] = embedded_annotation_counts(processed["atom_data"])
+    return processed
 
 
 def discover_input_files(input_path_or_filelist: Union[str, List[str]]) -> List[str]:
@@ -119,6 +183,11 @@ def discover_input_files(input_path_or_filelist: Union[str, List[str]]) -> List[
         return [file_path for file_path in input_path_or_filelist if is_valid_file(file_path)]
 
     input_path = Path(input_path_or_filelist)
+    if input_path.is_symlink():
+        raise InputValidationError(
+            "SYMLINK_INPUT_NOT_ALLOWED",
+            f"Input directories must not be symbolic links: {input_path}",
+        )
     if not input_path.exists():
         raise InputValidationError(
             "INPUT_PATH_NOT_FOUND",
@@ -130,17 +199,23 @@ def discover_input_files(input_path_or_filelist: Union[str, List[str]]) -> List[
             f"input_folder_path must be a directory containing PDB/mmCIF files: {input_path}",
         )
 
-    file_paths = [
-        entry.path for entry in os.scandir(str(input_path))
-        if entry.is_file() and is_valid_file(entry.path)
-    ]
+    file_paths: list[str] = []
+    with os.scandir(str(input_path)) as entries:
+        for entry in entries:
+            if entry.is_symlink() and is_valid_file(entry.path):
+                raise InputValidationError(
+                    "SYMLINK_INPUT_NOT_ALLOWED",
+                    f"Structure inputs must not be symbolic links: {entry.name}",
+                )
+            if entry.is_file(follow_symlinks=False) and is_valid_file(entry.path):
+                file_paths.append(entry.path)
     if not file_paths:
         raise InputValidationError(
             "NO_VALID_INPUT_FILES",
             f"input_folder_path contains no supported .pdb, .cif, or .mmcif files: {input_path}",
         )
 
-    return file_paths
+    return sorted(file_paths)
 
 
 RESOURCE_LIMIT_KEYS = (
@@ -148,6 +223,8 @@ RESOURCE_LIMIT_KEYS = (
     "max_total_input_bytes",
     "max_single_input_bytes",
     "max_processing_batch_bytes",
+    "max_total_input_expanded_bytes",
+    "max_single_input_expanded_bytes",
 )
 
 
@@ -190,6 +267,115 @@ def _combined_graph_limits() -> Dict[str, Optional[int]]:
         raise InputValidationError("INVALID_COMBINED_GRAPH_LIMIT", str(exc)) from exc
 
 
+def _validate_analysis_config() -> None:
+    """Validate scientific settings before references, parsing, or Cytoscape."""
+    networks = config.get("networks")
+    if not isinstance(networks, Mapping):
+        raise InputValidationError("INVALID_NETWORK_CONFIG", "networks must be a JSON object.")
+    network_fields = (
+        "chain_per_pdb",
+        "protein_per_pdb",
+        "combined_chain_network",
+        "combined_protein_network",
+    )
+    for field in network_fields:
+        if not isinstance(networks.get(field), bool):
+            raise InputValidationError(
+                "INVALID_NETWORK_CONFIG", f"networks.{field} must be true or false."
+            )
+
+    policy = config.get("structure_model_policy", "first")
+    if not isinstance(policy, str) or policy.strip().lower() not in {"first", "all"}:
+        raise InputValidationError(
+            "INVALID_STRUCTURE_MODEL_POLICY",
+            "structure_model_policy must be 'first' or 'all'.",
+        )
+    policy = policy.strip().lower()
+    if policy == "all" and (
+        networks.get("protein_per_pdb") or networks.get("combined_protein_network")
+    ):
+        raise InputValidationError(
+            "PROTEIN_NETWORKS_UNSUPPORTED_FOR_ALL_MODELS",
+            "Protein networks cannot be generated when structure_model_policy='all'; "
+            "select model-separated chain networks or use the first model.",
+        )
+
+    thresholds = config.get("distance_thresholds")
+    if not isinstance(thresholds, Mapping):
+        raise InputValidationError(
+            "INVALID_DISTANCE_THRESHOLDS", "distance_thresholds must be a JSON object."
+        )
+    for field, minimum, maximum in (
+        ("ca_radius", 2.0, 30.0),
+        ("all_atoms_radius", 1.0, 15.0),
+    ):
+        value = thresholds.get(field)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise InputValidationError(
+                "INVALID_DISTANCE_THRESHOLDS",
+                f"distance_thresholds.{field} must be a number from {minimum:g} to {maximum:g}.",
+            )
+        number = float(value)
+        if not math.isfinite(number) or number < minimum or number > maximum:
+            raise InputValidationError(
+                "INVALID_DISTANCE_THRESHOLDS",
+                f"distance_thresholds.{field} must be a number from {minimum:g} to {maximum:g}.",
+            )
+
+    filters = config.get("interaction_filters")
+    if not isinstance(filters, Mapping):
+        raise InputValidationError(
+            "INVALID_INTERACTION_FILTERS", "interaction_filters must be a JSON object."
+        )
+    for field in (
+        "protein_protein_min_ca_neighbors",
+        "protein_protein_min_all_atom_contacts",
+        "protein_nucleic_acid_min_all_atom_contacts",
+        "nucleic_acid_min_all_atom_contacts",
+    ):
+        value = filters.get(field)
+        if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 100_000:
+            raise InputValidationError(
+                "INVALID_INTERACTION_FILTERS",
+                f"interaction_filters.{field} must be an integer from 1 to 100000.",
+            )
+    if not isinstance(config.get("export_detailed_interactions", False), bool):
+        raise InputValidationError(
+            "INVALID_EXPORT_CONFIG", "export_detailed_interactions must be true or false."
+        )
+
+
+def _preflight_structure_identities(
+    file_paths: List[str], inventory: InputInventory
+) -> dict[str, StructureIdentity]:
+    """Resolve unique run identities before expensive parsing and annotation."""
+    signatures = inventory.file_signatures or tuple(input_file_signature(path) for path in file_paths)
+    resolved: dict[str, StructureIdentity] = {}
+    seen: dict[str, str] = {}
+    for file_path, expected_signature in zip(file_paths, signatures):
+        if input_file_signature(file_path) != expected_signature:
+            raise InputValidationError(
+                "INPUT_CHANGED_DURING_PROCESSING",
+                f"Input file changed before identity resolution: {Path(file_path).name}",
+            )
+        identity = get_structure_identity(file_path)
+        if input_file_signature(file_path) != expected_signature:
+            raise InputValidationError(
+                "INPUT_CHANGED_DURING_PROCESSING",
+                f"Input file changed during identity resolution: {Path(file_path).name}",
+            )
+        previous = seen.get(identity.key)
+        if previous is not None:
+            raise InputValidationError(
+                "DUPLICATE_STRUCTURE_IDENTITY",
+                f"Inputs {Path(previous).name} and {Path(file_path).name} resolve to the same "
+                f"structure identity {identity.key!r}.",
+            )
+        seen[identity.key] = file_path
+        resolved[file_path] = identity
+    return resolved
+
+
 def inspect_input_files(file_paths: List[str]) -> InputInventory:
     """Stat inputs and enforce configured count/byte limits before parsing."""
     limits = _resource_limits()
@@ -201,16 +387,17 @@ def inspect_input_files(file_paths: List[str]) -> InputInventory:
         )
 
     file_sizes: List[int] = []
+    expanded_file_sizes: List[int] = []
+    file_signatures: List[FileSignature] = []
     for file_path in file_paths:
         path = Path(file_path)
-        if not path.exists():
-            raise InputValidationError("INPUT_FILE_NOT_FOUND", f"Input file does not exist: {path}")
-        if not path.is_file():
-            raise InputValidationError("INPUT_FILE_NOT_REGULAR", f"Input path is not a regular file: {path}")
         try:
-            size = path.stat().st_size
-        except OSError as exc:
-            raise InputValidationError("INPUT_FILE_STAT_FAILED", f"Cannot read input file size: {path}") from exc
+            signature = input_file_signature(path)
+        except InputValidationError as exc:
+            if exc.code == "INPUT_FILE_STAT_FAILED" and not path.exists():
+                raise InputValidationError("INPUT_FILE_NOT_FOUND", f"Input file does not exist: {path}") from exc
+            raise
+        size = signature[2]
 
         max_single = limits["max_single_input_bytes"]
         if max_single is not None and size > max_single:
@@ -218,21 +405,52 @@ def inspect_input_files(file_paths: List[str]) -> InputInventory:
                 "INPUT_FILE_BYTES_LIMIT_EXCEEDED",
                 f"Input file {path.name} is {size} bytes; configured maximum is {max_single}.",
             )
-        max_batch = limits["max_processing_batch_bytes"]
-        if max_batch is not None and size > max_batch:
-            raise InputValidationError(
-                "INPUT_PROCESSING_BATCH_LIMIT_EXCEEDED",
-                f"Input file {path.name} is {size} bytes and cannot fit within the "
-                f"configured processing batch limit of {max_batch} bytes.",
-            )
         file_sizes.append(size)
 
-    inventory = InputInventory(tuple(file_sizes))
+        _payload, expanded_size = read_validated_structure_bytes(
+            str(path),
+            maximum_expanded_bytes=limits["max_single_input_expanded_bytes"],
+            collect=False,
+        )
+        maximum_expanded = limits["max_single_input_expanded_bytes"]
+        if maximum_expanded is not None and expanded_size > maximum_expanded:
+            raise InputValidationError(
+                "INPUT_FILE_EXPANDED_BYTES_LIMIT_EXCEEDED",
+                f"Expanded input file {path.name} is {expanded_size} bytes; "
+                f"configured maximum is {maximum_expanded}.",
+            )
+        max_batch = limits["max_processing_batch_bytes"]
+        if max_batch is not None and expanded_size > max_batch:
+            raise InputValidationError(
+                "INPUT_PROCESSING_BATCH_LIMIT_EXCEEDED",
+                f"Expanded input file {path.name} is {expanded_size} bytes and cannot fit within the "
+                f"configured processing batch limit of {max_batch} bytes.",
+            )
+        expanded_file_sizes.append(expanded_size)
+        if input_file_signature(path) != signature:
+            raise InputValidationError(
+                "INPUT_CHANGED_DURING_PROCESSING",
+                f"Input file changed while it was being inspected: {path.name}",
+            )
+        file_signatures.append(signature)
+
+    inventory = InputInventory(
+        tuple(file_sizes),
+        tuple(expanded_file_sizes),
+        tuple(file_signatures),
+    )
     max_total = limits["max_total_input_bytes"]
     if max_total is not None and inventory.total_bytes > max_total:
         raise InputValidationError(
             "INPUT_TOTAL_BYTES_LIMIT_EXCEEDED",
             f"Input totals {inventory.total_bytes} bytes; configured maximum is {max_total}.",
+        )
+    max_total_expanded = limits["max_total_input_expanded_bytes"]
+    if max_total_expanded is not None and inventory.total_expanded_bytes > max_total_expanded:
+        raise InputValidationError(
+            "INPUT_TOTAL_EXPANDED_BYTES_LIMIT_EXCEEDED",
+            f"Expanded input totals {inventory.total_expanded_bytes} bytes; "
+            f"configured maximum is {max_total_expanded}.",
         )
     return inventory
 
@@ -241,7 +459,7 @@ def create_processing_batches(
     file_paths: List[str],
     inventory: InputInventory,
 ) -> Iterator[List[str]]:
-    """Yield stable, raw-size-bounded processing batches."""
+    """Yield stable batches bounded by expanded input size."""
     max_batch = _resource_limits()["max_processing_batch_bytes"]
     if max_batch is None:
         if file_paths:
@@ -250,7 +468,7 @@ def create_processing_batches(
 
     current: List[str] = []
     current_bytes = 0
-    for file_path, size in zip(file_paths, inventory.file_sizes):
+    for file_path, size in zip(file_paths, inventory.effective_expanded_file_sizes):
         if current and current_bytes + size > max_batch:
             yield current
             current = []
@@ -342,6 +560,13 @@ def _blast_fallback_needed(combined_data: List[Dict[str, Any]]) -> bool:
             and bool(extract_direct_uniprot_accession(file_path) or extract_direct_uniprot_accession(pdb_id))
         )
         for chain in structure.get("atom_data", []):
+            if (
+                chain.get("embedded_uniprot_status") == "ambiguous_multi_mapping"
+                and chain.get("annotation_source") == "embedded_sifts"
+            ):
+                continue
+            if chain.get("external_sifts_status") == "ambiguous_external_mapping":
+                continue
             if chain.get("uniprot_id") not in (None, "Unknown"):
                 continue
             if has_direct_single_chain_uniprot:
@@ -422,9 +647,14 @@ def _annotation_summary(combined_data: List[Dict[str, Any]]) -> Dict[str, Any]:
     by_confidence: Counter[str] = Counter()
     chains_total = 0
     chains_annotated = 0
+    embedded_counts: Counter[str] = Counter()
+    enriched_structures = 0
+    enriched_chains = 0
 
     for structure in combined_data:
         chains = list(structure.get("atom_data", []))
+        if structure.get("input_kind") == "nextgen_enriched_mmcif":
+            enriched_structures += 1
         direct_accession = None
         if len(chains) == 1:
             direct_accession = (
@@ -434,6 +664,10 @@ def _annotation_summary(combined_data: List[Dict[str, Any]]) -> Dict[str, Any]:
 
         for chain in chains:
             chains_total += 1
+            chain_embedded = embedded_annotation_counts([chain])
+            if sum(chain_embedded.values()):
+                enriched_chains += 1
+                embedded_counts.update(chain_embedded)
             source = str(chain.get("annotation_source") or "").strip()
             database = str(chain.get("matched_database") or "").strip()
             confidence = str(chain.get("annotation_confidence") or "").strip()
@@ -451,6 +685,7 @@ def _annotation_summary(combined_data: List[Dict[str, Any]]) -> Dict[str, Any]:
                 by_database[database or "unspecified"] += 1
                 by_confidence[confidence or "not_reported"] += 1
 
+    annotation_cfg = network_annotation_config()
     return {
         "chains_total": chains_total,
         "chains_annotated": chains_annotated,
@@ -458,7 +693,91 @@ def _annotation_summary(combined_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         "by_source": dict(sorted(by_source.items())),
         "by_database": dict(sorted(by_database.items())),
         "by_confidence": dict(sorted(by_confidence.items())),
+        "embedded_sifts": {
+            "structures": enriched_structures,
+            "chains": enriched_chains,
+            "segments_by_database": {
+                database: embedded_counts.get(database, 0)
+                for database in ("uniprot", "pfam", "cath", "scop2")
+            },
+            "used_for_identity": annotation_cfg["use_embedded_sifts"],
+        },
+        "tooltip_fields": list(annotation_cfg["tooltip_fields"]),
     }
+
+
+def _structure_input_summary(combined_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Return stable per-structure identity and input metadata for contract 1.2."""
+    summaries: List[Dict[str, Any]] = []
+    for structure in combined_data:
+        identity = structure.get("structure_identity", {})
+        summaries.append(
+            {
+                "file": str(structure.get("file_path") or ""),
+                "identity": dict(identity) if isinstance(identity, Mapping) else {},
+                "format": str(structure.get("input_format") or "unknown"),
+                "kind": str(structure.get("input_kind") or "unknown"),
+                "embedded_annotation_counts": dict(
+                    structure.get("embedded_annotation_counts")
+                    if isinstance(structure.get("embedded_annotation_counts"), Mapping)
+                    else embedded_annotation_counts(structure.get("atom_data", []))
+                ),
+            }
+        )
+    return summaries
+
+
+def _identity_summary(combined_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    identities: List[Dict[str, Any]] = []
+    for structure in combined_data:
+        identity = structure.get("structure_identity", {})
+        if not isinstance(identity, Mapping):
+            continue
+        key = str(identity.get("key") or identity.get("canonical_id") or "")
+        if key:
+            identities.append(dict(identity))
+    return identities
+
+
+def _embedded_annotation_warnings(combined_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    cfg = network_annotation_config()
+    maximum = cfg["max_tooltip_segments_per_database"]
+    selected = set(cfg["tooltip_fields"])
+    warnings: List[Dict[str, Any]] = []
+    for structure in combined_data:
+        for warning in structure.get("input_warnings", []):
+            if isinstance(warning, Mapping):
+                warnings.append(dict(warning))
+        for chain in structure.get("atom_data", []):
+            for warning in chain.get("annotation_warnings", []):
+                if isinstance(warning, Mapping):
+                    warnings.append(dict(warning))
+            if chain.get("embedded_uniprot_status") == "ambiguous_multi_mapping" and cfg["use_embedded_sifts"]:
+                warnings.append(
+                    {
+                        "code": "AMBIGUOUS_EMBEDDED_UNIPROT_MAPPING",
+                        "message": (
+                            f"{chain.get('unique_chain_id')} has multiple best embedded UniProt mappings; "
+                            "no protein identity node was assigned."
+                        ),
+                    }
+                )
+            annotations = chain.get("embedded_annotations", {})
+            if not isinstance(annotations, Mapping):
+                continue
+            for database in sorted(selected):
+                segments = annotations.get(database, [])
+                if isinstance(segments, list) and len(segments) > maximum:
+                    warnings.append(
+                        {
+                            "code": "ANNOTATION_TOOLTIP_TRUNCATED",
+                            "message": (
+                                f"{chain.get('unique_chain_id')} has {len(segments)} {database} segments; "
+                                f"the tooltip displays the first {maximum}."
+                            ),
+                        }
+                    )
+    return warnings
 
 
 def _reference_file_metadata(path_value: object) -> Dict[str, Any]:
@@ -537,11 +856,14 @@ def _resource_summary(
             "files": len(inventory.file_sizes),
             "total_bytes": inventory.total_bytes,
             "largest_file_bytes": inventory.largest_file_bytes,
+            "total_expanded_bytes": inventory.total_expanded_bytes,
+            "largest_expanded_file_bytes": inventory.largest_expanded_file_bytes,
         },
         "processing": {
             "batches": processing_batches,
             "parsing_workers": parsing_workers_used,
             "max_batch_bytes": limits["max_processing_batch_bytes"],
+            "batch_size_basis": "expanded_bytes",
         },
         "peak_rss_bytes": {
             "main_process": main_rss,
@@ -557,8 +879,20 @@ def _export_detailed_interaction_tables(
 ) -> None:
     """Write optional atom-level interaction CSVs."""
     for structure_data in combined_data:
-        pdb_id = structure_data["pdb_id"]
-        pdb_interactions = [result for result in results if result["chain_a"].startswith(pdb_id)]
+        structure_key = str(structure_data.get("structure_identity", {}).get("key") or "")
+        chain_ids = {str(chain.get("unique_chain_id")) for chain in structure_data.get("atom_data", [])}
+        pdb_interactions = [
+            result
+            for result in results
+            if (
+                str(result.get("structure_key") or "") == structure_key
+                or (
+                    not result.get("structure_key")
+                    and result.get("chain_a") in chain_ids
+                    and result.get("chain_b") in chain_ids
+                )
+            )
+        ]
         export_detailed_interactions(structure_data, pdb_interactions, distances_dir)
 
 
@@ -568,34 +902,40 @@ def _export_chain_networks(
     chain_dir: str,
 ) -> None:
     """Export chain interaction networks per PDB, including nodes-only cases."""
-    results_by_pdb: Dict[str, List[Dict[str, Any]]] = {}
-    for entry in results:
-        pdb_id = entry["chain_a"].split(":")[0]
-        results_by_pdb.setdefault(pdb_id, []).append(entry)
-
-    for pdb_id, pdb_results in results_by_pdb.items():
-        structure = next((structure for structure in combined_data if structure["pdb_id"] == pdb_id), None)
-        if not structure:
-            continue
-
-        _annotate_chain_parent_metadata(structure)
-        nodes_data = generate_nodes_from_atom_data(structure["atom_data"], pdb_id)
-        network_title = f"Chain_Interaction_Network_{pdb_id}"
-        create_cytoscape_network(
-            pdb_results,
-            network_title,
-            chain_dir,
-            nodes_data=nodes_data,
-        )
-
+    include_models = str(config.get("structure_model_policy", "first")).strip().lower() == "all"
     for structure in combined_data:
         pdb_id = structure["pdb_id"]
-        if pdb_id not in results_by_pdb:
-            _annotate_chain_parent_metadata(structure)
-            nodes_data = generate_nodes_from_atom_data(structure["atom_data"], pdb_id)
+        structure_key = str(structure.get("structure_identity", {}).get("key") or "")
+        _annotate_chain_parent_metadata(structure)
+        model_indices = sorted(
+            {int(chain.get("model_index", 1)) for chain in structure.get("atom_data", [])}
+        )
+        for model_index in model_indices:
+            model_chains = [
+                chain
+                for chain in structure.get("atom_data", [])
+                if int(chain.get("model_index", 1)) == model_index
+            ]
+            chain_ids = {str(chain.get("unique_chain_id")) for chain in model_chains}
+            model_results = [
+                entry
+                for entry in results
+                if int(entry.get("model_index", 1)) == model_index
+                and (
+                    str(entry.get("structure_key") or "") == structure_key
+                    or (
+                        not entry.get("structure_key")
+                        and entry.get("chain_a") in chain_ids
+                        and entry.get("chain_b") in chain_ids
+                    )
+                )
+            ]
+            nodes_data = generate_nodes_from_atom_data(model_chains, pdb_id)
             network_title = f"Chain_Interaction_Network_{pdb_id}"
+            if include_models:
+                network_title += f"_model{model_index}"
             create_cytoscape_network(
-                [],
+                model_results,
                 network_title,
                 chain_dir,
                 nodes_data=nodes_data,
@@ -652,6 +992,7 @@ def _config_snapshot(network_config: Dict[str, Any]) -> Dict[str, Any]:
     """Return the small config subset useful for manifests and webserver jobs."""
     return {
         "networks": network_config,
+        "network_annotations": network_annotation_config(),
         "distance_thresholds": config.get("distance_thresholds", {}),
         "interaction_filters": config.get("interaction_filters", {}),
         "structure_model_policy": config.get("structure_model_policy", "first"),
@@ -681,9 +1022,11 @@ def _annotate_chain_parent_metadata(structure: Dict[str, Any]) -> None:
     pdb_id = structure["pdb_id"]
     file_path = structure.get("file_path", "")
     file_label = os.path.basename(file_path) if file_path else pdb_id
+    structure_key = str(structure.get("structure_identity", {}).get("key") or "")
 
     for chain in structure["atom_data"]:
         chain["_parent_pdb_id"] = pdb_id
+        chain["_parent_structure_key"] = structure_key
         chain["_parent_file_path"] = file_path
         chain["_parent_file_label"] = file_label
 
@@ -812,9 +1155,12 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
 
     try:
         _validate_output_root()
+        _validate_analysis_config()
+        network_annotation_config()
         file_paths = discover_input_files(input_path_or_filelist)
         inventory = inspect_input_files(file_paths)
         _combined_graph_limits()
+        preflight_identities = _preflight_structure_identities(file_paths, inventory)
         _validate_required_reference_files()
         output_paths = create_run_output_paths(config["output_path"])
 
@@ -855,6 +1201,32 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
             timings.parsing += time.time() - start_time
             if not batch_data:
                 continue
+            if len(batch_data) != len(batch_paths):
+                raise InputValidationError(
+                    "NO_PARSEABLE_STRUCTURES",
+                    "One or more structure inputs did not produce a parsed structure.",
+                )
+            signatures_by_path = {
+                path: signature
+                for path, signature in zip(file_paths, inventory.file_signatures or ())
+            }
+            for source_path, parsed_structure in zip(batch_paths, batch_data):
+                expected_identity = preflight_identities[source_path]
+                if isinstance(parsed_structure.get("structure_identity"), Mapping):
+                    current_identity = StructureIdentity.from_mapping(
+                        parsed_structure["structure_identity"]
+                    )
+                    if current_identity.key != expected_identity.key:
+                        raise InputValidationError(
+                            "INPUT_CHANGED_DURING_PROCESSING",
+                            f"Input identity changed while parsing {Path(source_path).name}.",
+                        )
+                expected_signature = signatures_by_path.get(source_path)
+                if expected_signature is not None and input_file_signature(source_path) != expected_signature:
+                    raise InputValidationError(
+                        "INPUT_CHANGED_DURING_PROCESSING",
+                        f"Input file changed while parsing {Path(source_path).name}.",
+                    )
 
             start_time = time.time()
             process_molecule_info(batch_data)
@@ -908,7 +1280,7 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
                 "output": entry["name"],
             }
             for entry in skipped_outputs
-        ]
+        ] + _embedded_annotation_warnings(combined_data)
 
         total_time = time.time() - start_time_total
         write_runtime_analysis(output_paths.log_file, timings.as_dict(), total_time)
@@ -941,6 +1313,8 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
             ),
             skipped_outputs=skipped_outputs,
             warnings=warnings,
+            identities=_identity_summary(combined_data),
+            structure_inputs=_structure_input_summary(combined_data),
         )
         write_run_summary(output_paths)
         if web_output_dir:

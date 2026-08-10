@@ -1,4 +1,5 @@
 import json
+import hashlib
 from pathlib import Path
 
 from pdb2net import __version__
@@ -11,6 +12,43 @@ from pdb2net.outputs import (
     write_run_manifest,
     write_run_summary,
 )
+from pdb2net.structure_identity import identity_from_official_id
+
+
+def _literal_cx2() -> str:
+    return json.dumps(
+        [
+            {"CXVersion": "2.0", "hasFragments": False},
+            {
+                "metaData": [
+                    {"name": "attributeDeclarations", "elementCount": 1},
+                    {"name": "networkAttributes", "elementCount": 1},
+                    {"name": "nodes", "elementCount": 2},
+                    {"name": "edges", "elementCount": 1},
+                    {"name": "visualProperties", "elementCount": 1},
+                ]
+            },
+            {
+                "attributeDeclarations": [
+                    {
+                        "networkAttributes": {"name": {"d": "string"}},
+                        "nodes": {"name": {"d": "string"}},
+                        "edges": {"interaction": {"d": "string"}},
+                    }
+                ]
+            },
+            {"networkAttributes": [{"name": "fixture"}]},
+            {
+                "nodes": [
+                    {"id": 0, "x": 0.0, "y": 0.0, "v": {"name": "A"}},
+                    {"id": 1, "x": 1.0, "y": 1.0, "v": {"name": "B"}},
+                ]
+            },
+            {"edges": [{"id": 0, "s": 0, "t": 1, "v": {"interaction": "x"}}]},
+            {"visualProperties": [{}]},
+            {"status": [{"error": "", "success": True}]},
+        ]
+    )
 
 
 def test_write_run_manifest_is_additive_and_machine_readable(tmp_path: Path) -> None:
@@ -73,17 +111,22 @@ def test_write_failed_run_manifest_records_error_code(tmp_path: Path) -> None:
 
 def test_collect_web_outputs_creates_stable_summary_networks_and_interactions(tmp_path: Path) -> None:
     paths = create_run_output_paths(str(tmp_path / "internal"), timestamp="2026-01-02_03-04-05")
-    Path(paths.combined_dir, "A.cx2").write_text("combined", encoding="utf-8")
-    Path(paths.protein_dir, "B.cx2").write_text("protein", encoding="utf-8")
-    Path(paths.chain_dir, "C.cx2").write_text("chain", encoding="utf-8")
-    Path(paths.distances_dir, "D.csv").write_text("interactions", encoding="utf-8")
+    Path(paths.combined_dir, "A.cx2").write_text(_literal_cx2(), encoding="utf-8")
+    Path(paths.protein_dir, "B.cx2").write_text(_literal_cx2(), encoding="utf-8")
+    Path(paths.chain_dir, "C.cx2").write_text(_literal_cx2(), encoding="utf-8")
+    Path(paths.distances_dir, "D.csv").write_text("source,target\nA,B\n", encoding="utf-8")
     Path(paths.log_file).write_text("runtime", encoding="utf-8")
+    identity = identity_from_official_id("1abc").as_dict()
 
     write_run_manifest(
         paths.manifest_file,
         input_files=["/inputs/a.pdb"],
         output_paths=paths,
-        config_snapshot={"open_in_cytoscape": False},
+        config_snapshot={
+            "networks": {"chain_per_pdb": True},
+            "structure_model_policy": "first",
+            "export_detailed_interactions": True,
+        },
         status="success",
         started_at="2026-01-02T03:04:05",
         finished_at="2026-01-02T03:04:06",
@@ -92,6 +135,22 @@ def test_collect_web_outputs_creates_stable_summary_networks_and_interactions(tm
         references={"manifest_id": "mini-ref-v1"},
         resources={"input": {"total_bytes": 123}},
         skipped_outputs=[{"name": "Combined_Network_X", "reason": "combined_graph_limit_exceeded"}],
+        extra_counts={"structures": 1, "chains": 2},
+        identities=[identity],
+        structure_inputs=[
+            {
+                "file": "/inputs/a.pdb",
+                    "identity": identity,
+                    "format": "pdb",
+                    "kind": "pdb",
+                    "embedded_annotation_counts": {
+                        "uniprot": 0,
+                        "pfam": 0,
+                        "cath": 0,
+                        "scop2": 0,
+                    },
+            }
+        ],
     )
     write_run_summary(paths)
 
@@ -99,10 +158,10 @@ def test_collect_web_outputs_creates_stable_summary_networks_and_interactions(tm
 
     web_root = tmp_path / "outputs"
     assert (web_root / "summary.json").exists()
-    assert (web_root / "networks" / "A.cx2").read_text(encoding="utf-8") == "combined"
-    assert (web_root / "networks" / "B.cx2").read_text(encoding="utf-8") == "protein"
-    assert (web_root / "networks" / "C.cx2").read_text(encoding="utf-8") == "chain"
-    assert (web_root / "interactions" / "D.csv").read_text(encoding="utf-8") == "interactions"
+    assert (web_root / "networks" / "A.cx2").read_text(encoding="utf-8") == _literal_cx2()
+    assert (web_root / "networks" / "B.cx2").read_text(encoding="utf-8") == _literal_cx2()
+    assert (web_root / "networks" / "C.cx2").read_text(encoding="utf-8") == _literal_cx2()
+    assert (web_root / "interactions" / "D.csv").read_text(encoding="utf-8") == "source,target\nA,B\n"
 
     summary = json.loads((web_root / "summary.json").read_text(encoding="utf-8"))
     assert summary["output_contract_version"] == OUTPUT_CONTRACT_VERSION
@@ -110,13 +169,58 @@ def test_collect_web_outputs_creates_stable_summary_networks_and_interactions(tm
     assert summary["status"] == "success"
     assert summary["started_at"] == "2026-01-02T03:04:05"
     assert summary["finished_at"] == "2026-01-02T03:04:06"
-    assert summary["input_files"] == ["/inputs/a.pdb"]
-    assert summary["input_path"] is None
-    assert summary["networks"]
-    assert summary["interactions"]
-    assert summary["counts"] == {"networks": 3, "interactions": 1, "skipped_outputs": 1}
-    assert summary["config"]["open_in_cytoscape"] is False
+    assert summary["input_files"] == ["a.pdb"]
+    assert summary["identities"] == [identity]
+    assert summary["structure_inputs"][0]["file"] == "a.pdb"
+    assert summary["networks"] == ["networks/A.cx2", "networks/B.cx2", "networks/C.cx2"]
+    assert summary["interactions"] == ["interactions/D.csv"]
+    assert summary["counts"] == {
+        "networks": 3,
+        "interactions": 1,
+        "structures": 1,
+        "chains": 2,
+        "skipped_outputs": 1,
+    }
+    assert summary["config"]["structure_model_policy"] == "first"
+    assert "open_in_cytoscape" not in summary["config"]
     assert summary["annotations"] == {"chains_total": 1}
     assert summary["references"]["manifest_id"] == "mini-ref-v1"
     assert summary["resources"]["input"]["total_bytes"] == 123
     assert summary["skipped_outputs"][0]["name"] == "Combined_Network_X"
+    assert "run_summary" not in summary
+    assert "internal_run_output_path" not in summary
+    network_record = summary["artifacts"]["networks"][0]
+    assert network_record["nodes"] == 2
+    assert network_record["edges"] == 1
+    assert network_record["sha256"] == hashlib.sha256(_literal_cx2().encode()).hexdigest()
+    csv_record = summary["artifacts"]["interactions"][0]
+    assert csv_record["rows"] == 1
+    assert csv_record["columns"] == ["source", "target"]
+
+
+def test_failed_web_summary_is_diagnostic_only_and_never_copies_partial_artifacts(
+    tmp_path: Path,
+) -> None:
+    paths = create_run_output_paths(str(tmp_path / "internal"), timestamp="2026-01-02_03-04-05")
+    Path(paths.chain_dir, "partial.cx2").write_text(_literal_cx2(), encoding="utf-8")
+    write_run_manifest(
+        paths.manifest_file,
+        input_files=["/private/input.cif"],
+        output_paths=paths,
+        config_snapshot={},
+        status="failed",
+        started_at="2026-01-02T03:04:05",
+        finished_at="2026-01-02T03:04:06",
+        total_time=1.0,
+        errors=[{"code": "CORE_FAILED", "message": "failed at /private/reference/db"}],
+    )
+    write_run_summary(paths)
+
+    summary = collect_web_outputs(paths, str(tmp_path / "outputs"))
+
+    assert summary["status"] == "failed"
+    assert summary["networks"] == []
+    assert summary["interactions"] == []
+    assert summary["artifacts"] == {"networks": [], "interactions": []}
+    assert list((tmp_path / "outputs" / "networks").iterdir()) == []
+    assert "/private" not in json.dumps(summary)

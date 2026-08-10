@@ -4,10 +4,13 @@ PDB2Net is a batch pipeline for turning PDB/mmCIF structure files into protein a
 
 ## Pipeline
 
-1. Discover valid `.pdb`, `.cif`, and `.mmcif` files and validate configured input limits.
-2. Group files into optional raw-size-bounded processing batches.
-3. Parse each batch with Gemmi and extract chain, residue, and atom data.
-4. Annotate chains using SIFTS and PDB/UniProt FASTA reference files.
+1. Discover valid `.pdb`, `.cif`, and `.mmcif` files, including one gzip layer,
+   and validate compressed and expanded input limits.
+2. Group files into optional expanded-size-bounded processing batches.
+3. Parse each batch once with Gemmi, derive a content-first structure identity,
+   and extract chain, residue, atom, and embedded SIFTS data.
+4. Annotate chains using embedded SIFTS, external SIFTS, and PDB/UniProt FASTA
+   reference files in that precedence order.
 5. Run BLAST/DIAMOND fallback for unresolved protein chains.
 6. Detect interactions with SciPy `cKDTree` distance searches and optionally write detailed tables.
 7. Compact completed structures to chain metadata and polymer lengths, releasing atom coordinates.
@@ -17,7 +20,12 @@ PDB2Net is a batch pipeline for turning PDB/mmCIF structure files into protein a
 ## Main Modules
 
 - `pdb2net/config_loader.py`: layered configuration, path expansion, environment overrides, and headless defaults.
-- `pdb2net/file_parser.py`: valid input detection, PDB ID extraction, and Gemmi structure parsing.
+- `pdb2net/structure_identity.py`: canonical Extended PDB IDs, classic aliases,
+  archive sharding, and stable identities for non-PDB uploads.
+- `pdb2net/file_parser.py`: compressed input detection, content-first identity,
+  embedded annotation extraction, and single-pass Gemmi structure parsing.
+- `pdb2net/network_annotations.py`: validated embedded SIFTS segment extraction
+  and compact UniProt/Pfam/CATH/SCOP2 tooltip attributes.
 - `pdb2net/reference_data.py`: cached loaders for PDB FASTA, SIFTS, and UniProt reference files.
 - `pdb2net/data_processor.py`: conversion from parsed structures to chain and atom dictionaries used by later stages.
 - `pdb2net/unknown_molecule_uniprot.py`: SIFTS, PDB FASTA, and UniProt FASTA annotation logic for known and unknown molecules.
@@ -50,12 +58,15 @@ In headless mode, PDB2Net writes CX2 files directly and does not require Cytosca
 
 In desktop mode, PDB2Net connects to Cytoscape through py4cytoscape, creates networks in the UI, applies styles, and also exports CX2.
 
-The optional precomputed mode changes only the input adapter: `precompute`
-persists compact annotated chains and standard-profile edges, and `assemble`
-feeds validated entries into the same network exporters. It does not persist
-raw coordinates or detailed atom-pair CSVs. Profile namespaces prevent silent
-mixing across scientific/reference policies, while store ownership, daily mirror
-promotion, obsolete-ID retention, and rollback remain deployment concerns.
+The optional precomputed mode changes only the input adapter. Schema 2 stores
+compact reference-independent geometry/interactions separately from refreshable
+chain annotations and retained embedded SIFTS segments; `assemble` merges the
+validated sections and feeds them into the same network exporters. It does not
+persist raw coordinates or detailed atom-pair CSVs. Geometry profile namespaces
+prevent silent mixing across parser/scientific policies, while annotation
+profile IDs invalidate changing reference/search policy without automatically
+discarding unchanged geometry. Store ownership, mirror promotion, obsolete-ID
+retention, and rollback remain deployment concerns.
 The ordinary local `run --input-dir` path does not require this store.
 
 ## Configuration

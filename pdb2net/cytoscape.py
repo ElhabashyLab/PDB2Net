@@ -13,6 +13,7 @@ UPDATES:
 """
 
 import os
+import json
 import time
 import subprocess
 import zlib
@@ -26,6 +27,7 @@ import pandas as pd
 from .config_loader import config
 from .cx2_export import export_cx2_headless
 from .layout_engine import calculate_positions
+from .network_annotations import annotation_node_metadata
 from .residue_types import count_polymer_lengths
 from .visual_style import (
     LINKED_IDENTITY_EDGE_STYLE,
@@ -225,7 +227,17 @@ def create_cytoscape_network(
             )
 
     if nodes_data:
-        nodes_df = pd.DataFrame(nodes_data).copy()
+        # Preserve the distinction between an absent optional field and an
+        # explicitly supplied non-finite number.  Pandas otherwise turns both
+        # into NaN before the CX2 serializer can enforce finite numerics.
+        node_fields = sorted(
+            {str(field) for node in nodes_data for field in node}
+        )
+        normalized_nodes = [
+            {field: node[field] if field in node else "" for field in node_fields}
+            for node in nodes_data
+        ]
+        nodes_df = pd.DataFrame(normalized_nodes).copy()
         if "name" not in nodes_df.columns:
             nodes_df["name"] = nodes_df["id"]
         else:
@@ -426,9 +438,6 @@ def generate_nodes_from_atom_data(atom_data, pdb_id=None):
     nodes = []
     for chain in atom_data:
         uid = chain.get("unique_chain_id") or chain.get("id")
-        uid_pdb_id, uid_chain_id = ("", "")
-        if uid and ":" in str(uid):
-            uid_pdb_id, uid_chain_id = str(uid).split(":", 1)
         mol_type = (chain.get("molecule_type") or "Unknown").strip()
         mol_name_full = chain.get("molecule_name") or "Unknown"
         up_id = chain.get("uniprot_id")
@@ -438,8 +447,14 @@ def generate_nodes_from_atom_data(atom_data, pdb_id=None):
         representative_accession = str(chain.get("representative_accession") or "")
         annotation_confidence = str(chain.get("annotation_confidence") or "")
         aa_len, nt_len = count_lengths(chain)
-        node_pdb_id = str(pdb_id or chain.get("_parent_pdb_id") or uid_pdb_id or "")
-        node_chain_id = str(chain.get("chain_id") or uid_chain_id or "")
+        chain_identity = chain.get("chain_identity", {})
+        identity_display = (
+            str(chain_identity.get("structure_display_id") or "")
+            if isinstance(chain_identity, dict)
+            else ""
+        )
+        node_pdb_id = str(pdb_id or chain.get("_parent_pdb_id") or identity_display or "")
+        node_chain_id = str(chain.get("chain_id") or "")
         source_file = str(
             chain.get("_parent_file_label")
             or Path(str(chain.get("_parent_file_path") or "")).name
@@ -467,10 +482,11 @@ def generate_nodes_from_atom_data(atom_data, pdb_id=None):
             details.append(f"Matched ID: {matched_id}")
         if representative_accession and representative_accession != up_id:
             details.append(f"Representative accession: {representative_accession}")
+        embedded_metadata = annotation_node_metadata([chain])
+        details.extend(embedded_metadata.pop("tooltip_lines", []))
         tooltip = "\n".join(details)
 
-        nodes.append(
-            {
+        node = {
                 "id": uid,
                 "name": uid,
                 "tooltip": tooltip,
@@ -490,6 +506,18 @@ def generate_nodes_from_atom_data(atom_data, pdb_id=None):
                 "nt_len": nt_len,
                 "node_kind": "chain",
             }
-        )
+        if chain.get("embedded_annotation_source"):
+            node["embedded_annotation_source"] = str(chain["embedded_annotation_source"])
+        if chain.get("embedded_uniprot_status"):
+            node["embedded_uniprot_status"] = str(chain["embedded_uniprot_status"])
+        if chain.get("embedded_uniprot_accessions"):
+            node["embedded_uniprot_accessions"] = json.dumps(
+                sorted(str(value) for value in chain["embedded_uniprot_accessions"]),
+                separators=(",", ":"),
+            )
+        for key, value in embedded_metadata.items():
+            if key.startswith("annotation_"):
+                node[key] = value
+        nodes.append(node)
 
     return nodes

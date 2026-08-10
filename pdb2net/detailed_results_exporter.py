@@ -52,8 +52,10 @@ def export_detailed_interactions(
     radius = float(config["distance_thresholds"]["all_atoms_radius"])
 
     residues_atoms_lookup: Dict[str, Dict[str, Any]] = {}
+    chains_by_unique_id: Dict[str, Dict[str, Any]] = {}
     for chain in atom_data:
-        chain_id = chain["chain_id"]
+        unique_id = str(chain.get("unique_chain_id") or chain["chain_id"])
+        chains_by_unique_id[unique_id] = chain
         atoms: List[Dict[str, str]] = []
         atom_coords: List[List[float]] = []
 
@@ -67,25 +69,24 @@ def export_detailed_interactions(
                 atom_coords.append(atom.get("coordinates"))
 
         coords_arr = np.array(atom_coords, dtype=float) if atom_coords else np.empty((0, 3), dtype=float)
-        residues_atoms_lookup[chain_id] = {"atoms": atoms, "coords": coords_arr}
+        residues_atoms_lookup[unique_id] = {"atoms": atoms, "coords": coords_arr}
 
     detailed_interactions: List[Dict[str, Any]] = []
 
     for interaction in interactions:
-        chain_a_raw = interaction.get("chain_a", "")
-        chain_b_raw = interaction.get("chain_b", "")
-        chain_a_id = chain_a_raw.split(":")[1] if ":" in chain_a_raw else chain_a_raw
-        chain_b_id = chain_b_raw.split(":")[1] if ":" in chain_b_raw else chain_b_raw
+        chain_a_raw = str(interaction.get("chain_a", ""))
+        chain_b_raw = str(interaction.get("chain_b", ""))
+        chain_a_data = chains_by_unique_id.get(chain_a_raw)
+        chain_b_data = chains_by_unique_id.get(chain_b_raw)
+        if not chain_a_data or not chain_b_data:
+            continue
+        chain_a_id = str(chain_a_data.get("chain_id") or "")
+        chain_b_id = str(chain_b_data.get("chain_id") or "")
 
-        data_a = residues_atoms_lookup.get(chain_a_id, {"atoms": [], "coords": np.empty((0, 3))})
-        data_b = residues_atoms_lookup.get(chain_b_id, {"atoms": [], "coords": np.empty((0, 3))})
+        data_a = residues_atoms_lookup.get(chain_a_raw, {"atoms": [], "coords": np.empty((0, 3))})
+        data_b = residues_atoms_lookup.get(chain_b_raw, {"atoms": [], "coords": np.empty((0, 3))})
 
         if data_a["coords"].size == 0 or data_b["coords"].size == 0:
-            continue
-
-        chain_a_data = next((ch for ch in atom_data if ch.get("chain_id") == chain_a_id), None)
-        chain_b_data = next((ch for ch in atom_data if ch.get("chain_id") == chain_b_id), None)
-        if not chain_a_data or not chain_b_data:
             continue
 
         uniprot_a = chain_a_data.get("uniprot_id", "UNKNOWN")

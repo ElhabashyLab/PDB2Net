@@ -29,6 +29,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple
 from .components import build_identity_edges, find_linked_components, make_component_title
 from .cytoscape import create_cytoscape_network
 from .graph_limits import combined_graph_skip, normalize_combined_graph_limits
+from .network_annotations import annotation_node_metadata
 from .residue_types import count_polymer_lengths
 
 
@@ -76,6 +77,8 @@ def create_protein_network(
     pdb_to_uniprots: Dict[str, Set[str]] = {}
     chain_info: Dict[str, Dict[str, Any]] = {}
     uniprot_pdb_to_chains: Dict[Tuple[str, str], Set[str]] = {}
+    uniprot_pdb_to_uids: Dict[Tuple[str, str], Set[str]] = {}
+    chain_to_pdb_id: Dict[str, str] = {}
 
     for structure in combined_data:
         pdb_id = structure["pdb_id"]
@@ -83,7 +86,8 @@ def create_protein_network(
         file_label = file_path.rsplit("/", 1)[-1] if file_path else pdb_id
         for chain in structure["atom_data"]:
             chain_id = chain["chain_id"]
-            uid = f"{pdb_id}:{chain_id}"
+            uid = str(chain.get("unique_chain_id") or f"{pdb_id}:{chain_id}")
+            chain_to_pdb_id[uid] = pdb_id
             aa_len, nt_len = count_lengths(chain)
             chain_info[uid] = {
                 "molecule_type": (chain.get("molecule_type") or "Unknown").strip(),
@@ -93,6 +97,8 @@ def create_protein_network(
                 "pdb_id": pdb_id,
                 "chain_id": chain_id,
                 "file_label": file_label,
+                "embedded_annotations": chain.get("embedded_annotations", {}),
+                "embedded_annotation_source": chain.get("embedded_annotation_source"),
             }
             up = chain.get("uniprot_id")
             if up:
@@ -102,10 +108,30 @@ def create_protein_network(
                 uniprot_to_file_labels.setdefault(up, set()).add(file_label)
                 pdb_to_uniprots.setdefault(pdb_id, set()).add(up)
                 uniprot_pdb_to_chains.setdefault((up, pdb_id), set()).add(chain_id)
+                uniprot_pdb_to_uids.setdefault((up, pdb_id), set()).add(uid)
 
     def get_color_group_for_combined(up_id: str) -> str:
         pdbs = uniprot_to_pdb_ids.get(up_id, set())
         return "Multi" if len(pdbs) != 1 else next(iter(pdbs))
+
+    def source_chain_uids_for_uniprot(up_id: str, pdb_scope: Optional[str]) -> List[str]:
+        """Return internal chain keys without reconstructing them from labels."""
+        pdbs = [pdb_scope] if pdb_scope else sorted(uniprot_to_pdb_ids.get(up_id, []))
+        return sorted(
+            {
+                uid
+                for pdb_id in pdbs
+                for uid in uniprot_pdb_to_uids.get((up_id, pdb_id), set())
+            }
+        )
+
+    def source_chains_for_uniprot(up_id: str, pdb_scope: Optional[str]) -> List[str]:
+        labels = {
+            f"{chain_info[uid]['pdb_id']}:{chain_info[uid]['chain_id']}"
+            for uid in source_chain_uids_for_uniprot(up_id, pdb_scope)
+            if uid in chain_info
+        }
+        return sorted(labels)
 
     def protein_tooltip(up_id: str, pdb_scope: Optional[str]) -> str:
         lines = [str(uniprot_to_name.get(up_id, up_id))]
@@ -115,10 +141,10 @@ def create_protein_network(
         pdbs = sorted(uniprot_to_pdb_ids.get(up_id, []))
         if pdb_scope:
             chains = sorted(uniprot_pdb_to_chains.get((up_id, pdb_scope), []))
-            aa_total = 0
-            for ch in chains:
-                info = chain_info.get(f"{pdb_scope}:{ch}", {})
-                aa_total += int(info.get("aa_len", 0))
+            aa_total = sum(
+                int(chain_info.get(uid, {}).get("aa_len", 0))
+                for uid in source_chain_uids_for_uniprot(up_id, pdb_scope)
+            )
             lines.append(f"PDB: {pdb_scope}")
             if chains:
                 lines.append(f"Chains: {', '.join(chains)}")
@@ -135,7 +161,18 @@ def create_protein_network(
             if source_files:
                 lines.append(f"Source files: {', '.join(source_files)}")
 
+        annotation_metadata = protein_annotation_metadata(up_id, pdb_scope)
+        lines.extend(annotation_metadata.get("tooltip_lines", []))
+
         return "\n".join(lines)
+
+    def protein_annotation_metadata(up_id: str, pdb_scope: Optional[str]) -> Dict[str, Any]:
+        records = [
+            chain_info[chain_uid]
+            for chain_uid in source_chain_uids_for_uniprot(up_id, pdb_scope=pdb_scope)
+            if chain_uid in chain_info
+        ]
+        return annotation_node_metadata(records, uniprot_accession=up_id)
 
     def na_tooltip(na_uid: str) -> str:
         info = chain_info.get(na_uid, {})
@@ -153,6 +190,7 @@ def create_protein_network(
             lines.append(f"Length: {nt_len} nt")
         if pdb_id:
             lines.append(f"PDB: {pdb_id}:{chain_id}")
+        lines.extend(annotation_node_metadata([info]).get("tooltip_lines", []))
         return "\n".join(lines)
 
     # --- Aggregate edges ---
@@ -168,7 +206,7 @@ def create_protein_network(
             continue
 
         a, b = entry["chain_a"], entry["chain_b"]
-        pdb_id = a.split(":")[0] if ":" in a else b.split(":")[0]
+        pdb_id = chain_to_pdb_id.get(a) or chain_to_pdb_id.get(b) or str(entry.get("pdb_id") or "")
 
         ia = chain_info.get(a, {})
         ib = chain_info.get(b, {})
@@ -209,6 +247,11 @@ def create_protein_network(
                     "node_kind": "nucleic_acid",
                     "tooltip": na_tooltip(na_uid),
                 }
+                annotation_metadata = annotation_node_metadata([chain_info.get(na_uid, {})])
+                annotation_metadata.pop("tooltip_lines", None)
+                for key, value in annotation_metadata.items():
+                    if key.startswith("annotation_"):
+                        na_nodes_by_pdb[pdb_id][na_uid][key] = value
             na_edges_by_pdb.setdefault(pdb_id, {})
             k = (up, na_uid)
             na_edges_by_pdb[pdb_id][k] = na_edges_by_pdb[pdb_id].get(k, 0) + cnt
@@ -240,19 +283,12 @@ def create_protein_network(
                 "molecule_name": uniprot_to_name.get(up, up),
                 "tooltip": protein_tooltip(up, pdb_scope=pdb_scope),
             })
+            annotation_metadata = protein_annotation_metadata(up, pdb_scope)
+            annotation_metadata.pop("tooltip_lines", None)
+            for key, value in annotation_metadata.items():
+                if key.startswith("annotation_"):
+                    nodes[-1][key] = value
         return nodes
-
-    def source_chains_for_uniprot(up_id: str, pdb_scope: Optional[str]) -> List[str]:
-        if pdb_scope:
-            pdbs = [pdb_scope]
-        else:
-            pdbs = sorted(uniprot_to_pdb_ids.get(up_id, []))
-
-        source_chains = []
-        for pdb_id in pdbs:
-            for chain_id in sorted(uniprot_pdb_to_chains.get((up_id, pdb_id), [])):
-                source_chains.append(f"{pdb_id}:{chain_id}")
-        return source_chains
 
     # --- Per-PDB networks: proteins in blue + NA neighbors ---
     if make_per_pdb:
@@ -295,8 +331,7 @@ def create_protein_network(
 
         for up_id, pdb_ids in uniprot_to_pdb_ids.items():
             for pdb_id in pdb_ids:
-                for chain_id in uniprot_pdb_to_chains.get((up_id, pdb_id), set()):
-                    uid = f"{pdb_id}:{chain_id}"
+                for uid in uniprot_pdb_to_uids.get((up_id, pdb_id), set()):
                     if uid in chain_info:
                         uniprot_to_chain_ids.setdefault(up_id, set()).add(uid)
                         chain_to_pdb[uid] = pdb_id

@@ -99,7 +99,14 @@ The package defaults are `null` (unlimited) for backward compatibility:
     "max_input_files": 50,
     "max_total_input_bytes": 2500000000,
     "max_single_input_bytes": 600000000,
-    "max_processing_batch_bytes": 600000000
+    "max_processing_batch_bytes": 600000000,
+    "max_total_input_expanded_bytes": 2500000000,
+    "max_single_input_expanded_bytes": 600000000
+  },
+  "network_annotations": {
+    "use_embedded_sifts": true,
+    "tooltip_fields": ["uniprot"],
+    "max_tooltip_segments_per_database": 20
   },
   "combined_graph_limits": {
     "max_nodes": 50000,
@@ -108,7 +115,10 @@ The package defaults are `null` (unlimited) for backward compatibility:
 }
 ```
 
-The processing-batch limit bounds the sum of raw file sizes parsed, annotated,
+Compressed upload limits and expanded limits are independent. Gzip input is
+streamed to validate decompression, CRC, nested-gzip rejection, and expansion
+limits before scientific processing. The processing-batch limit bounds the sum
+of expanded file sizes parsed, annotated,
 and distance-checked at once. After each batch, atom coordinates are discarded;
 only compact chain metadata and interaction summaries remain for final network
 exports. It is a scheduling bound, not a guaranteed process-RSS ceiling, because
@@ -123,10 +133,11 @@ RSS/load test is therefore a deployment gate for the 2.5-GB public profile.
 ## Optional PDB-ID Store Mode
 
 The optional `precompute`/`assemble` path is documented in
-[`precomputed_store.md`](precomputed_store.md). It caches compact standard-profile
-chain metadata and edges, not coordinates or detailed atom-pair CSVs. Schema 1
-therefore rejects detailed interaction export and enforces fixed per-entry and
-per-request artifact ceilings.
+[`precomputed_store.md`](precomputed_store.md). Schema 2 caches compact geometry
+and standard-profile edges separately from refreshable chain annotations, not
+coordinates or detailed atom-pair CSVs. It therefore rejects detailed
+interaction export and enforces fixed per-entry and per-request artifact
+ceilings.
 
 For a shared deployment, run offline precompute and the worker under the same
 UID/GID or a common store-owning group. Use setgid directories (normally mode
@@ -143,11 +154,14 @@ rollback. Core never automatically removes cached IDs that disappear from a
 new mirror; obsolete-ID policy belongs to the operator's staging catalog and
 retention workflow.
 
-The targeted miss resolver accepts flat/middle-shard sources and the supported
-wwPDB `divided/{mmCIF,pdb}/<shard>` variants listed in the store document. It
+For a managed server mirror, keep exactly one current Core mmCIF gzip per entry
+at `entries/<shard>/<extended-id>/structures/<extended-id>.cif.gz`; for example
+`entries/ab/pdb_00001abc/structures/pdb_00001abc.cif.gz`. The targeted resolver
+also accepts documented legacy layouts for local/backward compatibility and
 fails closed when more than one candidate matches. This server fast path is
-additive: ordinary local `pdb2net run --input-dir ...` remains independent of a
-precomputed store and of all web infrastructure.
+additive: ordinary local `pdb2net run --input-dir ...`, including enriched
+NextGen uploads, remains independent of a precomputed store and all web
+infrastructure.
 
 ## Output Contract
 
@@ -174,8 +188,9 @@ outputs/
     └── *.csv
 ```
 
-Contract `1.1` keeps the existing fields and adds annotation counts, reference
-identity/metadata, resource observations, and `skipped_outputs`. Combined graphs
+Contract `1.2` keeps the existing fields and adds `identities` and
+`structure_inputs` alongside annotation counts, reference identity/metadata,
+resource observations, and `skipped_outputs`. Combined graphs
 over the configured node or edge cap are listed in `skipped_outputs` and
 `warnings`; the job still succeeds and retains its other outputs. `summary.json`
 also includes `output_contract_version` and `pdb2net_version` so workers can
@@ -193,8 +208,12 @@ The recommended webserver model is:
 - write validated values into a per-job JSON config
 - pass that config with `--config <job>/pdb2net_config.json`
 
-Good first advanced settings are distance/contact thresholds, selected network
-types, detailed interaction export, and the optional DIAMOND/UniRef90 fallback.
+For upload jobs, expose the embedded NextGen tooltip fields as a validated
+allowlist: UniProt on by default, with Pfam, CATH, and SCOP2 opt-in. Hide that
+selector for server PDB-ID jobs because the Core-only archive is intentionally
+not an enriched NextGen mirror. Other useful advanced settings are
+distance/contact thresholds, selected network types, detailed interaction
+export, and the optional DIAMOND/UniRef90 fallback.
 Do not pass arbitrary user-provided shell strings to PDB2Net. Keep reference
 data paths, DIAMOND database paths, and executable paths server-controlled.
 

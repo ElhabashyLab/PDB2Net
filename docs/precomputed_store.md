@@ -6,21 +6,25 @@ PHP, Apache, MariaDB, Docker, or a particular webserver.
 
 ## Stored scientific data
 
-For each PDB entry, schema 1 stores:
+For each PDB entry, schema 2 stores two explicit sections:
 
-- portable annotated chain metadata, including exact chain IDs and sequence
-  lengths;
-- compact filtered chain-pair interaction edges for one scientific profile;
+- reference-independent compact chain geometry metadata and filtered chain-pair
+  interaction edges for one geometry profile;
+- refreshable chain annotations plus compact embedded UniProt, Pfam, CATH, and
+  SCOP2 residue segments from enriched mmCIF input;
 - source SHA-256, source size, source scope (`asymmetric_unit`), package and
-  artifact versions;
-- the reference manifest and complete profile fingerprint.
+  artifact versions, and the canonical Extended PDB identity;
+- the geometry profile fingerprint and a separate annotation-profile ID tied to
+  the reference manifest and search policy.
 
 It does not store atom coordinates, residue-level atom pairs, detailed
 interaction CSVs, or any absolute source-machine path. Consequently,
 `assemble` rejects `export_detailed_interactions: true`; use the normal raw-file
-mode when those tables are required.
+mode when those tables are required. Keep the authoritative raw mmCIF archive:
+the compact cache cannot reconstruct coordinates, re-run changed geometry
+semantics, or recover mmCIF categories that were not selected for the cache.
 
-Schema 1 applies fail-closed artifact limits before assembly:
+Schema 2 applies fail-closed artifact limits before assembly:
 
 - at most 64 MiB compressed and 128 MiB expanded JSON per entry;
 - at most 50,000 chains and 500,000 compact interaction edges per entry;
@@ -40,11 +44,14 @@ store/
         ├── manifest.json
         └── entries/
             └── ab/
-                └── 1abc.json.gz
+                └── pdb_00001abc.json.gz
 ```
 
-Different scientific profiles coexist under different SHA-256 namespaces.
-They are never silently mixed or overwritten.
+Different geometry profiles coexist under different SHA-256 namespaces. They
+are never silently mixed or overwritten. Annotation/reference changes update
+the validated annotation section within the matching geometry namespace and
+reuse geometry only when the source and chain/molecule-type geometry remain
+compatible.
 
 ## Runtime ownership and permissions
 
@@ -86,8 +93,8 @@ optionally, the stable web output contract:
 ```bash
 pdb2net assemble \
   --store /srv/pdb2net/precomputed \
-  --pdb-id 1abc \
-  --pdb-id 2xyz \
+  --pdb-id pdb_00001abc \
+  --pdb-id pdb_00002xyz \
   --output-dir /srv/jobs/123/work \
   --web-output-dir /srv/jobs/123/outputs \
   --config /srv/pdb2net/config.json \
@@ -98,23 +105,30 @@ On a cache miss, `--source-dir ... --populate-missing` performs a targeted
 lookup and precomputes only the requested entry. It does not recursively scan
 the complete archive for every request.
 
-## Supported archive names
+## Archive layout and compatibility
 
-Plain and gzip-compressed variants are supported. The targeted resolver checks
-the following fixed parent layouts, using the two-character middle-ID shard
-(`ab` for `1abc`):
+The recommended managed mirror has one authoritative representation: the
+current Core archive mmCIF gzip under the Extended PDB ID. With the archive
+generation itself as `--source-dir`, the exact layout is:
 
-- the archive root and `<archive>/ab/`;
-- `<archive>/divided/{mmCIF,pdb}/ab/`;
-- `<archive>/structures/divided/{mmCIF,pdb}/ab/`;
-- `<archive>/data/structures/divided/{mmCIF,pdb}/ab/`.
+```text
+archive/current/
+└── entries/
+    └── ab/
+        └── pdb_00001abc/
+            └── structures/
+                └── pdb_00001abc.cif.gz
+```
 
-Within those locations it checks:
+Do not mirror a second legacy PDB representation, uncompressed duplicate, or
+enriched NextGen copy for the PDB-ID service. Enriched NextGen mmCIF remains a
+supported local/upload input; it is not the server's canonical archive.
 
-- `1abc.cif`, `1abc.mmcif`, `1abc.pdb`, and `1abc.ent`;
-- `pdb1abc.ent`;
-- `pdb_00001abc.cif`;
-- each of the preceding names with `.gz` appended.
+For local and migration compatibility, the targeted resolver also recognizes
+plain or gzip `.cif`/`.mmcif` Extended-ID names at the archive root or shard,
+classic-ID `.cif`/`.mmcif`/`.pdb`/`.ent` names, and the established wwPDB
+`divided/{mmCIF,pdb}/<shard>` variants. The two-character shard is derived from
+the final four legacy-compatible characters (`ab` for `pdb_00001abc`).
 
 If no exact candidate exists, lookup fails. If several supported formats or
 locations match, lookup fails with `PDB_ARCHIVE_ENTRY_AMBIGUOUS` instead of
@@ -124,9 +138,11 @@ one PDB ID are likewise rejected.
 
 ## Profile invalidation and promotion
 
-The profile fingerprint covers artifact and scientific-pipeline semantics,
-distance cutoffs, contact filters, first-model policy, BLAST/DIAMOND annotation
-policy, and `reference_manifest_id`. Schema 1 requires a non-empty reference
+The geometry-profile fingerprint covers artifact/scientific-pipeline semantics,
+Gemmi/parser semantics, distance cutoffs, contact filters, and first-model
+policy. Source-content changes invalidate the entire entry. A separate
+annotation-profile fingerprint covers embedded-SIFTS use, BLAST/DIAMOND search
+policy, and `reference_manifest_id`. Schema 2 requires a non-empty reference
 manifest. The value must identify more than the reference filenames: make it a
 content address or immutable release-manifest key that records the exact PDB
 FASTA, SIFTS, Swiss-Prot and optional UniRef90 inputs, the Core/worker build, and
@@ -139,16 +155,18 @@ after any of those inputs changes.
 For a reference, policy, or scientific-core update:
 
 1. provision the new references and assign a new `reference_manifest_id`;
-2. build into a new store directory or let the new profile namespace coexist;
-3. precompute a small representative set and compare its normalized chain and
-   edge data with raw runs;
+2. stage a copy/snapshot of the store; a changed geometry profile creates a new
+   namespace, while an annotation-only change refreshes annotation sections and
+   can retain compatible geometry;
+3. precompute a small representative set and compare normalized chain,
+   annotation, and edge data with raw runs;
 4. complete the desired background population and inspect the report for
    failures;
 5. atomically switch the worker's store mount/config to the validated store
    (read-only for cache-only service, writable only when lazy population is
    enabled) and keep the previous generation available for rollback.
 
-Do not edit profile manifests or move entry files between profile namespaces.
+Do not edit profile manifests or move entry files between geometry-profile namespaces.
 Cache entries are treated as untrusted input and are rejected on schema,
 profile, ID, endpoint, count, gzip/JSON-size, or symlink violations.
 
@@ -165,8 +183,9 @@ worker view in place:
    generation and run `pdb2net precompute --recursive`; unchanged source
    SHA-256 values become cache hits, while new or changed sources are published
    atomically;
-5. when the reference manifest or scientific profile changes, populate its new
-   profile namespace rather than copying entries into it;
+5. when only the reference/annotation profile changes, refresh annotations in
+   staging and verify geometry reuse counts; when the geometry profile changes,
+   populate its new namespace rather than moving entries into it;
 6. require a zero-failure precompute report, validate representative raw versus
    cached chain/edge results, run single- and multi-ID assemble smokes, and
    verify permissions from the worker identity;

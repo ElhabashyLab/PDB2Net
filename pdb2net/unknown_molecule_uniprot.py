@@ -20,9 +20,11 @@ import re
 from typing import Any, Dict, List, Optional, Tuple
 
 from .config_loader import config
+from .network_annotations import network_annotation_config
 from .reference_data import (
     load_pdb_fasta_headers as _load_pdb_fasta_headers,
     load_sifts_mapping as _load_sifts_mapping,
+    load_sifts_segments as _load_sifts_segments,
     load_uniprot_names,
 )
 
@@ -33,6 +35,7 @@ SIFTS_TSV_PATH: str = config["sifts_tsv_path"]
 
 # --- In-memory lookup tables ---
 pdb_to_uniprot: Dict[str, str] = {}   # "pdbid_CHAIN" → UniProt ID
+pdb_to_sifts_segments: Dict[str, tuple[Dict[str, str], ...]] = {}
 uniprot_dict: Dict[str, str] = {}     # UniProt ID → Protein display name
 
 # --- Lazy-loading guards ---
@@ -42,13 +45,14 @@ _uniprot_loaded: bool = False
 
 def load_sifts_mapping(tsv_path: str) -> None:
     """Load SIFTS PDB→UniProt chain mapping from a TSV file (once)."""
-    global pdb_to_uniprot, _sifts_loaded
+    global pdb_to_uniprot, pdb_to_sifts_segments, _sifts_loaded
     if _sifts_loaded:
         return
 
     # The reference loader already owns an immutable-by-convention cached
     # mapping. Reuse it instead of duplicating a potentially large hash table.
     pdb_to_uniprot = _load_sifts_mapping(tsv_path)
+    pdb_to_sifts_segments = _load_sifts_segments(tsv_path)
     _sifts_loaded = True
 
 
@@ -128,24 +132,77 @@ def determine_from_fasta(search_key: str, pdb_fasta: Dict[str, Dict[str, str]]) 
     return "Unknown", "Unknown", None
 
 
-def determine_molecule_info(pdb_id: str, chain_id: str, pdb_fasta: Dict[str, Dict[str, str]]) -> Tuple[str, str, Optional[str]]:
+def determine_molecule_info(
+    pdb_id: str,
+    chain_id: str,
+    pdb_fasta: Dict[str, Dict[str, str]],
+    *,
+    pdb_aliases: tuple[str, ...] | None = None,
+) -> Tuple[str, str, Optional[str]]:
     """Combine SIFTS and PDB FASTA to determine name/type/UniProt for a chain."""
-    search_key = f"{pdb_id.lower()}_{chain_id.upper()}"
-    fasta_name, mol_type, _ = determine_from_fasta(search_key, pdb_fasta)
+    details = _determine_molecule_info_details(
+        pdb_id,
+        chain_id,
+        pdb_fasta,
+        pdb_aliases=pdb_aliases,
+    )
+    return details["name"], details["molecule_type"], details["uniprot_id"]
 
+
+def _determine_molecule_info_details(
+    pdb_id: str,
+    chain_id: str,
+    pdb_fasta: Dict[str, Dict[str, str]],
+    *,
+    pdb_aliases: tuple[str, ...] | None = None,
+) -> Dict[str, Any]:
+    """Return FASTA provenance and the full external-SIFTS mapping state."""
+    aliases = pdb_aliases or (pdb_id,)
+    search_keys = [f"{alias.lower()}_{chain_id}" for alias in aliases if alias]
+    fasta_name, mol_type, _ = "Unknown", "Unknown", None
+    for search_key in search_keys:
+        fasta_name, mol_type, _ = determine_from_fasta(search_key, pdb_fasta)
+        if search_key in pdb_fasta:
+            break
+
+    accessions: set[str] = set()
+    for search_key in search_keys:
+        for segment in pdb_to_sifts_segments.get(search_key, ()):
+            accession = str(segment.get("accession") or "").strip()
+            if accession:
+                accessions.add(accession)
+    # Compatibility for callers/tests that inject only the historical mapping.
+    if not accessions:
+        accessions.update(
+            str(pdb_to_uniprot[key])
+            for key in search_keys
+            if key in pdb_to_uniprot and pdb_to_uniprot[key]
+        )
+
+    uniprot_id = next(iter(accessions)) if len(accessions) == 1 else None
     name = fasta_name
-    uniprot_id: Optional[str] = None
-
-    # Only trust the 4-char PDB convention for SIFTS lookup
-    if len(pdb_id) == 4:
-        uniprot_id = pdb_to_uniprot.get(search_key)
-        if uniprot_id:
-            better_name = uniprot_dict.get(uniprot_id)
-            if better_name and better_name != "Unknown Protein":
-                name = better_name
-            mol_type = "Protein"
-
-    return name, mol_type, uniprot_id
+    status = "none"
+    if uniprot_id:
+        better_name = uniprot_dict.get(uniprot_id)
+        if not better_name and "-" in uniprot_id:
+            better_name = uniprot_dict.get(uniprot_id.split("-", 1)[0])
+        if better_name and better_name != "Unknown Protein":
+            name = better_name
+        elif name == "Unknown":
+            name = f"UniProt: {uniprot_id}"
+        mol_type = "Protein"
+        status = "unique_external_mapping"
+    elif len(accessions) > 1:
+        mol_type = "Protein"
+        status = "ambiguous_external_mapping"
+    return {
+        "name": name,
+        "fasta_name": fasta_name,
+        "molecule_type": mol_type,
+        "uniprot_id": uniprot_id,
+        "external_status": status,
+        "external_accessions": sorted(accessions),
+    }
 
 
 def process_molecule_info(
@@ -170,24 +227,117 @@ def process_molecule_info(
     load_sifts_mapping(SIFTS_TSV_PATH)
     load_uniprot_fasta(UNIPROT_FASTA_PATH)
 
-    requested_pdb_ids = tuple(
-        sorted({str(structure.get("pdb_id") or "").lower() for structure in combined_data})
-    )
+    requested: set[str] = set()
+    for structure in combined_data:
+        requested.add(str(structure.get("pdb_id") or "").lower())
+        identity = structure.get("structure_identity", {})
+        if isinstance(identity, dict):
+            for field in ("canonical_id", "legacy_id"):
+                if identity.get(field):
+                    requested.add(str(identity[field]).lower())
+    requested_pdb_ids = tuple(sorted(requested))
     pdb_fasta = (
         pdb_fasta_headers
         if pdb_fasta_headers is not None
         else load_pdb_fasta(PDB_FASTA_PATH, requested_pdb_ids)
     )
 
+    annotation_cfg = network_annotation_config()
     for structure_data in combined_data:
         pdb_id = structure_data["pdb_id"].lower()
+        identity = structure_data.get("structure_identity", {})
+        aliases: list[str] = [pdb_id]
+        if isinstance(identity, dict):
+            for field in ("legacy_id", "canonical_id"):
+                value = str(identity.get(field) or "").strip().lower()
+                if value and value not in aliases:
+                    aliases.append(value)
         for chain in structure_data["atom_data"]:
-            chain_id = chain["chain_id"].upper()
-            name, mol_type, uniprot_id = determine_molecule_info(pdb_id, chain_id, pdb_fasta)
+            chain_id = chain["chain_id"]
+            details = _determine_molecule_info_details(
+                pdb_id,
+                chain_id,
+                pdb_fasta,
+                pdb_aliases=tuple(aliases),
+            )
+
+            name = str(details["name"])
+            fasta_name = str(details["fasta_name"])
+            mol_type = str(details["molecule_type"])
+            uniprot_id = details["uniprot_id"]
+            external_status = str(details["external_status"])
+            external_accessions = list(details["external_accessions"])
+            chain["external_sifts_status"] = external_status
+            if external_accessions:
+                chain["external_sifts_accessions"] = external_accessions
+
+            embedded_status = str(chain.get("embedded_uniprot_status") or "")
+            if annotation_cfg["use_embedded_sifts"] and embedded_status == "unique_best_mapping":
+                embedded_accession = str(chain.get("uniprot_id") or "")
+                external_mismatch = bool(
+                    external_accessions and external_accessions != [embedded_accession]
+                )
+                embedded_name = uniprot_dict.get(embedded_accession)
+                if not embedded_name and "-" in embedded_accession:
+                    embedded_name = uniprot_dict.get(embedded_accession.split("-", 1)[0])
+                chain["molecule_name"] = (
+                    fasta_name
+                    if external_mismatch and fasta_name != "Unknown"
+                    else (
+                        f"UniProt: {embedded_accession}"
+                        if external_mismatch
+                        else (
+                            embedded_name
+                            if embedded_name and embedded_name != "Unknown Protein"
+                            else (
+                                fasta_name
+                                if fasta_name != "Unknown"
+                                else f"UniProt: {embedded_accession}"
+                            )
+                        )
+                    )
+                )
+                chain["molecule_type"] = "Protein"
+                if external_mismatch:
+                    chain.setdefault("annotation_warnings", []).append(
+                        {
+                            "code": "EMBEDDED_EXTERNAL_UNIPROT_MISMATCH",
+                            "message": (
+                                f"{chain.get('unique_chain_id')} maps to {embedded_accession} in embedded SIFTS "
+                                f"but external SIFTS reports {', '.join(external_accessions)}; the embedded "
+                                "accession was retained without borrowing an unrelated UniProt name."
+                            ),
+                        }
+                    )
+                continue
+            if annotation_cfg["use_embedded_sifts"] and embedded_status == "ambiguous_multi_mapping":
+                # An ambiguous embedded mapping blocks lower-priority identity
+                # sources.  Do not borrow a UniProt display name discovered via
+                # external SIFTS when no accession is actually assigned.
+                chain["molecule_name"] = fasta_name
+                chain["molecule_type"] = "Protein"
+                chain["uniprot_id"] = None
+                continue
+
+            if external_status == "ambiguous_external_mapping":
+                chain["molecule_name"] = fasta_name
+                chain["molecule_type"] = "Protein"
+                chain["uniprot_id"] = None
+                chain["annotation_source"] = "external_sifts"
+                chain["matched_database"] = "UniProtKB"
+                chain["matched_id"] = ",".join(external_accessions)
+                chain["annotation_confidence"] = "ambiguous"
+                continue
 
             chain["molecule_name"] = name
             chain["molecule_type"] = mol_type
             chain["uniprot_id"] = uniprot_id
+            if uniprot_id:
+                chain["annotation_source"] = "sifts"
+                chain["matched_database"] = "UniProtKB"
+                chain["matched_id"] = uniprot_id
+                chain["representative_accession"] = uniprot_id
+                chain["annotation_confidence"] = "high"
 
     # # Optional: brief sample output for debugging/verification (limited to first ~20 structures)
     # print("\nUniProt assignments (example for up to 20 input files):")

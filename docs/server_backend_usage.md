@@ -34,6 +34,28 @@ Use Python 3.11 or 3.12 in the worker image. The project is developed and
 tested against those versions; avoid Python 3.13 unless the dependency stack is
 explicitly verified there.
 
+## Capability And Compatibility Probe
+
+Before a real worker accepts jobs, it should run the configuration-free probe:
+
+```bash
+pdb2net --version
+pdb2net capabilities --json
+```
+
+The JSON document is the stable handshake between Core and an external worker.
+It reports the PDB2Net package version, capability schema, CLI contract, web
+output contract, precomputed-artifact schema, web-config schema, available
+commands, input formats and relevant feature allowlists. The probe does not
+load machine-local configuration or inspect reference data.
+
+An integration repository should keep its expected values in a tracked
+compatibility file, install Core from one immutable full commit SHA, and refuse
+to start a real worker when any reported value differs. A deployment-specific
+environment file may contain paths and secrets, but must not override the
+tracked compatibility keys. Changes to fields or semantics require a deliberate
+contract/schema version change and corresponding consumer update.
+
 ## Package Installation Requirements
 
 The installed package includes PDB2Net's shared default configuration files:
@@ -57,6 +79,7 @@ python3 -m pip install .
 cd /tmp
 python3 -c 'import pdb2net, pathlib; root = pathlib.Path(pdb2net.__file__).parent; print((root / "configs/config.base.json").exists()); print((root / "configs/config.local.json").exists())'
 pdb2net --help
+pdb2net capabilities --json
 ```
 
 Expected output for the config check is `True` for `config.base.json` and

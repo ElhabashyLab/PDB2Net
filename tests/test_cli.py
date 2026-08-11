@@ -1,5 +1,8 @@
+import json
+
 import pytest
 
+from pdb2net import __version__
 from pdb2net.__main__ import main
 
 
@@ -10,6 +13,29 @@ def test_cli_help_includes_run_command(capsys) -> None:
     assert exc_info.value.code == 0
     captured = capsys.readouterr()
     assert "run" in captured.out
+    assert "capabilities" in captured.out
+
+
+def test_cli_version_is_available_without_a_subcommand(capsys) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--version"])
+
+    assert exc_info.value.code == 0
+    assert capsys.readouterr().out.strip() == f"pdb2net {__version__}"
+
+
+def test_capabilities_json_reports_stable_server_contracts(capsys) -> None:
+    assert main(["capabilities", "--json"]) == 0
+
+    document = json.loads(capsys.readouterr().out)
+    assert document["capabilities_schema_version"] == "1"
+    assert document["pdb2net_version"] == __version__
+    assert document["cli_contract_version"] == "1"
+    assert document["output_contract_version"] == "1.2"
+    assert document["precomputed_artifact_schema_version"] == "2"
+    assert document["web_config_schema_version"] == "1"
+    assert document["commands"] == ["run", "precompute", "assemble", "capabilities"]
+    assert document["network_annotation_databases"] == ["uniprot", "pfam", "cath", "scop2"]
 
 
 def test_run_help_includes_backend_output_option(capsys) -> None:

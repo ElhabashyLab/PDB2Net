@@ -15,10 +15,10 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from . import __version__
+from .contracts import OUTPUT_CONTRACT_VERSION
 from .input_contract import InputValidationError
 from .structure_identity import StructureIdentity
 
-OUTPUT_CONTRACT_VERSION = "1.2"
 MAX_WEB_SUMMARY_BYTES = 1_000_000
 MAX_WEB_ARTIFACTS = 1_000
 MAX_WEB_ARTIFACT_BYTES = 512 * 1024 * 1024

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
@@ -19,7 +20,20 @@ def _add_bool_pair(parser: argparse.ArgumentParser, name: str, dest: str, help_t
 def build_parser() -> argparse.ArgumentParser:
     """Create the top-level CLI parser."""
     parser = argparse.ArgumentParser(prog="pdb2net", description="Extract interaction networks from PDB/mmCIF files.")
+    from . import __version__
+
+    parser.add_argument("--version", action="version", version=f"pdb2net {__version__}")
     subparsers = parser.add_subparsers(dest="command")
+
+    capabilities = subparsers.add_parser(
+        "capabilities",
+        help="Report stable server-facing interface capabilities without loading runtime config.",
+    )
+    capabilities.add_argument(
+        "--json",
+        action="store_true",
+        help="Write the complete machine-readable capability document.",
+    )
 
     run = subparsers.add_parser("run", help="Run PDB2Net on a folder of structure files.")
     run.add_argument("--input-dir", required=True, help="Folder containing .pdb, .cif, or .mmcif files.")
@@ -160,6 +174,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     return parser
+
+
+def capabilities_command(args: argparse.Namespace) -> int:
+    """Report package interfaces without inspecting reference data or local paths."""
+    from .capabilities import capability_document
+
+    document = capability_document()
+    if args.json:
+        print(json.dumps(document, indent=2, sort_keys=True))
+    else:
+        print(f"PDB2Net {document['pdb2net_version']}")
+        print(f"CLI contract: {document['cli_contract_version']}")
+        print(f"Web output contract: {document['output_contract_version']}")
+        print(
+            "Precomputed artifact schema: "
+            f"{document['precomputed_artifact_schema_version']}"
+        )
+    return 0
 
 
 def _apply_run_overrides(args: argparse.Namespace, config: dict[str, Any]) -> None:
@@ -338,6 +370,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "run":
         return run_command(args)
+    if args.command == "capabilities":
+        return capabilities_command(args)
     if args.command == "precompute":
         return precompute_command(args)
     if args.command == "assemble":

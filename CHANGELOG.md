@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.2.0-rc4 - Unreleased
+
+- Add `pdb2net --version` and a configuration-free
+  `pdb2net capabilities --json` handshake for server integrations.
+- Centralize CLI, web-output, web-config, capability, and precomputed-artifact
+  contract constants so producers and compatibility probes cannot drift through
+  duplicated literals.
+
 ## v0.2.0-rc3 - 2026-07-15
 
 - Add an optional, portable precomputed graph store for PDB-ID based runs while

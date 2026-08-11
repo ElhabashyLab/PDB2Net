@@ -26,6 +26,7 @@ from typing import Any, Iterable, Mapping, Sequence
 
 from . import __version__
 from .config_loader import config
+from .contracts import PRECOMPUTED_ARTIFACT_SCHEMA_VERSION
 from .distances import calculate_distances_with_ckdtree, coords_cache, tree_cache
 from .file_parser import get_structure_identity, is_valid_file
 from .input_contract import InputValidationError
@@ -39,7 +40,7 @@ from .structure_identity import (
 )
 
 
-ARTIFACT_SCHEMA_VERSION = "2"
+ARTIFACT_SCHEMA_VERSION = PRECOMPUTED_ARTIFACT_SCHEMA_VERSION
 SCIENTIFIC_PIPELINE_VERSION = "pdb2net-asu-first-standard-interactions-v3"
 ANNOTATION_PIPELINE_VERSION = "pdb2net-sifts-fasta-search-annotations-v3"
 SOURCE_SCOPE = "asymmetric_unit"

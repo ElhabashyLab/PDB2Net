@@ -1,0 +1,19 @@
+"""Stable machine-readable interface versions shared across PDB2Net modules."""
+
+from __future__ import annotations
+
+
+CAPABILITIES_SCHEMA_VERSION = "1"
+CLI_CONTRACT_VERSION = "1"
+WEB_CONFIG_SCHEMA_VERSION = "1"
+OUTPUT_CONTRACT_VERSION = "1.2"
+PRECOMPUTED_ARTIFACT_SCHEMA_VERSION = "2"
+
+
+__all__ = [
+    "CAPABILITIES_SCHEMA_VERSION",
+    "CLI_CONTRACT_VERSION",
+    "WEB_CONFIG_SCHEMA_VERSION",
+    "OUTPUT_CONTRACT_VERSION",
+    "PRECOMPUTED_ARTIFACT_SCHEMA_VERSION",
+]

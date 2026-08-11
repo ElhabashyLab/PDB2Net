@@ -13,6 +13,7 @@ It uses **Gemmi** for structure parsing, **SciPy cKDTree** for distance-based in
 - Configurable UniProt, Pfam, CATH, and SCOP2 segment annotations in existing CX2 tooltips
 - Export of chain, protein, and combined networks (CX2 format)  
 - Optional versioned per-PDB precompute store for fast repeated assembly
+- Machine-readable, configuration-free capability contract for deployment compatibility checks
 
 ---
 

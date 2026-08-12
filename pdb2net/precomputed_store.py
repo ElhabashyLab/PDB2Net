@@ -31,6 +31,16 @@ from .distances import calculate_distances_with_ckdtree, coords_cache, tree_cach
 from .file_parser import get_structure_identity, is_valid_file
 from .input_contract import InputValidationError
 from .network_annotations import network_annotation_config
+from .server_interface import (
+    ALLOWED_INTERACTION_TYPES as SERVER_ALLOWED_INTERACTION_TYPES,
+    DISTANCE_THRESHOLD_RULES,
+    INTERACTION_PIPELINE_VERSION,
+    INTERACTION_FILTER_RULES,
+    PRECOMPUTED_ANNOTATION_PIPELINE_VERSION,
+    PRECOMPUTED_PARSER_SEMANTICS,
+    PRECOMPUTED_SCIENTIFIC_PIPELINE_VERSION,
+    PRECOMPUTED_SOURCE_SCOPE,
+)
 from .structure_identity import (
     ChainIdentity,
     StructureIdentity,
@@ -41,9 +51,9 @@ from .structure_identity import (
 
 
 ARTIFACT_SCHEMA_VERSION = PRECOMPUTED_ARTIFACT_SCHEMA_VERSION
-SCIENTIFIC_PIPELINE_VERSION = "pdb2net-asu-first-standard-interactions-v3"
-ANNOTATION_PIPELINE_VERSION = "pdb2net-sifts-fasta-search-annotations-v3"
-SOURCE_SCOPE = "asymmetric_unit"
+SCIENTIFIC_PIPELINE_VERSION = PRECOMPUTED_SCIENTIFIC_PIPELINE_VERSION
+ANNOTATION_PIPELINE_VERSION = PRECOMPUTED_ANNOTATION_PIPELINE_VERSION
+SOURCE_SCOPE = PRECOMPUTED_SOURCE_SCOPE
 MAX_COMPRESSED_ENTRY_BYTES = 64 * 1024 * 1024
 MAX_DECOMPRESSED_ENTRY_BYTES = 128 * 1024 * 1024
 MAX_CHAINS_PER_ENTRY = 50_000
@@ -72,20 +82,7 @@ MAX_REQUEST_EDGES = 2_000_000
 POPULATION_LOCK_TIMEOUT_SECONDS = 300.0
 MAX_SIMULTANEOUS_ENTRY_LOCKS = 64
 
-ALLOWED_INTERACTION_TYPES = {
-    "Protein-Protein",
-    "Protein-DNA",
-    "Protein-RNA",
-    "Protein-DNA/RNA",
-    "Protein-Nucleic Acid",
-    "DNA-DNA",
-    "DNA-RNA",
-    "DNA-DNA/RNA",
-    "RNA-RNA",
-    "RNA-DNA/RNA",
-    "DNA/RNA-DNA/RNA",
-    "Nucleic Acid-Nucleic Acid",
-}
+ALLOWED_INTERACTION_TYPES = SERVER_ALLOWED_INTERACTION_TYPES
 ALLOWED_MOLECULE_TYPES = {
     "Protein",
     "DNA",
@@ -200,18 +197,8 @@ def _profile_interaction_filters() -> dict[str, int]:
     if not isinstance(filters, Mapping):
         filters = {}
     return {
-        "protein_protein_min_ca_neighbors": int(
-            filters.get("protein_protein_min_ca_neighbors", 10)
-        ),
-        "protein_protein_min_all_atom_contacts": int(
-            filters.get("protein_protein_min_all_atom_contacts", 1)
-        ),
-        "protein_nucleic_acid_min_all_atom_contacts": int(
-            filters.get("protein_nucleic_acid_min_all_atom_contacts", 1)
-        ),
-        "nucleic_acid_min_all_atom_contacts": int(
-            filters.get("nucleic_acid_min_all_atom_contacts", 1)
-        ),
+        name: int(filters.get(name, rule["default"]))
+        for name, rule in INTERACTION_FILTER_RULES.items()
     }
 
 
@@ -226,15 +213,16 @@ def scientific_profile() -> dict[str, Any]:
     profile = {
         "artifact_schema_version": ARTIFACT_SCHEMA_VERSION,
         "scientific_pipeline_version": SCIENTIFIC_PIPELINE_VERSION,
+        "interaction_pipeline_version": INTERACTION_PIPELINE_VERSION,
         "source_scope": SOURCE_SCOPE,
         "structure_model_policy": "first",
         "parser": {
-            "semantics": "validated-single-document-gemmi-heavy-atoms-no-hydrogen-or-deuterium-v3",
+            "semantics": PRECOMPUTED_PARSER_SEMANTICS,
             "gemmi_version": str(getattr(gemmi, "__version__", "unknown")),
         },
         "distance_thresholds": {
-            "ca_radius": float(thresholds.get("ca_radius", 12.0)),
-            "all_atoms_radius": float(thresholds.get("all_atoms_radius", 5.0)),
+            name: float(thresholds.get(name, rule["default"]))
+            for name, rule in DISTANCE_THRESHOLD_RULES.items()
         },
         "interaction_filters": _profile_interaction_filters(),
     }

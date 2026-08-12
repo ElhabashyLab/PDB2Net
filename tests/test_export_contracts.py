@@ -6,9 +6,16 @@ import pandas as pd
 import pytest
 
 from pdb2net.cytoscape import generate_nodes_from_atom_data
+from pdb2net.capabilities import capability_document
 from pdb2net.cx2_export import export_cx2_headless
 from pdb2net.detailed_results_exporter import DETAILED_INTERACTION_COLUMNS, export_detailed_interactions
 from pdb2net.artifact_names import MAX_ARTIFACT_STEM_BYTES, portable_artifact_stem
+from pdb2net.server_interface import (
+    ALLOWED_INTERACTION_TYPES,
+    DETAILED_INTERACTION_FILENAME_SUFFIX,
+    NETWORK_TITLE_BASES,
+    PORTABLE_ARTIFACT_STEM_SEMANTICS_ID,
+)
 from pdb2net.visual_style import get_network_visual_profile
 
 
@@ -65,7 +72,14 @@ def test_detailed_interactions_csv_columns_are_stable(tmp_path: Path) -> None:
 
     out_file = tmp_path / "TST1_detailed_interactions.csv"
     df = pd.read_csv(out_file)
-    assert list(df.columns) == DETAILED_INTERACTION_COLUMNS
+    declared = capability_document()["server_interface"]["contracts"]["web_output"][
+        "interaction_csv"
+    ]
+    assert list(df.columns) == list(DETAILED_INTERACTION_COLUMNS) == declared["columns"]
+    assert set(declared["allowed_interaction_types"]) == ALLOWED_INTERACTION_TYPES
+    assert out_file.name == portable_artifact_stem(
+        f"TST1{DETAILED_INTERACTION_FILENAME_SUFFIX}"
+    ) + declared["filename"]["extension"]
 
 
 def test_headless_cx2_uses_only_native_inline_attributes_and_layout(tmp_path: Path) -> None:
@@ -114,10 +128,19 @@ def test_headless_cx2_uses_only_native_inline_attributes_and_layout(tmp_path: Pa
 
     cx = json.loads((tmp_path / "Mini_Network.cx2").read_text(encoding="utf-8"))
     aspects = _aspect_map(cx)
+    declared = capability_document()["server_interface"]["contracts"]["web_output"]
+    cx2_contract = declared["cx2"]
 
+    assert cx[0] == cx2_contract["header"]
+    assert [next(iter(block)) for block in cx[1:]] == cx2_contract[
+        "required_aspect_order"
+    ]
     for aspect in ["nodes", "edges", "visualProperties"]:
         assert aspect in aspects
-    assert {"nodeAttributes", "edgeAttributes", "cartesianLayout"}.isdisjoint(aspects)
+    assert set(cx2_contract["forbidden_aspects"]).isdisjoint(aspects)
+    assert list(aspects["attributeDeclarations"][0]) == cx2_contract[
+        "attribute_declarations"
+    ]["scopes"]
 
     assert len(aspects["nodes"]) == 2
     assert len(aspects["edges"]) == 1
@@ -139,7 +162,49 @@ def test_headless_cx2_uses_only_native_inline_attributes_and_layout(tmp_path: Pa
     metadata = {entry["name"]: entry["elementCount"] for entry in aspects["metaData"]}
     assert metadata["nodes"] == 2
     assert metadata["edges"] == 1
-    assert aspects["status"] == [{"error": "", "success": True}]
+    assert aspects["status"] == cx2_contract["success_status"]
+    assert (tmp_path / "Mini_Network.cx2").name == (
+        portable_artifact_stem("Mini_Network") + cx2_contract["filename"]["extension"]
+    )
+    assert declared["artifacts"]["portable_stem"] == {
+        "semantics_id": PORTABLE_ARTIFACT_STEM_SEMANTICS_ID,
+        "maximum_utf8_bytes": MAX_ARTIFACT_STEM_BYTES,
+    }
+
+
+@pytest.mark.parametrize(
+    ("kind", "title"),
+    [
+        ("chain_per_pdb", "Chain_Interaction_Network_TST1"),
+        ("chain_per_pdb", "Chain_Interaction_Network_TST1_model2"),
+        ("protein_per_pdb", "Protein_Network_TST1"),
+        ("combined_chain", "Combined_Network_U1_U2"),
+        ("combined_protein", "Combined_Protein_Network_U1_U2"),
+    ],
+)
+def test_real_cx2_titles_and_filenames_follow_declared_network_grammar(
+    tmp_path: Path, kind: str, title: str
+) -> None:
+    nodes = pd.DataFrame(
+        [{"id": "A", "name": "A", "tooltip": "", "color_group": "Protein"}]
+    )
+    export_cx2_headless(
+        title,
+        str(tmp_path),
+        nodes,
+        pd.DataFrame(columns=["source", "target", "interaction", "all_atoms_count"]),
+        {},
+        {"A": {"x": 0.0, "y": 0.0}},
+    )
+
+    declared = capability_document()["server_interface"]["contracts"]["web_output"][
+        "cx2"
+    ]
+    assert title.startswith(declared["network_titles"][kind]["prefix"])
+    assert declared["network_titles"][kind]["prefix"] == f"{NETWORK_TITLE_BASES[kind]}_"
+    output = tmp_path / f"{portable_artifact_stem(title)}.cx2"
+    aspects = _aspect_map(json.loads(output.read_text(encoding="utf-8")))
+    assert aspects["networkAttributes"] == [{"name": title}]
 
 
 def test_headless_cx2_is_deterministic_and_sorts_nodes_and_edges(tmp_path: Path) -> None:

@@ -31,6 +31,7 @@ from .cytoscape import create_cytoscape_network
 from .graph_limits import combined_graph_skip, normalize_combined_graph_limits
 from .network_annotations import annotation_node_metadata
 from .residue_types import count_polymer_lengths
+from .server_interface import NETWORK_TITLE_BASES
 
 
 def create_protein_network(
@@ -310,7 +311,12 @@ def create_protein_network(
             nodes = nodes_from_uniprots(prot_set, force_protein_color=True, pdb_scope=pdb_id)
             nodes.extend(list(na_nodes_by_pdb.get(pdb_id, {}).values()))
             # NEW: protein per-PDB folder
-            create_cytoscape_network(edges, f"Protein_Network_{pdb_id}", per_pdb_out, nodes_data=nodes)
+            create_cytoscape_network(
+                edges,
+                f"{NETWORK_TITLE_BASES['protein_per_pdb']}_{pdb_id}",
+                per_pdb_out,
+                nodes_data=nodes,
+            )
 
         for pdb_id in sorted(set(pdb_to_uniprots.keys()) - pdbs_with_edges):
             prot_set = pdb_to_uniprots.get(pdb_id, set())
@@ -318,10 +324,17 @@ def create_protein_network(
                 continue
             nodes = nodes_from_uniprots(prot_set, force_protein_color=True, pdb_scope=pdb_id)
             # NEW: protein per-PDB folder
-            create_cytoscape_network([], f"Protein_Network_{pdb_id}", per_pdb_out, nodes_data=nodes)
+            create_cytoscape_network(
+                [],
+                f"{NETWORK_TITLE_BASES['protein_per_pdb']}_{pdb_id}",
+                per_pdb_out,
+                nodes_data=nodes,
+            )
 
     def make_combined_component_title(component_uniprots: Set[str]) -> str:
-        return make_component_title("Combined_Protein_Network", component_uniprots)
+        return make_component_title(
+            NETWORK_TITLE_BASES["combined_protein"], component_uniprots
+        )
 
     def find_interlinked_chain_components() -> List[Set[str]]:
         """Return chain components connected by interactions plus cross-PDB UniProt identity."""

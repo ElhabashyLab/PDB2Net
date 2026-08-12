@@ -28,7 +28,7 @@ def test_capabilities_json_reports_stable_server_contracts(capsys) -> None:
     assert main(["capabilities", "--json"]) == 0
 
     document = json.loads(capsys.readouterr().out)
-    assert document["capabilities_schema_version"] == "1"
+    assert document["capabilities_schema_version"] == "2"
     assert document["pdb2net_version"] == __version__
     assert document["cli_contract_version"] == "1"
     assert document["output_contract_version"] == "1.2"
@@ -36,6 +36,11 @@ def test_capabilities_json_reports_stable_server_contracts(capsys) -> None:
     assert document["web_config_schema_version"] == "1"
     assert document["commands"] == ["run", "precompute", "assemble", "capabilities"]
     assert document["network_annotation_databases"] == ["uniprot", "pfam", "cath", "scop2"]
+    assert set(document["server_interface"]) == {
+        "commands",
+        "contracts",
+        "scientific_profiles",
+    }
 
 
 def test_run_help_includes_backend_output_option(capsys) -> None:

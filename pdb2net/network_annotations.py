@@ -10,9 +10,13 @@ from typing import Any, Iterable, Mapping, Sequence
 from .config_loader import config
 from .input_contract import InputValidationError
 from .reference_data import is_uniprot_accession
+from .server_interface import (
+    ANNOTATION_DATABASES,
+    ANNOTATION_PIPELINE_VERSION,
+    NETWORK_ANNOTATION_RULES,
+)
 
 
-ANNOTATION_DATABASES = ("uniprot", "pfam", "cath", "scop2")
 MAX_EMBEDDED_SEGMENT_ROWS = 200_000
 MAX_EMBEDDED_FIELD_LENGTH = 2_000
 MAX_ANNOTATION_BYTES_PER_DATABASE = 65_536
@@ -28,13 +32,19 @@ def network_annotation_config(values: Mapping[str, Any] | None = None) -> dict[s
             "INVALID_NETWORK_ANNOTATIONS_CONFIG",
             "network_annotations must be a JSON object.",
         )
-    use_embedded = raw.get("use_embedded_sifts", True)
+    use_embedded = raw.get(
+        "use_embedded_sifts",
+        NETWORK_ANNOTATION_RULES["use_embedded_sifts"]["default"],
+    )
     if not isinstance(use_embedded, bool):
         raise InputValidationError(
             "INVALID_NETWORK_ANNOTATIONS_CONFIG",
             "network_annotations.use_embedded_sifts must be true or false.",
         )
-    fields = raw.get("tooltip_fields", ["uniprot"])
+    fields = raw.get(
+        "tooltip_fields",
+        NETWORK_ANNOTATION_RULES["tooltip_fields"]["default"],
+    )
     if not isinstance(fields, list) or any(not isinstance(value, str) for value in fields):
         raise InputValidationError(
             "INVALID_NETWORK_ANNOTATIONS_CONFIG",
@@ -51,16 +61,18 @@ def network_annotation_config(values: Mapping[str, Any] | None = None) -> dict[s
             )
         if normalized not in normalized_fields:
             normalized_fields.append(normalized)
-    maximum = raw.get("max_tooltip_segments_per_database", 20)
+    maximum_rule = NETWORK_ANNOTATION_RULES["max_tooltip_segments_per_database"]
+    maximum = raw.get("max_tooltip_segments_per_database", maximum_rule["default"])
     if (
         isinstance(maximum, bool)
         or not isinstance(maximum, int)
-        or maximum < 1
-        or maximum > 1_000
+        or maximum < maximum_rule["minimum"]
+        or maximum > maximum_rule["maximum"]
     ):
         raise InputValidationError(
             "INVALID_NETWORK_ANNOTATIONS_CONFIG",
-            "network_annotations.max_tooltip_segments_per_database must be an integer from 1 to 1000.",
+            "network_annotations.max_tooltip_segments_per_database must be an integer "
+            f"from {maximum_rule['minimum']} to {maximum_rule['maximum']}.",
         )
     return {
         "use_embedded_sifts": use_embedded,

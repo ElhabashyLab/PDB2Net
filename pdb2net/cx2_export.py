@@ -10,6 +10,12 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from .artifact_names import portable_artifact_stem
+from .server_interface import (
+    CX2_DECLARATION_SCOPES,
+    CX2_HEADER,
+    CX2_REQUIRED_ASPECT_ORDER,
+    CX2_SUCCESS_STATUS,
+)
 from .visual_style import VISUAL_TUNING, get_network_visual_profile
 
 
@@ -317,13 +323,14 @@ def export_cx2_headless(
     edge_attr_types = _attribute_types(
         [record["v"] for _key, record in normalized_edges], edge_fields
     )
+    declaration_values = {
+        "networkAttributes": {"name": {"d": "string"}},
+        "nodes": {name: {"d": node_attr_types[name]} for name in node_fields},
+        "edges": {name: {"d": edge_attr_types[name]} for name in edge_fields},
+    }
     declarations = {
         "attributeDeclarations": [
-            {
-                "networkAttributes": {"name": {"d": "string"}},
-                "nodes": {name: {"d": node_attr_types[name]} for name in node_fields},
-                "edges": {name: {"d": edge_attr_types[name]} for name in edge_fields},
-            }
+            {scope: declaration_values[scope] for scope in CX2_DECLARATION_SCOPES}
         ]
     }
     visual_props = _visual_properties(color_map=color_map, profile=profile)
@@ -339,15 +346,18 @@ def export_cx2_headless(
             },
         ]
     }
+    aspect_values = {
+        "metaData": metadata["metaData"],
+        "attributeDeclarations": declarations["attributeDeclarations"],
+        "networkAttributes": [{"name": str(network_title)}],
+        "nodes": nodes_aspect,
+        "edges": edges_aspect,
+        "visualProperties": visual_props["visualProperties"],
+        "status": [dict(item) for item in CX2_SUCCESS_STATUS],
+    }
     cx = [
-        {"CXVersion": "2.0", "hasFragments": False},
-        metadata,
-        declarations,
-        {"networkAttributes": [{"name": str(network_title)}]},
-        {"nodes": nodes_aspect},
-        {"edges": edges_aspect},
-        visual_props,
-        {"status": [{"error": "", "success": True}]},
+        dict(CX2_HEADER),
+        *[{name: aspect_values[name]} for name in CX2_REQUIRED_ASPECT_ORDER],
     ]
     with out_path.open("x", encoding="utf-8") as handle:
         json.dump(cx, handle, ensure_ascii=False, indent=2, allow_nan=False)

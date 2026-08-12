@@ -22,6 +22,7 @@ from typing import Any, Dict, List
 
 from .config_loader import config
 from .residue_types import AMINO_ACIDS, DNA_RESIDUES, RNA_RESIDUES, normalize_residue_name
+from .server_interface import PARSER_SEMANTICS
 from .structure_identity import ChainIdentity, StructureIdentity
 
 

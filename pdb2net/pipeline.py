@@ -50,6 +50,15 @@ from .outputs import (
 )
 from .protein_network import create_protein_network
 from .residue_types import NUCLEIC_ACID_TYPES, count_polymer_lengths
+from .server_interface import (
+    ALL_MODEL_FORBIDDEN_NETWORKS,
+    DISTANCE_THRESHOLD_RULES,
+    INTERACTION_FILTER_RULES,
+    NETWORK_OUTPUT_FIELDS,
+    NETWORK_TITLE_BASES,
+    RESOURCE_LIMIT_FIELDS,
+    STRUCTURE_MODEL_POLICIES,
+)
 from .structure_identity import StructureIdentity, identity_from_official_id
 from .uniprot_matcher import (
     diamond_uniref90_enabled,
@@ -227,14 +236,7 @@ def discover_input_files(input_path_or_filelist: Union[str, List[str]]) -> List[
     return sorted(file_paths)
 
 
-RESOURCE_LIMIT_KEYS = (
-    "max_input_files",
-    "max_total_input_bytes",
-    "max_single_input_bytes",
-    "max_processing_batch_bytes",
-    "max_total_input_expanded_bytes",
-    "max_single_input_expanded_bytes",
-)
+RESOURCE_LIMIT_KEYS = RESOURCE_LIMIT_FIELDS
 
 
 def _resource_limits() -> Dict[str, Optional[int]]:
@@ -281,28 +283,20 @@ def _validate_analysis_config() -> None:
     networks = config.get("networks")
     if not isinstance(networks, Mapping):
         raise InputValidationError("INVALID_NETWORK_CONFIG", "networks must be a JSON object.")
-    network_fields = (
-        "chain_per_pdb",
-        "protein_per_pdb",
-        "combined_chain_network",
-        "combined_protein_network",
-    )
-    for field in network_fields:
+    for field in NETWORK_OUTPUT_FIELDS:
         if not isinstance(networks.get(field), bool):
             raise InputValidationError(
                 "INVALID_NETWORK_CONFIG", f"networks.{field} must be true or false."
             )
 
     policy = config.get("structure_model_policy", "first")
-    if not isinstance(policy, str) or policy.strip().lower() not in {"first", "all"}:
+    if not isinstance(policy, str) or policy.strip().lower() not in STRUCTURE_MODEL_POLICIES:
         raise InputValidationError(
             "INVALID_STRUCTURE_MODEL_POLICY",
             "structure_model_policy must be 'first' or 'all'.",
         )
     policy = policy.strip().lower()
-    if policy == "all" and (
-        networks.get("protein_per_pdb") or networks.get("combined_protein_network")
-    ):
+    if policy == "all" and any(networks.get(field) for field in ALL_MODEL_FORBIDDEN_NETWORKS):
         raise InputValidationError(
             "PROTEIN_NETWORKS_UNSUPPORTED_FOR_ALL_MODELS",
             "Protein networks cannot be generated when structure_model_policy='all'; "
@@ -314,10 +308,9 @@ def _validate_analysis_config() -> None:
         raise InputValidationError(
             "INVALID_DISTANCE_THRESHOLDS", "distance_thresholds must be a JSON object."
         )
-    for field, minimum, maximum in (
-        ("ca_radius", 2.0, 30.0),
-        ("all_atoms_radius", 1.0, 15.0),
-    ):
+    for field, rule in DISTANCE_THRESHOLD_RULES.items():
+        minimum = float(rule["minimum"])
+        maximum = float(rule["maximum"])
         value = thresholds.get(field)
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             raise InputValidationError(
@@ -336,17 +329,18 @@ def _validate_analysis_config() -> None:
         raise InputValidationError(
             "INVALID_INTERACTION_FILTERS", "interaction_filters must be a JSON object."
         )
-    for field in (
-        "protein_protein_min_ca_neighbors",
-        "protein_protein_min_all_atom_contacts",
-        "protein_nucleic_acid_min_all_atom_contacts",
-        "nucleic_acid_min_all_atom_contacts",
-    ):
+    for field, rule in INTERACTION_FILTER_RULES.items():
         value = filters.get(field)
-        if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 100_000:
+        minimum = int(rule["minimum"])
+        maximum = int(rule["maximum"])
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or not minimum <= value <= maximum
+        ):
             raise InputValidationError(
                 "INVALID_INTERACTION_FILTERS",
-                f"interaction_filters.{field} must be an integer from 1 to 100000.",
+                f"interaction_filters.{field} must be an integer from {minimum} to {maximum}.",
             )
     if not isinstance(config.get("export_detailed_interactions", False), bool):
         raise InputValidationError(
@@ -1010,7 +1004,7 @@ def _export_chain_networks(
                 )
             ]
             nodes_data = generate_nodes_from_atom_data(model_chains, pdb_id)
-            network_title = f"Chain_Interaction_Network_{pdb_id}"
+            network_title = f"{NETWORK_TITLE_BASES['chain_per_pdb']}_{pdb_id}"
             if include_models:
                 network_title += f"_model{model_index}"
             create_cytoscape_network(
@@ -1195,7 +1189,9 @@ def _create_linked_identity_network(
             for node_id in component_nodes
             if node_id in chain_lookup and chain_lookup[node_id].get("uniprot_id")
         }
-        network_title = make_component_title("Combined_Network", component_uniprots)
+        network_title = make_component_title(
+            NETWORK_TITLE_BASES["combined_chain"], component_uniprots
+        )
         skipped = combined_graph_skip(
             network_kind="combined_chain_network",
             name=network_title,

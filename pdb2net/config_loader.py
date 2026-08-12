@@ -13,6 +13,8 @@ import json, os, platform
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
+from .server_interface import SERVER_ENVIRONMENT
+
 # === Minimal logging switch (default: quiet) ===
 VERBOSE = os.environ.get("PDB2NET_VERBOSE", "").strip().lower() in {"1", "true", "yes", "on"}
 
@@ -91,13 +93,11 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
     flat: Dict[str, Tuple[str, Any]] = {
         "PDB2NET_INPUT": ("input_folder_path", str),
         "PDB2NET_OUTPUT": ("output_path", str),
-        "PDB2NET_PDB_FASTA": ("pdb_fasta_path", str),
-        "PDB2NET_UNIPROT_FASTA": ("uniprot_fasta_path", str),
-        "PDB2NET_SIFTS_TSV": ("sifts_tsv_path", str),
+        **{
+            name: (descriptor["config_path"], str)
+            for name, descriptor in SERVER_ENVIRONMENT.items()
+        },
         "PDB2NET_CYTO_PATH": ("cytoscape_path", str),
-        "PDB2NET_BLAST_DB": ("blast_db_path", str),
-        "PDB2NET_BLAST_CACHE_PATH": ("blast_cache_path", str),
-        "PDB2NET_BLASTP": ("blastp_executable", str),
         "PDB2NET_DIAMOND": ("diamond.executable", str),
         "PDB2NET_DIAMOND_UNIREF90_DB": ("diamond.uniref90_db_path", str),
         "PDB2NET_DIAMOND_TEMP_DIR": ("diamond.temp_dir", str),
@@ -305,4 +305,4 @@ def load_config() -> Dict[str, Any]:
 # Load on import (lazy + cache)
 config = load_config()
 
-__all__ = ["config", "load_config"]
+__all__ = ["SERVER_ENVIRONMENT", "config", "load_config"]

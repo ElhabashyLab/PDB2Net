@@ -12,6 +12,8 @@ from .contracts import (
     PRECOMPUTED_ARTIFACT_SCHEMA_VERSION,
     WEB_CONFIG_SCHEMA_VERSION,
 )
+from .server_interface import server_interface_document
+from .server_interface import WEB_SERVER_INPUT_SUFFIXES
 
 
 def capability_document() -> dict[str, Any]:
@@ -24,14 +26,7 @@ def capability_document() -> dict[str, Any]:
         "precomputed_artifact_schema_version": PRECOMPUTED_ARTIFACT_SCHEMA_VERSION,
         "web_config_schema_version": WEB_CONFIG_SCHEMA_VERSION,
         "commands": ["run", "precompute", "assemble", "capabilities"],
-        "input_formats": [
-            ".pdb",
-            ".cif",
-            ".mmcif",
-            ".pdb.gz",
-            ".cif.gz",
-            ".mmcif.gz",
-        ],
+        "input_formats": list(WEB_SERVER_INPUT_SUFFIXES),
         "network_outputs": [
             "chain_per_pdb",
             "protein_per_pdb",
@@ -47,6 +42,7 @@ def capability_document() -> dict[str, Any]:
             "diamond_uniref90",
             "precomputed_store",
         ],
+        "server_interface": server_interface_document(),
     }
 
 

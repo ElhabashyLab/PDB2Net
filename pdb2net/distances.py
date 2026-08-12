@@ -30,6 +30,7 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 from .config_loader import config
+from .server_interface import INTERACTION_PIPELINE_VERSION
 
 # Caches for KD-Trees and extracted coordinates. Include object identity so
 # repeated chain IDs from different structures in one process never share trees.

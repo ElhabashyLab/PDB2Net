@@ -49,6 +49,18 @@ output contract, precomputed-artifact schema, web-config schema, available
 commands, input formats and relevant feature allowlists. The probe does not
 load machine-local configuration or inspect reference data.
 
+Capability schema 2 also exposes the stable `server_interface` object. Its
+`commands`, `contracts`, and `scientific_profiles` sections describe the exact
+CLI options used by workers, generated config and output/artifact shapes, and
+the scientific constraints of upload and precomputed execution. Precomputed
+distance thresholds and interaction filters are content-addressed profile
+inputs, not universal fixed values. Consumers should compare the complete
+`server_interface` object and fail closed on missing, changed, or unknown
+fields; generic feature lists outside that object remain additive.
+The reported annotation-pipeline ID covers the SIFTS/FASTA/BLAST annotation
+flow, including the optional DIAMOND/UniRef90 fallback and its guarded UniProt
+assignment policy; changing any of those semantics requires a new ID.
+
 An integration repository should keep its expected values in a tracked
 compatibility file, install Core from one immutable full commit SHA, and refuse
 to start a real worker when any reported value differs. A deployment-specific

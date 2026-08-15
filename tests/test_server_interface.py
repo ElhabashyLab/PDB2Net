@@ -52,6 +52,7 @@ from pdb2net.server_interface import (
     INTERACTION_PIPELINE_VERSION,
     INTERACTION_FILTER_RULES,
     MAX_ARTIFACT_STEM_BYTES,
+    MMCIF_IDENTITY_POLICY,
     NETWORK_OUTPUT_FIELDS,
     NETWORK_TITLE_BASES,
     PARSER_SEMANTICS,
@@ -254,6 +255,7 @@ def test_declared_web_input_suffixes_and_single_gzip_layer_match_real_parser(
         "supported_suffixes": list(WEB_SERVER_INPUT_SUFFIXES),
         "suffix_matching": "case_insensitive",
         "gzip": {"optional": True, "maximum_layers": 1},
+        "mmcif_identity_policy": MMCIF_IDENTITY_POLICY,
     }
     assert document["input_formats"] == list(WEB_SERVER_INPUT_SUFFIXES)
     for suffix in WEB_SERVER_INPUT_SUFFIXES:

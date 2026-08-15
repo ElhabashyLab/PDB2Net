@@ -139,6 +139,18 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
         "PDB2NET_MAX_PROCESSING_BATCH_BYTES": ("resource_limits", "max_processing_batch_bytes"),
         "PDB2NET_MAX_TOTAL_INPUT_EXPANDED_BYTES": ("resource_limits", "max_total_input_expanded_bytes"),
         "PDB2NET_MAX_SINGLE_INPUT_EXPANDED_BYTES": ("resource_limits", "max_single_input_expanded_bytes"),
+        "PDB2NET_MAX_DETAILED_INTERACTION_ROWS": (
+            "resource_limits",
+            "max_detailed_interaction_rows",
+        ),
+        "PDB2NET_MAX_DETAILED_INTERACTION_BYTES": (
+            "resource_limits",
+            "max_detailed_interaction_bytes",
+        ),
+        "PDB2NET_MIN_OUTPUT_FREE_BYTES": (
+            "resource_limits",
+            "min_output_free_bytes",
+        ),
         "PDB2NET_COMBINED_MAX_NODES": ("combined_graph_limits", "max_nodes"),
         "PDB2NET_COMBINED_MAX_EDGES": ("combined_graph_limits", "max_edges"),
     }
@@ -217,6 +229,9 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
     cfg["resource_limits"].setdefault("max_processing_batch_bytes", None)
     cfg["resource_limits"].setdefault("max_total_input_expanded_bytes", None)
     cfg["resource_limits"].setdefault("max_single_input_expanded_bytes", None)
+    cfg["resource_limits"].setdefault("max_detailed_interaction_rows", None)
+    cfg["resource_limits"].setdefault("max_detailed_interaction_bytes", None)
+    cfg["resource_limits"].setdefault("min_output_free_bytes", None)
     cfg.setdefault("network_annotations", {})
     cfg["network_annotations"].setdefault("use_embedded_sifts", True)
     cfg["network_annotations"].setdefault("tooltip_fields", ["uniprot"])

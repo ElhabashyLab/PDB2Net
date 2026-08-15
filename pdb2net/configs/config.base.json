@@ -25,7 +25,10 @@
     "max_single_input_bytes": null,
     "max_processing_batch_bytes": null,
     "max_total_input_expanded_bytes": null,
-    "max_single_input_expanded_bytes": null
+    "max_single_input_expanded_bytes": null,
+    "max_detailed_interaction_rows": null,
+    "max_detailed_interaction_bytes": null,
+    "min_output_free_bytes": null
   },
   "combined_graph_limits": { "max_nodes": null, "max_edges": null },
   "reference_manifest_id": "",

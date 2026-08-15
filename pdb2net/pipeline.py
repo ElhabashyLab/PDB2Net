@@ -19,7 +19,10 @@ from .config_loader import config
 from .components import build_identity_edges, find_linked_components, make_component_title
 from .cytoscape import create_cytoscape_network, generate_nodes_from_atom_data
 from .data_processor import process_structure
-from .detailed_results_exporter import export_detailed_interactions
+from .detailed_results_exporter import (
+    DetailedInteractionBudget,
+    export_detailed_interactions,
+)
 from .distances import calculate_distances_with_ckdtree, coords_cache, tree_cache
 from .file_parser import (
     FileSignature,
@@ -914,6 +917,7 @@ def _resource_summary(
     *,
     processing_batches: int,
     parsing_workers_used: int,
+    detailed_interactions: DetailedInteractionBudget | None = None,
 ) -> Dict[str, Any]:
     limits = _resource_limits()
     try:
@@ -924,6 +928,18 @@ def _resource_summary(
     except ImportError:
         main_rss = None
         child_rss = None
+    detailed_summary = (
+        detailed_interactions.as_dict()
+        if detailed_interactions is not None
+        else {
+            "enabled": False,
+            "rows": 0,
+            "bytes": 0,
+            "max_rows": limits["max_detailed_interaction_rows"],
+            "max_bytes": limits["max_detailed_interaction_bytes"],
+            "min_free_bytes": limits["min_output_free_bytes"],
+        }
+    )
     return {
         "input": {
             "files": len(inventory.file_sizes),
@@ -942,6 +958,7 @@ def _resource_summary(
             "main_process": main_rss,
             "child_processes": child_rss,
         },
+        "detailed_interactions": detailed_summary,
     }
 
 
@@ -949,6 +966,7 @@ def _export_detailed_interaction_tables(
     combined_data: List[Dict[str, Any]],
     results: List[Dict[str, Any]],
     distances_dir: str,
+    budget: DetailedInteractionBudget,
 ) -> None:
     """Write optional atom-level interaction CSVs."""
     for structure_data in combined_data:
@@ -966,7 +984,12 @@ def _export_detailed_interaction_tables(
                 )
             )
         ]
-        export_detailed_interactions(structure_data, pdb_interactions, distances_dir)
+        export_detailed_interactions(
+            structure_data,
+            pdb_interactions,
+            distances_dir,
+            budget=budget,
+        )
 
 
 def _export_chain_networks(
@@ -1239,6 +1262,16 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
         preflight_identities = _preflight_structure_identities(file_paths, inventory)
         _validate_required_reference_files()
         output_paths = create_run_output_paths(config["output_path"])
+        limits = _resource_limits()
+        detailed_interaction_budget = (
+            DetailedInteractionBudget(
+                max_rows=limits["max_detailed_interaction_rows"],
+                max_bytes=limits["max_detailed_interaction_bytes"],
+                min_free_bytes=limits["min_output_free_bytes"],
+            )
+            if config.get("export_detailed_interactions", False)
+            else None
+        )
 
         logger.info(
             "Run started with %s input file(s), %s total bytes",
@@ -1331,7 +1364,14 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
             timings.interaction += time.time() - start_time
 
             if config.get("export_detailed_interactions", False):
-                _export_detailed_interaction_tables(batch_data, batch_results, output_paths.distances_dir)
+                if detailed_interaction_budget is None:
+                    raise RuntimeError("Detailed interaction budget was not initialized")
+                _export_detailed_interaction_tables(
+                    batch_data,
+                    batch_results,
+                    output_paths.distances_dir,
+                    detailed_interaction_budget,
+                )
 
             results.extend(batch_results)
             combined_data.extend(_compact_structure_summaries(batch_data))
@@ -1400,6 +1440,7 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
                 inventory,
                 processing_batches=processing_batches,
                 parsing_workers_used=parsing_workers_used,
+                detailed_interactions=detailed_interaction_budget,
             ),
             skipped_outputs=skipped_outputs,
             warnings=warnings,

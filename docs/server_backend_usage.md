@@ -68,6 +68,15 @@ environment file may contain paths and secrets, but must not override the
 tracked compatibility keys. Changes to fields or semantics require a deliberate
 contract/schema version change and corresponding consumer update.
 
+Real web workers should set finite values for
+`resource_limits.max_detailed_interaction_rows`,
+`resource_limits.max_detailed_interaction_bytes`, and
+`resource_limits.min_output_free_bytes` whenever detailed atom-interaction CSV
+export is offered. PDB2Net checks those cumulative limits while serializing and
+publishes each CSV only after the complete file has been written successfully.
+Standalone defaults remain `null` so local scientific workflows choose their
+own appropriate budgets explicitly.
+
 ## Package Installation Requirements
 
 The installed package includes PDB2Net's shared default configuration files:

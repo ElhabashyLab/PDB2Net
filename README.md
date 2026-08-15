@@ -198,6 +198,9 @@ You can override individual settings via ENV:
 | `PDB2NET_MAX_SINGLE_INPUT_BYTES` | `resource_limits.max_single_input_bytes` |
 | `PDB2NET_MAX_TOTAL_INPUT_EXPANDED_BYTES` | `resource_limits.max_total_input_expanded_bytes` |
 | `PDB2NET_MAX_SINGLE_INPUT_EXPANDED_BYTES` | `resource_limits.max_single_input_expanded_bytes` |
+| `PDB2NET_MAX_DETAILED_INTERACTION_ROWS` | `resource_limits.max_detailed_interaction_rows` |
+| `PDB2NET_MAX_DETAILED_INTERACTION_BYTES` | `resource_limits.max_detailed_interaction_bytes` |
+| `PDB2NET_MIN_OUTPUT_FREE_BYTES` | `resource_limits.min_output_free_bytes` |
 | `PDB2NET_USE_EMBEDDED_SIFTS` | `network_annotations.use_embedded_sifts` |
 | `PDB2NET_ANNOTATION_TOOLTIP_FIELDS` | comma-separated `network_annotations.tooltip_fields` |
 | `PDB2NET_MAX_TOOLTIP_SEGMENTS_PER_DATABASE` | `network_annotations.max_tooltip_segments_per_database` |

@@ -37,4 +37,4 @@ jobs:
           cd /tmp
           PYTHONPATH=/tmp/pdb2net-package-check python -c 'import pdb2net, pathlib; root = pathlib.Path(pdb2net.__file__).parent; assert (root / "configs/config.base.json").is_file(); assert not (root / "configs/config.local.json").exists()'
           PYTHONPATH=/tmp/pdb2net-package-check python -m pdb2net capabilities --json > /tmp/pdb2net-capabilities.json
-          python -c 'import json; value=json.load(open("/tmp/pdb2net-capabilities.json", encoding="utf-8")); assert value["capabilities_schema_version"] == "1"; assert value["output_contract_version"] == "1.2"; assert "run" in value["commands"]'
+          python -c 'import json; value=json.load(open("/tmp/pdb2net-capabilities.json", encoding="utf-8")); assert value["capabilities_schema_version"] == "2"; assert value["output_contract_version"] == "1.2"; assert "run" in value["commands"]'

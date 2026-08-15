@@ -7,6 +7,11 @@
 - Centralize CLI, web-output, web-config, capability, and precomputed-artifact
   contract constants so producers and compatibility probes cannot drift through
   duplicated literals.
+- Stream detailed atom-interaction CSVs with cumulative row, byte, and
+  free-space limits so web jobs cannot exhaust memory or staging storage before
+  artifact validation.
+- Publish the existing single-block mmCIF and content-identity conflict policy
+  through the stable server interface.
 
 ## v0.2.0-rc3 - 2026-07-15
 

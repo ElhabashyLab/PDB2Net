@@ -35,6 +35,9 @@ RESOURCE_LIMIT_FIELDS = (
     "max_processing_batch_bytes",
     "max_total_input_expanded_bytes",
     "max_single_input_expanded_bytes",
+    "max_detailed_interaction_rows",
+    "max_detailed_interaction_bytes",
+    "min_output_free_bytes",
 )
 ANNOTATION_DATABASES = ("uniprot", "pfam", "cath", "scop2")
 SERVER_ENVIRONMENT = {
@@ -128,6 +131,16 @@ MAX_ARTIFACT_STEM_BYTES = 180
 PARSER_SEMANTICS = (
     "validated-single-document-gemmi-heavy-atoms-no-hydrogen-or-deuterium-v3"
 )
+MMCIF_IDENTITY_POLICY = {
+    "data_block_count": {"minimum": 1, "maximum": 1},
+    "content_claims": [
+        "data_block",
+        "_entry.id",
+        "_database_2[PDB].database_code",
+    ],
+    "content_claim_conflict": "reject_with_CONFLICTING_STRUCTURE_IDENTITY",
+    "filename_mismatch": "content_wins_with_STRUCTURE_FILENAME_ID_MISMATCH_warning",
+}
 INTERACTION_PIPELINE_VERSION = "pdb2net-distance-classification-v1"
 ANNOTATION_PIPELINE_VERSION = "pdb2net-sifts-fasta-search-annotations-v3"
 COMBINED_COMPONENT_SEMANTICS = "pdb2net-cross-pdb-uniprot-linked-components-v1"
@@ -424,6 +437,7 @@ CONTRACTS = {
             "optional": True,
             "maximum_layers": 1,
         },
+        "mmcif_identity_policy": copy.deepcopy(MMCIF_IDENTITY_POLICY),
     },
     "environment": copy.deepcopy(SERVER_ENVIRONMENT),
     "web_config": {
@@ -685,6 +699,7 @@ __all__ = [
     "INTERACTION_PIPELINE_VERSION",
     "INTERACTION_FILTER_RULES",
     "MAX_ARTIFACT_STEM_BYTES",
+    "MMCIF_IDENTITY_POLICY",
     "NETWORK_ANNOTATION_RULES",
     "NETWORK_OUTPUT_FIELDS",
     "NETWORK_TITLE_BASES",

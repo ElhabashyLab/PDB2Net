@@ -39,8 +39,8 @@ PDB2Net is a batch pipeline for turning PDB/mmCIF structure files into protein a
 - `pdb2net/outputs.py`: per-run output folders and the versioned run/web output contract.
 - `pdb2net/batching.py`: streamed batch sizing, timeout handling, and skipped-batch logging.
 - `pdb2net/pipeline.py`: single-run orchestration, worker selection, parsing, annotation, interaction detection, and export sequencing.
-- `pdb2net/precomputed_store.py`: optional profile-namespaced, validated per-PDB
-  chain/edge artifacts plus targeted cache population and cached network assembly.
+- `pdb2net/precomputed/`: schema-3 validation and bounded I/O, the sole offline
+  store builder, and the read-only assembly consumer.
 - `pdb2net/main.py`: stable public entry points for single-run and batch execution.
 
 ## External Inputs
@@ -56,17 +56,17 @@ The full pipeline depends on reference files that are intentionally not committe
 
 In headless mode, PDB2Net writes CX2 files directly and does not require Cytoscape. This is the preferred mode for automated checks and server runs.
 
-In desktop mode, PDB2Net connects to Cytoscape through py4cytoscape, creates networks in the UI, applies styles, and also exports CX2.
+In desktop mode, the optional `cytoscape` package extra lets PDB2Net connect to
+Cytoscape through py4cytoscape, create networks in the UI, apply styles, and
+also export CX2. The base package does not depend on py4cytoscape.
 
-The optional precomputed mode changes only the input adapter. Schema 2 stores
-compact reference-independent geometry/interactions separately from refreshable
-chain annotations and retained embedded SIFTS segments; `assemble` merges the
-validated sections and feeds them into the same network exporters. It does not
-persist raw coordinates or detailed atom-pair CSVs. Geometry profile namespaces
-prevent silent mixing across parser/scientific policies, while annotation
-profile IDs invalidate changing reference/search policy without automatically
-discarding unchanged geometry. Store ownership, mirror promotion, obsolete-ID
-retention, and rollback remain deployment concerns.
+The optional precomputed mode changes only the input adapter. Schema 3 stores
+compact geometry/interactions separately from chain annotations and retained
+embedded SIFTS segments; `assemble` merges the validated sections and feeds them
+into the same network exporters. It does not persist raw coordinates or detailed
+atom-pair CSVs. One directory contains one complete fixed profile. Offline
+`precompute` is its only writer, while assembly is read-only. Store promotion
+and retention remain deployment concerns.
 The ordinary local `run --input-dir` path does not require this store.
 
 ## Configuration

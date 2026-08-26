@@ -15,31 +15,31 @@ It uses **Gemmi** for structure parsing, **SciPy cKDTree** for distance-based in
 - Optional versioned per-PDB precompute store for fast repeated assembly
 - Machine-readable, configuration-free capability contract for deployment compatibility checks
 
----
+## Installation
 
-# System Requirements & Setup
+PDB2Net supports Python 3.11 and 3.12. A base installation is sufficient for
+headless CX2 export and does not install Cytoscape integration:
 
-### 1️⃣ Install Python **3.11 or 3.12** 
-- **Recommended Version:** Python **3.11**  
-- [Download Python](https://www.python.org/downloads/)  
-- Ensure that **pip** is installed:
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python3 -m pip install .
+```
 
->  python3 -m ensurepip --default-pip
+From a source checkout, `python3 -m pip install -r requirements.txt` installs
+the same base scientific dependencies. Desktop users who want live Cytoscape
+integration can install the optional extra instead:
 
+```bash
+python3 -m pip install ".[cytoscape]"
+```
 
-### 2️⃣ Install Required Libraries  
-> python3 -m pip install -r requirements.txt
+Live mode also requires Cytoscape 3.10.4 or newer. Headless runs use
+`--headless` or `open_in_cytoscape: false` and never import `py4cytoscape`.
+For development setup, Ruff, tests, and the environment pre-flight check, see
+[`docs/development.md`](docs/development.md).
 
-For local development notes and an environment pre-flight check, see [`docs/development.md`](docs/development.md).
-
-
-### 3️⃣ Install Cytoscape  
-- Download **Cytoscape 3.10.4** or newer:  
-  [Cytoscape Download](https://cytoscape.org/download.html)  
-- **Start once manually**, so it can auto-launch later via PDB2Net.
-- On headless servers, Cytoscape is automatically disabled (`open_in_cytoscape = false`).
-
-### 4️⃣ Reference Data (required)
+## Reference data
 
 | File                    | Source                                                                                                         | Purpose                          |
 | ----------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------- |
@@ -48,7 +48,7 @@ For local development notes and an environment pre-flight check, see [`docs/deve
 | `uniprot_sprot.fasta`   | [https://www.uniprot.org/uniprotkb?query=reviewed:true](https://www.uniprot.org/uniprotkb?query=reviewed:true) | Swiss-Prot for building BLAST DB |
 
 
-### 5️⃣ Setting up BLAST for UniProt Matching
+### Setting up BLAST for UniProt matching
 
 #### **Download & Install BLAST+**
 1. **Go to the NCBI BLAST+ Download page:**  
@@ -65,7 +65,7 @@ For local development notes and an environment pre-flight check, see [`docs/deve
      sudo mv ncbi-blast-* /usr/local/bin
      ```
 
-### 6️⃣ **Create the BLAST Database**
+### Create the BLAST database
 Now, generate the BLAST database from the downloaded UniProt FASTA file.
 
 1. Open a **terminal** (Linux/Mac) or **PowerShell/Git Bash** (Windows).
@@ -88,14 +88,15 @@ Now, generate the BLAST database from the downloaded UniProt FASTA file.
 
 ---
 
-# ⚙️ Configuration (Multi-Layer)
+## Configuration
 
 **PDB2Net** loads configuration in layers — later files override earlier ones:
 
-1. `configs/config.base.json` — shared defaults  
-2. `configs/config.{windows|linux|darwin}.json` — OS-specific overrides  
-3. `configs/config.local.json` — user machine settings *(git-ignored)*  
-4. **Environment variables** — highest priority  
+1. `pdb2net/configs/config.base.json` — shared defaults
+2. `pdb2net/configs/config.{windows|linux|darwin}.json` — OS defaults
+3. `pdb2net/configs/config.local.json` — machine settings *(git-ignored)*
+4. `PDB2NET_CONFIG_FILE` — an explicit JSON configuration file
+5. individual `PDB2NET_*` environment overrides
 
 > 🗂️ Paths support `~` and `$VARS` expansion.
 
@@ -366,26 +367,16 @@ pdb2net assemble \
   --headless
 ```
 
-An absent entry may be populated from a controlled local archive without a
-recursive full-archive scan:
+`assemble` is read-only. An absent entry fails with
+`PRECOMPUTED_ENTRY_MISSING`; add it by building a new store with the offline
+`precompute` command and promote that store operationally.
 
-```bash
-pdb2net assemble \
-  --store /srv/pdb2net/precomputed \
-  --pdb-id pdb_00001abc \
-  --output-dir ./outputs \
-  --source-dir /srv/pdb/archive \
-  --populate-missing \
-  --headless
-```
-
-Precomputed schema 2 uses canonical Extended PDB IDs and separates stable
-geometry/interactions from refreshable annotations. A reference-manifest
-change can therefore refresh annotation data while reusing unchanged geometry.
-It requires `structure_model_policy: "first"`, a non-empty and operationally
-versioned `reference_manifest_id`, and `export_detailed_interactions: false`. See
+Precomputed schema 3 uses canonical Extended PDB IDs and one fixed scientific
+profile per store. It requires `structure_model_policy: "first"`, a non-empty
+and operationally versioned `reference_manifest_id`, and
+`export_detailed_interactions: false`. See
 [`docs/precomputed_store.md`](docs/precomputed_store.md) for the artifact layout,
-archive naming rules, invalidation, and safe promotion procedure.
+validation, and safe promotion procedure.
 
 ## **User input**  
 Valid PDB/mmCIF files found in `input_folder_path`
@@ -435,15 +426,18 @@ The BLAST database will be built from a UniProt FASTA file.
   
 ---
 
-# Cite
-Habitzreither, G., Gautam, Lupas, A., Elhabashy, H. PDB2Net: Automated extraction of biomolecular Interaction Networks from Three-Dimensional Structures. Manuscript in preparation.
+## Citation
 
-# Authors
+Use the software citation in [`CITATION.cff`](CITATION.cff). Publication details
+can be updated there when a corresponding manuscript or archived release is
+available.
+
+## Authors
 - Gregor Habitzreither
 - Hadeer Elhabashy
 
-# Contact
+## Contact
 If you have any questions or inquiries, please feel free to contact Hadeer Elhabashy at (Elhabashylab [@] gmail.com))
 
-# License
+## License
 - The **PDB2NET code** in this repository is licensed under the [MIT License](./LICENSE).

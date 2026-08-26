@@ -18,6 +18,7 @@ unless you have explicitly activated it:
 
 ```bash
 .venv/bin/python -m pytest
+.venv/bin/ruff check pdb2net tests scripts
 .venv/bin/python scripts/check_environment.py
 ```
 
@@ -82,6 +83,10 @@ The check reports:
 
 Missing Cytoscape is acceptable for headless checks. Missing BLAST tools or reference files only block the BLAST-backed annotation path, not pure code editing.
 
+`py4cytoscape` is intentionally absent from the base package. Install
+`.[cytoscape]` only when testing live Cytoscape behavior; the headless suite and
+base package must pass without it.
+
 If Matplotlib warns that its default config directory is not writable, set a temporary cache directory before running imports or scripts:
 
 ```bash
@@ -110,22 +115,8 @@ Expected result:
 
 - `configs/config.base.json` exists in the installed copy
 - `configs/config.local.json` does not exist in the installed copy
-- `pdb2net --help` and `pdb2net run --help` work after installation
-
-## Contract 1.2 Mutation Gate
-
-The release mutation smoke copies Core and Webserver code into temporary
-directories, injects the seven critical contract regressions, and requires the
-targeted tests to fail by assertion. It never edits either working tree:
-
-```bash
-.venv/bin/python scripts/release_mutation_smoke.py \
-  --web-root /path/to/pdb2net-webserver
-```
-
-The gate covers ID normalization, SIFTS ambiguity, gzip EOF validation,
-annotation cache versioning, tooltip-independent cache profiles, forbidden CX1
-aspects, and required Contract-1.2 summary fields.
+- `pdb2net --version` and help for `run`, `precompute`, `assemble`, and
+  `capabilities` work after installation
 
 ## Full Pipeline Requirements
 

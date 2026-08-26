@@ -1,6 +1,18 @@
 # Changelog
 
-## v0.2.0-rc4 - Unreleased
+## v0.2.0-rc5 - Unreleased
+
+- Replace the unreleased capability schema 2 semantic snapshot with the small,
+  configuration-free capability schema 3 document.
+- Publish CLI contract 2 and web-output contract 2.0.
+- Remove runtime lazy-population options; `assemble` is a read-only store
+  consumer and `precompute` is the only writer.
+- Publish the schema-3 one-profile store with manifest-last offline builds and
+  bounded read-only assembly.
+- Make live Cytoscape support an optional package extra and add Ruff plus
+  installed-wheel checks to the Python 3.11/3.12 quality matrix.
+
+## v0.2.0-rc4 - 2026-08-26
 
 - Add `pdb2net --version` and a configuration-free
   `pdb2net capabilities --json` handshake for server integrations.
@@ -21,8 +33,8 @@
   standard-profile chain-pair edges without retaining atom coordinates or
   detailed atom-pair tables.
 - Add `pdb2net assemble` to create per-PDB and combined CX2 networks from
-  validated cache entries, including targeted lazy population from a local PDB
-  archive and normal output-contract 1.1 success/failure summaries.
+  validated cache entries with normal output-contract 1.1 success/failure
+  summaries.
 - Namespace artifacts by a scientific profile fingerprint so reference,
   annotation-policy, cutoff, filter, and schema changes never silently reuse or
   overwrite incompatible entries.

@@ -45,28 +45,15 @@ pdb2net capabilities --json
 
 The JSON document is the stable handshake between Core and an external worker.
 It reports the PDB2Net package version, capability schema, CLI contract, web
-output contract, precomputed-artifact schema, web-config schema, available
-commands, input formats and relevant feature allowlists. The probe does not
+output contract, precomputed-artifact schema, available commands, input
+formats, network outputs, model policies, and relevant features. The probe does not
 load machine-local configuration or inspect reference data.
 
-Capability schema 2 also exposes the stable `server_interface` object. Its
-`commands`, `contracts`, and `scientific_profiles` sections describe the exact
-CLI options used by workers, generated config and output/artifact shapes, and
-the scientific constraints of upload and precomputed execution. Precomputed
-distance thresholds and interaction filters are content-addressed profile
-inputs, not universal fixed values. Consumers should compare the complete
-`server_interface` object and fail closed on missing, changed, or unknown
-fields; generic feature lists outside that object remain additive.
-The reported annotation-pipeline ID covers the SIFTS/FASTA/BLAST annotation
-flow, including the optional DIAMOND/UniRef90 fallback and its guarded UniProt
-assignment policy; changing any of those semantics requires a new ID.
-
-An integration repository should keep its expected values in a tracked
-compatibility file, install Core from one immutable full commit SHA, and refuse
-to start a real worker when any reported value differs. A deployment-specific
-environment file may contain paths and secrets, but must not override the
-tracked compatibility keys. Changes to fields or semantics require a deliberate
-contract/schema version change and corresponding consumer update.
+Capability schema 3 is intentionally small. Integrations check the required
+scalar contract versions and that their required command, format, output,
+policy, and feature members are present. They do not compare the complete JSON
+document and do not duplicate Core's CLI, configuration, scientific, CX2, or
+CSV semantics. The worker image pins the installed package revision separately.
 
 Real web workers should set finite values for
 `resource_limits.max_detailed_interaction_rows`,
@@ -177,35 +164,21 @@ RSS/load test is therefore a deployment gate for the 2.5-GB public profile.
 ## Optional PDB-ID Store Mode
 
 The optional `precompute`/`assemble` path is documented in
-[`precomputed_store.md`](precomputed_store.md). Schema 2 caches compact geometry
-and standard-profile edges separately from refreshable chain annotations, not
-coordinates or detailed atom-pair CSVs. It therefore rejects detailed
-interaction export and enforces fixed per-entry and per-request artifact
-ceilings.
+[`precomputed_store.md`](precomputed_store.md). Schema 3 stores compact geometry,
+standard-profile edges, and chain annotations, not coordinates or detailed
+atom-pair CSVs. It therefore rejects detailed interaction export and enforces
+fixed per-entry and per-request artifact ceilings.
 
-For a shared deployment, run offline precompute and the worker under the same
-UID/GID or a common store-owning group. Use setgid directories (normally mode
-`2770`) so nested profile/shard directories inherit the group. Published Core
-artifacts use `0640` and lock files use `0660`; directory write/search access is
-required for lazy population and atomic replacement.
+Build each store generation offline. Runtime workers mount only the published
+store and read it without archive access or write permission.
 
 Set `PDB2NET_REFERENCE_MANIFEST_ID` to an immutable manifest identity covering
 reference checksums, the Core/worker build, and exact BLAST+/DIAMOND versions.
-Do not reuse it after a reference or toolchain change. Mirror refreshes should
-flow through staging, incremental precompute, scientific/contract validation,
-and an external atomic store promotion with the prior generation retained for
-rollback. Core never automatically removes cached IDs that disappear from a
-new mirror; obsolete-ID policy belongs to the operator's staging catalog and
-retention workflow.
-
-For a managed server mirror, keep exactly one current Core mmCIF gzip per entry
-at `entries/<shard>/<extended-id>/structures/<extended-id>.cif.gz`; for example
-`entries/ab/pdb_00001abc/structures/pdb_00001abc.cif.gz`. The targeted resolver
-also accepts documented legacy layouts for local/backward compatibility and
-fails closed when more than one candidate matches. This server fast path is
-additive: ordinary local `pdb2net run --input-dir ...`, including enriched
-NextGen uploads, remains independent of a precomputed store and all web
-infrastructure.
+Do not reuse it after a reference or toolchain change. Mirror refreshes flow
+through a new target directory, offline precompute, scientific/contract
+validation, and external store promotion. Ordinary local
+`pdb2net run --input-dir ...`, including enriched NextGen uploads, remains
+independent of a precomputed store and all web infrastructure.
 
 ## Output Contract
 
@@ -232,9 +205,9 @@ outputs/
     └── *.csv
 ```
 
-Contract `1.2` keeps the existing fields and adds `identities` and
-`structure_inputs` alongside annotation counts, reference identity/metadata,
-resource observations, and `skipped_outputs`. Combined graphs
+Contract `2.0` contains `identities` and `structure_inputs` alongside annotation
+counts, reference identity/metadata, resource observations, and
+`skipped_outputs`. Combined graphs
 over the configured node or edge cap are listed in `skipped_outputs` and
 `warnings`; the job still succeeds and retains its other outputs. `summary.json`
 also includes `output_contract_version` and `pdb2net_version` so workers can

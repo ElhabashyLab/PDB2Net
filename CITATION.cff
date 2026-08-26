@@ -1,9 +1,17 @@
 cff-version: 1.2.0
 message: "If you use PDB2Net, please cite this software."
+type: software
 title: "PDB2Net: Automated extraction of biomolecular interaction networks from three-dimensional structures"
-version: "0.2.0rc4"
+version: "0.2.0rc5"
 license: MIT
 repository-code: "https://github.com/ElhabashyLab/PDB2Net"
+url: "https://github.com/ElhabashyLab/PDB2Net"
+abstract: "PDB2Net extracts biomolecular interaction networks from PDB and mmCIF structures and exports Cytoscape-compatible CX2 networks."
+keywords:
+  - bioinformatics
+  - Cytoscape
+  - mmCIF
+  - protein interactions
 authors:
   - family-names: "Habitzreither"
     given-names: "Gregor"

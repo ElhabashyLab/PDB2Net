@@ -1,4 +1,8 @@
 import json
+import os
+from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 
@@ -28,19 +32,52 @@ def test_capabilities_json_reports_stable_server_contracts(capsys) -> None:
     assert main(["capabilities", "--json"]) == 0
 
     document = json.loads(capsys.readouterr().out)
-    assert document["capabilities_schema_version"] == "2"
-    assert document["pdb2net_version"] == __version__
-    assert document["cli_contract_version"] == "1"
-    assert document["output_contract_version"] == "1.2"
-    assert document["precomputed_artifact_schema_version"] == "2"
-    assert document["web_config_schema_version"] == "1"
-    assert document["commands"] == ["run", "precompute", "assemble", "capabilities"]
-    assert document["network_annotation_databases"] == ["uniprot", "pfam", "cath", "scop2"]
-    assert set(document["server_interface"]) == {
-        "commands",
-        "contracts",
-        "scientific_profiles",
+    assert document == {
+        "capabilities_schema_version": "3",
+        "pdb2net_version": __version__,
+        "cli_contract_version": "2",
+        "output_contract_version": "2.0",
+        "precomputed_artifact_schema_version": "3",
+        "commands": ["run", "precompute", "assemble", "capabilities"],
+        "input_formats": [
+            ".pdb",
+            ".cif",
+            ".mmcif",
+            ".pdb.gz",
+            ".cif.gz",
+            ".mmcif.gz",
+        ],
+        "network_outputs": [
+            "chain_per_pdb",
+            "protein_per_pdb",
+            "combined_chain_network",
+            "combined_protein_network",
+        ],
+        "structure_model_policies": ["first", "all"],
+        "features": [
+            "headless_cx2",
+            "detailed_interactions",
+            "embedded_sifts",
+            "diamond_uniref90",
+            "precomputed_store",
+        ],
     }
+
+
+def test_capabilities_are_configuration_free(tmp_path: Path) -> None:
+    environment = dict(os.environ)
+    environment["PDB2NET_CONFIG_FILE"] = str(tmp_path / "does-not-exist.json")
+    result = subprocess.run(
+        [sys.executable, "-m", "pdb2net", "capabilities", "--json"],
+        cwd=Path(__file__).resolve().parents[1],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["capabilities_schema_version"] == "3"
 
 
 def test_run_help_includes_backend_output_option(capsys) -> None:

@@ -10,13 +10,20 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from .artifact_names import portable_artifact_stem
-from .server_interface import (
-    CX2_DECLARATION_SCOPES,
-    CX2_HEADER,
-    CX2_REQUIRED_ASPECT_ORDER,
-    CX2_SUCCESS_STATUS,
-)
 from .visual_style import VISUAL_TUNING, get_network_visual_profile
+
+CX2_HEADER = {"CXVersion": "2.0", "hasFragments": False}
+CX2_REQUIRED_ASPECT_ORDER = (
+    "metaData",
+    "attributeDeclarations",
+    "networkAttributes",
+    "nodes",
+    "edges",
+    "visualProperties",
+    "status",
+)
+CX2_DECLARATION_SCOPES = ("networkAttributes", "nodes", "edges")
+CX2_SUCCESS_STATUS = ({"error": "", "success": True},)
 
 
 def _missing_scalar(value: Any) -> bool:

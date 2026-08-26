@@ -159,15 +159,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     assemble.add_argument("--config", help="Optional JSON config file loaded after local config.")
     assemble.add_argument(
-        "--source-dir",
-        help="Optional local PDB archive used only with --populate-missing.",
-    )
-    assemble.add_argument(
-        "--populate-missing",
-        action="store_true",
-        help="Precompute an absent requested entry from --source-dir, then continue.",
-    )
-    assemble.add_argument(
         "--headless",
         action="store_true",
         help="Disable live Cytoscape and write CX2 files only.",
@@ -307,7 +298,7 @@ def precompute_command(args: argparse.Namespace) -> int:
     """Populate a portable store with compact standard-profile graph entries."""
     _load_auxiliary_config(args)
     try:
-        from .precomputed_store import precompute_directory
+        from .precomputed import precompute_directory
 
         report = precompute_directory(args.store, args.input_dir, recursive=args.recursive)
     except Exception as exc:
@@ -341,14 +332,12 @@ def assemble_command(args: argparse.Namespace) -> int:
         ensure_cytoscape_running()
 
     try:
-        from .precomputed_store import run_assemble_pipeline
+        from .precomputed import run_assemble_pipeline
 
         output_paths = run_assemble_pipeline(
             args.store,
             args.pdb_id,
             web_output_dir=args.web_output_dir,
-            source_dir=args.source_dir,
-            populate_missing=args.populate_missing,
         )
     except Exception as exc:
         print(f"PDB2Net assemble failed: {exc}", file=sys.stderr)

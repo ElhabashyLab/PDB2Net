@@ -31,7 +31,9 @@ from .cytoscape import create_cytoscape_network
 from .graph_limits import combined_graph_skip, normalize_combined_graph_limits
 from .network_annotations import annotation_node_metadata
 from .residue_types import count_polymer_lengths
-from .server_interface import NETWORK_TITLE_BASES
+
+PROTEIN_NETWORK_TITLE = "Protein_Network"
+COMBINED_PROTEIN_NETWORK_TITLE = "Combined_Protein_Network"
 
 
 def create_protein_network(
@@ -313,7 +315,7 @@ def create_protein_network(
             # NEW: protein per-PDB folder
             create_cytoscape_network(
                 edges,
-                f"{NETWORK_TITLE_BASES['protein_per_pdb']}_{pdb_id}",
+                f"{PROTEIN_NETWORK_TITLE}_{pdb_id}",
                 per_pdb_out,
                 nodes_data=nodes,
             )
@@ -326,14 +328,14 @@ def create_protein_network(
             # NEW: protein per-PDB folder
             create_cytoscape_network(
                 [],
-                f"{NETWORK_TITLE_BASES['protein_per_pdb']}_{pdb_id}",
+                f"{PROTEIN_NETWORK_TITLE}_{pdb_id}",
                 per_pdb_out,
                 nodes_data=nodes,
             )
 
     def make_combined_component_title(component_uniprots: Set[str]) -> str:
         return make_component_title(
-            NETWORK_TITLE_BASES["combined_protein"], component_uniprots
+            COMBINED_PROTEIN_NETWORK_TITLE, component_uniprots
         )
 
     def find_interlinked_chain_components() -> List[Set[str]]:

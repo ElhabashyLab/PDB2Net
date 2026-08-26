@@ -9,11 +9,20 @@ detects headless/container environments to disable GUI-dependent features
 (e.g., opening Cytoscape) unless explicitly enabled.
 """
 from __future__ import annotations
-import json, os, platform
+import json
+import os
+import platform
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
-from .server_interface import SERVER_ENVIRONMENT
+SERVER_ENVIRONMENT = {
+    "PDB2NET_PDB_FASTA": "pdb_fasta_path",
+    "PDB2NET_SIFTS_TSV": "sifts_tsv_path",
+    "PDB2NET_UNIPROT_FASTA": "uniprot_fasta_path",
+    "PDB2NET_BLAST_DB": "blast_db_path",
+    "PDB2NET_BLASTP": "blastp_executable",
+    "PDB2NET_BLAST_CACHE_PATH": "blast_cache_path",
+}
 
 # === Minimal logging switch (default: quiet) ===
 VERBOSE = os.environ.get("PDB2NET_VERBOSE", "").strip().lower() in {"1", "true", "yes", "on"}
@@ -94,8 +103,8 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
         "PDB2NET_INPUT": ("input_folder_path", str),
         "PDB2NET_OUTPUT": ("output_path", str),
         **{
-            name: (descriptor["config_path"], str)
-            for name, descriptor in SERVER_ENVIRONMENT.items()
+            name: (config_path, str)
+            for name, config_path in SERVER_ENVIRONMENT.items()
         },
         "PDB2NET_CYTO_PATH": ("cytoscape_path", str),
         "PDB2NET_DIAMOND": ("diamond.executable", str),

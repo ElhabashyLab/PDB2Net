@@ -30,3 +30,17 @@ def test_unreleased_software_citation_does_not_claim_a_manuscript_release() -> N
     assert "date-released:" not in citation
     assert "preferred-citation:" not in citation
     assert "manuscript" not in citation.lower()
+
+
+def test_cytoscape_is_optional_and_quality_tools_are_development_only() -> None:
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))[
+        "project"
+    ]
+    assert all("py4cytoscape" not in dependency for dependency in project["dependencies"])
+    assert project["optional-dependencies"]["cytoscape"] == [
+        "py4cytoscape==1.11.0"
+    ]
+    assert any(
+        dependency.startswith("ruff")
+        for dependency in project["optional-dependencies"]["dev"]
+    )

@@ -65,7 +65,6 @@ from .residue_types import (
     RNA_RESIDUES,
     normalize_residue_name,
 )
-from .server_interface import ANNOTATION_PIPELINE_VERSION
 
 # --- Paths from configuration ---
 BLAST_DB_PATH: str = config["blast_db_path"]

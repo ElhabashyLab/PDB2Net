@@ -5,10 +5,8 @@ from __future__ import annotations
 import hashlib
 import re
 
-from .server_interface import (
-    MAX_ARTIFACT_STEM_BYTES,
-    PORTABLE_ARTIFACT_STEM_SEMANTICS_ID,
-)
+PORTABLE_ARTIFACT_STEM_SEMANTICS_ID = "pdb2net-portable-artifact-stem-v1"
+MAX_ARTIFACT_STEM_BYTES = 180
 
 _PORTABLE_STEM = re.compile(r"[A-Za-z0-9._-]+")
 _WINDOWS_RESERVED = {

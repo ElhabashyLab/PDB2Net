@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any, Dict, Iterable, List, Mapping, Set, Tuple
 
-from .server_interface import COMBINED_COMPONENT_SEMANTICS
+COMBINED_COMPONENT_SEMANTICS = "pdb2net-cross-pdb-uniprot-linked-components-v1"
 
 
 def sanitize_filename_part(text: object) -> str:

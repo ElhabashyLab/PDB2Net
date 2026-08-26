@@ -287,7 +287,6 @@ def _public_references(value: object) -> dict[str, Any]:
             for key in (
                 "artifact_schema_version",
                 "profile_id",
-                "annotation_profile_id",
                 "source_scope",
             )
             if key in precomputed

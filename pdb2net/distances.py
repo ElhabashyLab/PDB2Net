@@ -24,13 +24,40 @@ Configuration
 from __future__ import annotations
 
 import itertools
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from scipy.spatial import cKDTree
 
 from .config_loader import config
-from .server_interface import INTERACTION_PIPELINE_VERSION
+
+INTERACTION_PIPELINE_VERSION = "pdb2net-distance-classification-v1"
+ALLOWED_INTERACTION_TYPES = frozenset(
+    {
+        "Protein-Protein",
+        "Protein-DNA",
+        "Protein-RNA",
+        "Protein-DNA/RNA",
+        "Protein-Nucleic Acid",
+        "DNA-DNA",
+        "DNA-RNA",
+        "DNA-DNA/RNA",
+        "RNA-RNA",
+        "RNA-DNA/RNA",
+        "DNA/RNA-DNA/RNA",
+        "Nucleic Acid-Nucleic Acid",
+    }
+)
+DISTANCE_THRESHOLD_RULES = {
+    "ca_radius": {"type": "number", "default": 12.0, "minimum": 2.0, "maximum": 30.0},
+    "all_atoms_radius": {"type": "number", "default": 5.0, "minimum": 1.0, "maximum": 15.0},
+}
+INTERACTION_FILTER_RULES = {
+    "protein_protein_min_ca_neighbors": {"type": "integer", "default": 10, "minimum": 1, "maximum": 100_000},
+    "protein_protein_min_all_atom_contacts": {"type": "integer", "default": 1, "minimum": 1, "maximum": 100_000},
+    "protein_nucleic_acid_min_all_atom_contacts": {"type": "integer", "default": 1, "minimum": 1, "maximum": 100_000},
+    "nucleic_acid_min_all_atom_contacts": {"type": "integer", "default": 1, "minimum": 1, "maximum": 100_000},
+}
 
 # Caches for KD-Trees and extracted coordinates. Include object identity so
 # repeated chain IDs from different structures in one process never share trees.

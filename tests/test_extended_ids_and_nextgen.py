@@ -8,7 +8,7 @@ import re
 import gemmi
 import pytest
 
-from pdb2net import precomputed_store
+from pdb2net import precomputed
 from pdb2net import network_annotations
 from pdb2net import unknown_molecule_uniprot
 from pdb2net.config_loader import config
@@ -342,13 +342,11 @@ def test_identity_is_content_first_and_extended_canonical(tmp_path: Path) -> Non
 
 def test_tooltip_selection_does_not_change_precompute_profiles(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(config, "reference_manifest_id", "profile-test-v1")
-    geometry_before = precomputed_store.profile_id()
-    annotation_before = precomputed_store.annotation_profile_id()
+    profile_before = precomputed.profile_id()
 
     monkeypatch.setitem(config["network_annotations"], "tooltip_fields", ["uniprot", "pfam"])
 
-    assert precomputed_store.profile_id() == geometry_before
-    assert precomputed_store.annotation_profile_id() == annotation_before
+    assert precomputed.profile_id() == profile_before
 
 
 def test_precompute_keeps_all_embedded_segments_when_tooltip_is_uniprot_only(
@@ -362,10 +360,24 @@ def test_precompute_keeps_all_embedded_segments_when_tooltip_is_uniprot_only(
     parsed = process_single_file(str(source))
     assert parsed is not None
 
-    precomputed_store.write_entry(tmp_path / "store", source, parsed, [])
-    cached = precomputed_store.load_entry(tmp_path / "store", "1abc")
+    from pdb2net import pipeline, reference_data, unknown_molecule_uniprot
+    from pdb2net.precomputed import build
+    from pdb2net.precomputed.schema import materialize_entry
 
-    annotations = cached["structure"]["atom_data"][0]["embedded_annotations"]
+    monkeypatch.setattr(pipeline, "_validate_required_reference_files", lambda: None)
+    monkeypatch.setattr(reference_data, "load_pdb_fasta_headers", lambda *_args: {})
+    monkeypatch.setattr(pipeline, "_parse_input_files", lambda _paths: [parsed])
+    monkeypatch.setattr(
+        unknown_molecule_uniprot, "process_molecule_info", lambda *_args, **_kwargs: None
+    )
+    monkeypatch.setattr(pipeline, "_run_blast_annotation", lambda _data: None)
+    monkeypatch.setattr(build, "calculate_distances_with_ckdtree", lambda _data: [])
+
+    report = precomputed.precompute_sources(tmp_path / "store", [source])
+    assert report["failed"] == 0
+    cached = precomputed.load_entry(tmp_path / "store", "1abc")
+    structure, _interactions, _references = materialize_entry(cached)
+    annotations = structure["atom_data"][0]["embedded_annotations"]
     assert set(annotations) == {"uniprot", "pfam", "cath", "scop2"}
 
 

@@ -26,9 +26,9 @@ PYTHON_IMPORTS = {
     "matplotlib": "matplotlib",
     "numpy": "numpy",
     "pandas": "pandas",
-    "py4cytoscape": "py4cytoscape",
     "scipy": "scipy",
 }
+OPTIONAL_PYTHON_IMPORTS = {"py4cytoscape": "py4cytoscape"}
 
 EXTERNAL_COMMANDS = ["blastp", "makeblastdb", "java", "cytoscape"]
 
@@ -135,6 +135,9 @@ def main() -> int:
         if not ok:
             missing_python.append(package_name)
         print(f"  {package_name}: {_status(ok)}")
+    for package_name, import_name in OPTIONAL_PYTHON_IMPORTS.items():
+        ok = importlib.util.find_spec(import_name) is not None
+        print(f"  {package_name} (optional Cytoscape extra): {_status(ok)}")
     print()
 
     print("External commands:")

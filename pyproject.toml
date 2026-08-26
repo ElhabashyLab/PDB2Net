@@ -4,14 +4,24 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdb2net"
-version = "0.2.0rc4"
+version = "0.2.0rc5"
 description = "Extract protein interaction networks from PDB/mmCIF structures and export Cytoscape CX2 networks."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
+keywords = ["bioinformatics", "cytoscape", "mmcif", "pdb", "protein-interactions"]
 authors = [
   { name = "Gregor Habitzreither" },
   { name = "Hadeer Elhabashy" }
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 dependencies = [
   "biopython==1.87",
@@ -20,13 +30,21 @@ dependencies = [
   "networkx",
   "numpy==2.2.4",
   "pandas==2.2.3",
-  "py4cytoscape==1.11.0",
   "scipy==1.15.2"
 ]
 
+[project.urls]
+Homepage = "https://github.com/ElhabashyLab/PDB2Net"
+Issues = "https://github.com/ElhabashyLab/PDB2Net/issues"
+Repository = "https://github.com/ElhabashyLab/PDB2Net"
+
 [project.optional-dependencies]
+cytoscape = [
+  "py4cytoscape==1.11.0"
+]
 dev = [
-  "pytest"
+  "pytest",
+  "ruff>=0.11"
 ]
 
 [project.scripts]
@@ -49,3 +67,9 @@ pdb2net = [
 
 [tool.setuptools.exclude-package-data]
 pdb2net = ["configs/config.local.json"]
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]

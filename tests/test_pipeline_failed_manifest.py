@@ -22,7 +22,7 @@ def test_run_pipeline_writes_failed_manifest_for_missing_input_folder(tmp_path: 
     run_summary = json.loads(manifests[0].with_name("run_summary.json").read_text(encoding="utf-8"))
     assert manifest["status"] == "failed"
     assert run_summary["status"] == "failed"
-    assert manifest["output_contract_version"] == "1.2"
+    assert manifest["output_contract_version"] == "2.0"
     assert manifest["pdb2net_version"] == __version__
     assert manifest["errors"][0]["code"] == "INPUT_PATH_NOT_FOUND"
     assert manifest["input_files"] == []
@@ -70,7 +70,7 @@ def test_run_pipeline_writes_failed_web_summary_for_empty_input_folder(tmp_path:
 
     summary = json.loads((web_root / "summary.json").read_text(encoding="utf-8"))
     assert summary["status"] == "failed"
-    assert summary["output_contract_version"] == "1.2"
+    assert summary["output_contract_version"] == "2.0"
     assert summary["pdb2net_version"] == __version__
     assert summary["input_files"] == []
     assert "input_path" not in summary

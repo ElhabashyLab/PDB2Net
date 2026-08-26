@@ -23,7 +23,13 @@ from .detailed_results_exporter import (
     DetailedInteractionBudget,
     export_detailed_interactions,
 )
-from .distances import calculate_distances_with_ckdtree, coords_cache, tree_cache
+from .distances import (
+    DISTANCE_THRESHOLD_RULES,
+    INTERACTION_FILTER_RULES,
+    calculate_distances_with_ckdtree,
+    coords_cache,
+    tree_cache,
+)
 from .file_parser import (
     FileSignature,
     get_structure_identity,
@@ -53,15 +59,6 @@ from .outputs import (
 )
 from .protein_network import create_protein_network
 from .residue_types import NUCLEIC_ACID_TYPES, count_polymer_lengths
-from .server_interface import (
-    ALL_MODEL_FORBIDDEN_NETWORKS,
-    DISTANCE_THRESHOLD_RULES,
-    INTERACTION_FILTER_RULES,
-    NETWORK_OUTPUT_FIELDS,
-    NETWORK_TITLE_BASES,
-    RESOURCE_LIMIT_FIELDS,
-    STRUCTURE_MODEL_POLICIES,
-)
 from .structure_identity import StructureIdentity, identity_from_official_id
 from .uniprot_matcher import (
     diamond_uniref90_enabled,
@@ -74,6 +71,31 @@ from .unknown_molecule_uniprot import process_molecule_info
 
 
 logger = get_logger(__name__)
+
+NETWORK_OUTPUT_FIELDS = (
+    "chain_per_pdb",
+    "protein_per_pdb",
+    "combined_chain_network",
+    "combined_protein_network",
+)
+STRUCTURE_MODEL_POLICIES = ("first", "all")
+ALL_MODEL_FORBIDDEN_NETWORKS = (
+    "protein_per_pdb",
+    "combined_protein_network",
+)
+RESOURCE_LIMIT_FIELDS = (
+    "max_input_files",
+    "max_total_input_bytes",
+    "max_single_input_bytes",
+    "max_processing_batch_bytes",
+    "max_total_input_expanded_bytes",
+    "max_single_input_expanded_bytes",
+    "max_detailed_interaction_rows",
+    "max_detailed_interaction_bytes",
+    "min_output_free_bytes",
+)
+CHAIN_NETWORK_TITLE = "Chain_Interaction_Network"
+COMBINED_CHAIN_NETWORK_TITLE = "Combined_Network"
 
 
 @dataclass
@@ -783,7 +805,7 @@ def _annotation_summary(combined_data: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def _structure_input_summary(combined_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Return stable per-structure identity and input metadata for contract 1.2."""
+    """Return stable per-structure identity and input metadata for contract 2.0."""
     summaries: List[Dict[str, Any]] = []
     for structure in combined_data:
         identity = structure.get("structure_identity", {})
@@ -1027,7 +1049,7 @@ def _export_chain_networks(
                 )
             ]
             nodes_data = generate_nodes_from_atom_data(model_chains, pdb_id)
-            network_title = f"{NETWORK_TITLE_BASES['chain_per_pdb']}_{pdb_id}"
+            network_title = f"{CHAIN_NETWORK_TITLE}_{pdb_id}"
             if include_models:
                 network_title += f"_model{model_index}"
             create_cytoscape_network(
@@ -1213,7 +1235,7 @@ def _create_linked_identity_network(
             if node_id in chain_lookup and chain_lookup[node_id].get("uniprot_id")
         }
         network_title = make_component_title(
-            NETWORK_TITLE_BASES["combined_chain"], component_uniprots
+            COMBINED_CHAIN_NETWORK_TITLE, component_uniprots
         )
         skipped = combined_graph_skip(
             network_kind="combined_chain_network",

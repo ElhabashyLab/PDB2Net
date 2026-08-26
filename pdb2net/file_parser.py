@@ -18,7 +18,6 @@ from .config_loader import config
 from .input_contract import InputValidationError
 from .network_annotations import extract_embedded_annotations
 from .reference_data import load_valid_pdb_ids as _load_valid_pdb_ids
-from .server_interface import CORE_STRUCTURE_EXTENSIONS
 from .structure_identity import (
     EXTENDED_PDB_ID_RE,
     LEGACY_PDB_ID_RE,
@@ -26,7 +25,7 @@ from .structure_identity import (
     identity_from_official_id,
 )
 
-
+CORE_STRUCTURE_EXTENSIONS = (".pdb", ".ent", ".cif", ".mmcif")
 PDB_FASTA_PATH = str(config.get("pdb_fasta_path") or "")
 ALLOWED_EXTENSIONS = set(CORE_STRUCTURE_EXTENSIONS)
 GZIP_MAGIC = b"\x1f\x8b"

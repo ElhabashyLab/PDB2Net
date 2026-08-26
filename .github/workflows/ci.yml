@@ -29,12 +29,22 @@ jobs:
         run: |
           python -m pip install --upgrade pip "setuptools>=80.9.0"
           python -m pip install --no-build-isolation -e ".[dev]"
+      - name: Run Ruff
+        run: ruff check pdb2net tests scripts
       - name: Run tests
         run: python -m pytest -q
-      - name: Verify installed package data outside source tree
+      - name: Build and verify installed package outside source tree
         run: |
-          python -m pip install --no-build-isolation --no-deps --target /tmp/pdb2net-package-check .
+          python -m pip wheel --no-build-isolation --no-deps --wheel-dir /tmp/pdb2net-dist .
+          python -m venv /tmp/pdb2net-package-check
+          /tmp/pdb2net-package-check/bin/python -m pip install --no-deps /tmp/pdb2net-dist/*.whl
           cd /tmp
-          PYTHONPATH=/tmp/pdb2net-package-check python -c 'import pdb2net, pathlib; root = pathlib.Path(pdb2net.__file__).parent; assert (root / "configs/config.base.json").is_file(); assert not (root / "configs/config.local.json").exists()'
-          PYTHONPATH=/tmp/pdb2net-package-check python -m pdb2net capabilities --json > /tmp/pdb2net-capabilities.json
-          python -c 'import json; value=json.load(open("/tmp/pdb2net-capabilities.json", encoding="utf-8")); assert value["capabilities_schema_version"] == "2"; assert value["output_contract_version"] == "1.2"; assert "run" in value["commands"]'
+          /tmp/pdb2net-package-check/bin/python -c 'import pdb2net, pathlib; root = pathlib.Path(pdb2net.__file__).parent; assert (root / "configs/config.base.json").is_file(); assert (root / "configs/config.linux.json").is_file(); assert not (root / "configs/config.local.json").exists()'
+          /tmp/pdb2net-package-check/bin/pdb2net --version
+          /tmp/pdb2net-package-check/bin/pdb2net --help
+          /tmp/pdb2net-package-check/bin/pdb2net run --help
+          /tmp/pdb2net-package-check/bin/pdb2net precompute --help
+          /tmp/pdb2net-package-check/bin/pdb2net assemble --help
+          /tmp/pdb2net-package-check/bin/pdb2net capabilities --help
+          /tmp/pdb2net-package-check/bin/pdb2net capabilities --json > /tmp/pdb2net-capabilities.json
+          python -c 'import json; value=json.load(open("/tmp/pdb2net-capabilities.json", encoding="utf-8")); assert value["capabilities_schema_version"] == "3"; assert value["output_contract_version"] == "2.0"; assert value["precomputed_artifact_schema_version"] == "3"; assert "run" in value["commands"]'

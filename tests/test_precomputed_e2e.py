@@ -4,10 +4,14 @@ import gzip
 import json
 from pathlib import Path
 
+import pytest
+
 from pdb2net import file_parser, pipeline, reference_data
-from pdb2net import precomputed_store as store
+from pdb2net import precomputed as store
+from pdb2net.precomputed.schema import materialize_entry
 from pdb2net import unknown_molecule_uniprot
 from pdb2net.config_loader import config
+from pdb2net.input_contract import InputValidationError
 
 
 def _mini_pdb_text() -> str:
@@ -150,8 +154,9 @@ def test_real_gemmi_to_store_to_headless_cx2_matches_raw_pipeline(
 
     cached = store.load_entry(cache_root, "1abc")
     assert cached["counts"] == {"chains": 2, "interactions": 1}
-    assert all("residues" not in chain for chain in cached["structure"]["atom_data"])
-    assert cached["interactions"][0]["ca_neighbors"] >= 10
+    cached_structure, cached_interactions, _references = materialize_entry(cached)
+    assert all("residues" not in chain for chain in cached_structure["atom_data"])
+    assert cached_interactions[0]["ca_neighbors"] >= 10
 
     assembled_output = tmp_path / "assembled-output"
     monkeypatch.setitem(config, "output_path", str(assembled_output))
@@ -163,6 +168,6 @@ def test_real_gemmi_to_store_to_headless_cx2_matches_raw_pipeline(
     assert assembled_network.is_file()
     assert _network_view(raw_network) == _network_view(assembled_network)
 
-    second = store.precompute_directory(cache_root, tmp_path / "archive", recursive=True)
-    assert second["cache_hits"] == 1
-    assert second["written"] == 0
+    with pytest.raises(InputValidationError) as error:
+        store.precompute_directory(cache_root, tmp_path / "archive", recursive=True)
+    assert error.value.code == "PRECOMPUTED_STORE_PUBLISHED"

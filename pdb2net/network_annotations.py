@@ -10,11 +10,24 @@ from typing import Any, Iterable, Mapping, Sequence
 from .config_loader import config
 from .input_contract import InputValidationError
 from .reference_data import is_uniprot_accession
-from .server_interface import (
-    ANNOTATION_DATABASES,
-    ANNOTATION_PIPELINE_VERSION,
-    NETWORK_ANNOTATION_RULES,
-)
+
+ANNOTATION_DATABASES = ("uniprot", "pfam", "cath", "scop2")
+ANNOTATION_PIPELINE_VERSION = "pdb2net-sifts-fasta-search-annotations-v3"
+NETWORK_ANNOTATION_RULES = {
+    "use_embedded_sifts": {"type": "boolean", "default": True},
+    "tooltip_fields": {
+        "type": "array",
+        "default": ["uniprot"],
+        "items": {"type": "string", "choices": list(ANNOTATION_DATABASES)},
+        "unique_items": True,
+    },
+    "max_tooltip_segments_per_database": {
+        "type": "integer",
+        "default": 20,
+        "minimum": 1,
+        "maximum": 1_000,
+    },
+}
 
 
 MAX_EMBEDDED_SEGMENT_ROWS = 200_000

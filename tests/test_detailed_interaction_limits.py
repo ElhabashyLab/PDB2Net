@@ -10,7 +10,7 @@ from pdb2net.detailed_results_exporter import (
     export_detailed_interactions,
 )
 from pdb2net.input_contract import InputValidationError
-from pdb2net.server_interface import DETAILED_INTERACTION_COLUMNS
+from pdb2net.detailed_results_exporter import DETAILED_INTERACTION_COLUMNS
 
 
 def _structure(pdb_id: str, *, atoms_a: int = 1) -> dict:

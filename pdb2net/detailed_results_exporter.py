@@ -20,10 +20,21 @@ from scipy.spatial import cKDTree
 
 from .artifact_names import portable_artifact_stem
 from .input_contract import InputValidationError
-from .server_interface import (
-    DETAILED_INTERACTION_COLUMNS,
-    DETAILED_INTERACTION_FILENAME_SUFFIX,
+
+DETAILED_INTERACTION_COLUMNS = (
+    "PDB_ID",
+    "Chain_A",
+    "Residue_A",
+    "Atom_A",
+    "Chain_B",
+    "Residue_B",
+    "Atom_B",
+    "Distance",
+    "UniProt_A",
+    "UniProt_B",
+    "Interaction_Type",
 )
+DETAILED_INTERACTION_FILENAME_SUFFIX = "_detailed_interactions"
 
 
 _WRITE_BUFFER_BYTES = 1024 * 1024

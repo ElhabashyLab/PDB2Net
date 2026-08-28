@@ -6,7 +6,8 @@ PDB2Net extracts protein interaction networks from PDB/mmCIF structure files and
 
 ## Current Baseline And Authority
 
-- The clean-release implementation is complete. `CLEANUP_PLAN.md` is retained
+- The clean-release implementation is complete.
+  `docs/history/cleanup-plan.md` is retained
   as historical implementation and decision context, not as a phase checklist
   to run again.
 - Current work is governed by this file and the maintained documents in

@@ -33,8 +33,6 @@
   "combined_graph_limits": { "max_nodes": null, "max_edges": null },
   "reference_manifest_id": "",
   "layout_mode": "python_fast",
-  "layout_engine_path": "",
-  "layout_keep_temp_files": false,
   "blast": {
     "max_target_seqs_default": 50,
     "max_target_seqs_short": 100,

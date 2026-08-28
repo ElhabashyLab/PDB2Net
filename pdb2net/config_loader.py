@@ -205,7 +205,6 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
         "diamond.uniref90_db_path",
         "diamond.executable",
         "diamond.temp_dir",
-        "layout_engine_path",
     ]:
         if "." in key:
             first, second = key.split(".", 1)
@@ -250,8 +249,6 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
     cfg["combined_graph_limits"].setdefault("max_edges", None)
     cfg.setdefault("reference_manifest_id", "")
     cfg.setdefault("layout_mode", "python_fast")
-    cfg.setdefault("layout_engine_path", "")
-    cfg.setdefault("layout_keep_temp_files", False)
     cfg.setdefault("structure_model_policy", "first")
     cfg.setdefault("diamond", {})
     cfg["diamond"].setdefault("enabled", False)

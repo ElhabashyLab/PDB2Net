@@ -23,8 +23,6 @@
     "assign_uniprot_id": "never"
   },
   "layout_mode": "python_fast",
-  "layout_engine_path": "",
-  "layout_keep_temp_files": false,
   "structure_model_policy": "first",
   "interaction_filters": {
     "protein_protein_min_ca_neighbors": 10,

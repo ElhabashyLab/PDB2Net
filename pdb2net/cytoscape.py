@@ -279,7 +279,6 @@ def create_cytoscape_network(
         edges_df=edges_df,
         network_title=network_title,
         layout_mode=config.get("layout_mode", "python_fast"),
-        config=config,
     )
 
     if not config.get("open_in_cytoscape", True):

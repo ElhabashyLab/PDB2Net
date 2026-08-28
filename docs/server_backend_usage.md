@@ -184,7 +184,7 @@ Build each store generation offline. Runtime workers mount only the published
 store and read it without archive access or write permission.
 
 Set `PDB2NET_REFERENCE_MANIFEST_ID` to an immutable manifest identity covering
-reference checksums, the Core/worker build, and exact BLAST+/DIAMOND versions.
+reference checksums and exact BLAST+/DIAMOND versions.
 Do not reuse it after a reference or toolchain change. Mirror refreshes flow
 through a new target directory, offline precompute, scientific/contract
 validation, and external store promotion. Ordinary local

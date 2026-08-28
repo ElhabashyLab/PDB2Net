@@ -16,6 +16,8 @@ as current compatibility requirements.
   bounded read-only assembly.
 - Make live Cytoscape support an optional package extra and add Ruff plus
   installed-wheel checks to the Python 3.11/3.12 quality matrix.
+- Remove the unused experimental external Java/Prefuse layout backend; headless
+  exports continue to use the deterministic built-in Python layout.
 
 ## v0.2.0-rc4 - 2026-08-26
 

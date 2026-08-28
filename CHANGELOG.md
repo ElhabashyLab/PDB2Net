@@ -1,5 +1,10 @@
 # Changelog
 
+The RC2–RC4 entries below record unreleased development history. Their older
+server-interface snapshots, output contracts, profile namespaces, and rollout
+ideas are superseded by the RC5 clean-release baseline and must not be treated
+as current compatibility requirements.
+
 ## v0.2.0-rc5 - Unreleased
 
 - Replace the unreleased capability schema 2 semantic snapshot with the small,

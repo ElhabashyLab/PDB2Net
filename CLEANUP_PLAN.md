@@ -1,11 +1,26 @@
 # PDB2Net clean-release implementation plan
 
+## Implementation status — completed
+
+The clean-release implementation described here has been completed and
+independently reviewed on the existing Core and Web clean-release branches.
+This file is retained as historical implementation context and as the record of
+the decisions that produced the current baseline. It is **not** an active work
+queue and its starting-state and phase instructions must not be executed again.
+
+Current agents must begin with the applicable `AGENTS.md` and maintained
+architecture, development, backend, and deployment documents. Those documents
+carry the active rules. The closed-world product and safety decisions recorded
+here remain historical authority for why removed mechanisms must not be
+reintroduced, but new work requires an explicit current user request rather
+than resuming a phase below.
+
 ## Status and authority
 
-This document is the binding hand-off for the next implementation chat. It
-captures the decisions already made for cleaning up and testing the existing
+This document was the binding hand-off for the completed cleanup implementation.
+It captures the decisions made for cleaning up and testing the existing
 PDB2Net Core and Webserver repositories. It is not a request to redesign the
-system.
+system or repeat the implementation.
 
 The plan is **closed world**: behavior not required here is out of scope. If an
 implementation detail conflicts with an old hardening-branch document or test,

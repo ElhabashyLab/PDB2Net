@@ -1,9 +1,16 @@
 # Server Backend Usage
 
-PDB2Net can be called by a future webserver worker without coupling the core
-package to PHP, MySQL, Apache, or a specific queue system. The web layer should
-own uploads, authentication, database rows, scheduling, and downloads. PDB2Net
-should only receive filesystem paths and write outputs.
+PDB2Net is called by the separate `pdb2net-webserver` adapter without coupling
+Core to PHP, MariaDB, Apache, or a specific queue implementation. The Web layer
+owns HTTP validation, UUID unlisted-link access, database rows, scheduling,
+mail, and downloads. It does not add a login/session authentication layer. Core
+receives filesystem paths and validated configuration and writes outputs.
+
+The current Web product has exactly two input modes: uploads use `pdb2net run`,
+and PDB IDs use read-only `pdb2net assemble` against a completely offline-built
+schema-3 store. Required email and UUID-only result access belong to Web, not
+Core. Directory/server-folder input, runtime PDB download, and lazy store
+population are not supported product modes.
 
 ## Recommended Worker Command
 
@@ -55,7 +62,7 @@ policy, and feature members are present. They do not compare the complete JSON
 document and do not duplicate Core's CLI, configuration, scientific, CX2, or
 CSV semantics. The worker image pins the installed package revision separately.
 
-Real web workers should set finite values for
+Real web workers set finite values for
 `resource_limits.max_detailed_interaction_rows`,
 `resource_limits.max_detailed_interaction_bytes`, and
 `resource_limits.min_output_free_bytes` whenever detailed atom-interaction CSV
@@ -78,6 +85,10 @@ It intentionally does not include `pdb2net/configs/config.local.json`, because
 that file is for machine-specific paths and may contain local reference data
 locations. Server deployments should provide reference data paths through
 environment variables or a per-job `--config` file.
+
+The current Web adapter gives every real job a writable job-local temporary
+BLAST cache. It does not make the read-only reference mount writable and does
+not add a persistent cache service or mount.
 
 Before switching a worker image to `PDB2NET_COMMAND=pdb2net`, verify the
 installed package from outside the source tree:
@@ -155,15 +166,15 @@ only compact chain metadata and interaction summaries remain for final network
 exports. It is a scheduling bound, not a guaranteed process-RSS ceiling, because
 parsed in-memory expansion depends on structure complexity.
 
-Run one scientific job per 8-CPU/32-GB worker until target-host measurements
-show that parallel jobs are safe. Reference lookup tables, imported scientific
-libraries, accumulated interaction summaries, and combined-network preparation
-create a non-zero memory floor outside the raw-file batch limit. A representative
-RSS/load test is therefore a deployment gate for the 2.5-GB public profile.
+The current Web Compose definition runs one Worker service. Do not scale Worker
+concurrency or change the public resource limits based on an assumed hardware
+profile. Any scaling decision requires target-host measurements and explicit
+user approval.
 
-## Optional PDB-ID Store Mode
+## PDB-ID Store Mode
 
-The optional `precompute`/`assemble` path is documented in
+The `precompute`/`assemble` path is optional for standalone Core users and
+required for the Web product's `pdb_ids` mode. It is documented in
 [`precomputed_store.md`](precomputed_store.md). Schema 3 stores compact geometry,
 standard-profile edges, and chain annotations, not coordinates or detailed
 atom-pair CSVs. It therefore rejects detailed interaction export and enforces

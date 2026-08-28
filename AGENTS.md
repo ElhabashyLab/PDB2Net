@@ -4,6 +4,37 @@
 
 PDB2Net extracts protein interaction networks from PDB/mmCIF structure files and exports Cytoscape-compatible CX2 networks. The pipeline combines Gemmi parsing, SIFTS/FASTA-based annotation, optional BLAST fallback, cKDTree distance searches, and headless or live Cytoscape export.
 
+## Current Baseline And Authority
+
+- The clean-release implementation is complete. `CLEANUP_PLAN.md` is retained
+  as historical implementation and decision context, not as a phase checklist
+  to run again.
+- Current work is governed by this file and the maintained documents in
+  `docs/`. Old hardening branches and their documents are historical reference,
+  not the current architecture.
+- The current public contracts are package `0.2.0rc5`, capability schema `3`,
+  CLI contract `2`, Web output contract `2.0`, and precomputed artifact schema
+  `3`.
+- Preserve the standalone raw-file pipeline, the configuration layering, and
+  established scientific behavior. Do not change scientific semantics,
+  contract versions, dependencies, schemas, or the Core/Web boundary without
+  explicit user approval.
+- `precompute` is the sole offline store writer. `assemble` is read-only and
+  must never resolve an archive, download a structure, or populate a missing
+  entry at runtime.
+- Do not add PHP, Apache, MariaDB, Docker, Web access control, queue behavior,
+  or deployment state to Core.
+- Do not reintroduce removed RC4 compatibility layers, `server_interface`, lazy
+  population, profile namespaces, release receipts, attestation, or rollback
+  machinery.
+- No large reference download, full archive run, push, tag, release, or
+  deployment without explicit user approval.
+- For work involving the Web adapter or target server, read the sibling
+  repository's `AGENTS.md`. If
+  `../pdb2net-webserver/docs/server-state.local.md` exists, read it before any
+  server or deployment planning; it is a local operational handoff and never
+  overrides the product contracts here.
+
 ## Runtime
 
 - Use `python3`, preferably Python 3.11 or 3.12.

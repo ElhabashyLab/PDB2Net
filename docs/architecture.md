@@ -2,6 +2,21 @@
 
 PDB2Net is a batch pipeline for turning PDB/mmCIF structure files into protein and chain interaction networks.
 
+## Clean-release baseline
+
+Core is the standalone scientific product. Its current public boundary is
+package `0.2.0rc5`, capability schema `3`, CLI contract `2`, Web output contract
+`2.0`, and precomputed artifact schema `3`. A Web adapter may install and call
+the package, but Core never imports or depends on PHP, Apache, MariaDB, Docker,
+or a Web repository.
+
+The raw-file pipeline is the scientific reference path. The optional store only
+changes the input adapter: offline `precompute` writes one immutable fixed-profile
+store, while `assemble` reads published entries. Runtime archive lookup,
+downloads, lazy population, and writable worker stores are intentionally absent.
+Changes to scientific behavior, these contracts, or this repository boundary
+require explicit user approval.
+
 ## Pipeline
 
 1. Discover valid `.pdb`, `.cif`, and `.mmcif` files, including one gzip layer,

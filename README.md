@@ -311,7 +311,7 @@ python3 -m pdb2net.main
 ```
 
 - Output goes to a **timestamped** subfolder in `output_path`, e.g.:
-""/…/Networks/2025-10-20_18-32-45/"
+  `/…/Networks/2025-10-20_18-32-45/`
 
 For backend-style jobs, add `--web-output-dir` to collect stable
 user-facing outputs:
@@ -411,20 +411,6 @@ Valid PDB/mmCIF files found in `input_folder_path`
 
 **Desktop** (`open_in_cytoscape: true`)  
 → Networks are created in **Cytoscape** via *py4cytoscape* and also exported as **CX2**.
-
-#### **Download the UniProt FASTA File**
-The BLAST database will be built from a UniProt FASTA file.
-
-1. **Download the latest UniProt Swiss-Prot database**
-   - **Manual Download**: [UniProt Swiss-Prot](https://www.uniprot.org/uniprotkb?query=reviewed:true)
-
-2. **Move the file to the BLAST database folder** (adjust the path if necessary):
-   ```bash
-   mkdir -p C:/blast_db   # Windows (Git Bash)
-   mkdir -p ~/blast_db    # Linux/MacOS
-   ```
-  
----
 
 ## Citation
 

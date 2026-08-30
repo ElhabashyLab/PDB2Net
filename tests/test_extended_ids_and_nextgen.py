@@ -269,8 +269,16 @@ def test_embedded_external_mismatch_never_borrows_a_uniprot_name(
     headers: dict[str, dict[str, str]],
     expected_name: str,
 ) -> None:
-    monkeypatch.setattr(unknown_molecule_uniprot, "_sifts_loaded", True)
-    monkeypatch.setattr(unknown_molecule_uniprot, "_uniprot_loaded", True)
+    monkeypatch.setattr(
+        unknown_molecule_uniprot,
+        "_sifts_loaded_path",
+        str(config["sifts_tsv_path"]),
+    )
+    monkeypatch.setattr(
+        unknown_molecule_uniprot,
+        "_uniprot_loaded_path",
+        str(config["uniprot_fasta_path"]),
+    )
     monkeypatch.setattr(
         unknown_molecule_uniprot,
         "pdb_to_sifts_segments",
@@ -366,7 +374,9 @@ def test_precompute_keeps_all_embedded_segments_when_tooltip_is_uniprot_only(
 
     monkeypatch.setattr(pipeline, "_validate_required_reference_files", lambda: None)
     monkeypatch.setattr(reference_data, "load_pdb_fasta_headers", lambda *_args: {})
-    monkeypatch.setattr(pipeline, "_parse_input_files", lambda _paths: [parsed])
+    monkeypatch.setattr(
+        pipeline, "_parse_input_files", lambda _paths, **_kwargs: [parsed]
+    )
     monkeypatch.setattr(
         unknown_molecule_uniprot, "process_molecule_info", lambda *_args, **_kwargs: None
     )

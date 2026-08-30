@@ -28,44 +28,39 @@ from .reference_data import (
     load_uniprot_names,
 )
 
-# --- Paths from configuration ---
-PDB_FASTA_PATH: str = config["pdb_fasta_path"]
-UNIPROT_FASTA_PATH: str = config["uniprot_fasta_path"]
-SIFTS_TSV_PATH: str = config["sifts_tsv_path"]
-
 # --- In-memory lookup tables ---
 pdb_to_uniprot: Dict[str, str] = {}   # "pdbid_CHAIN" → UniProt ID
 pdb_to_sifts_segments: Dict[str, tuple[Dict[str, str], ...]] = {}
 uniprot_dict: Dict[str, str] = {}     # UniProt ID → Protein display name
 
-# --- Lazy-loading guards ---
-_sifts_loaded: bool = False
-_uniprot_loaded: bool = False
+# --- Path-keyed lazy-loading guards ---
+_sifts_loaded_path: str | None = None
+_uniprot_loaded_path: str | None = None
 
 
 def load_sifts_mapping(tsv_path: str) -> None:
     """Load SIFTS PDB→UniProt chain mapping from a TSV file (once)."""
-    global pdb_to_uniprot, pdb_to_sifts_segments, _sifts_loaded
-    if _sifts_loaded:
+    global pdb_to_uniprot, pdb_to_sifts_segments, _sifts_loaded_path
+    if _sifts_loaded_path == tsv_path:
         return
 
     # The reference loader already owns an immutable-by-convention cached
     # mapping. Reuse it instead of duplicating a potentially large hash table.
     pdb_to_uniprot = _load_sifts_mapping(tsv_path)
     pdb_to_sifts_segments = _load_sifts_segments(tsv_path)
-    _sifts_loaded = True
+    _sifts_loaded_path = tsv_path
 
 
 def load_uniprot_fasta(fasta_path: str) -> None:
     """Load UniProt FASTA to map UniProt ID → protein name (once)."""
-    global uniprot_dict, _uniprot_loaded
-    if _uniprot_loaded:
+    global uniprot_dict, _uniprot_loaded_path
+    if _uniprot_loaded_path == fasta_path:
         return
 
     # Reuse the cached mapping directly. A shallow ``dict(...)`` copy keeps all
     # strings alive and duplicates the large hash table for no functional gain.
     uniprot_dict = load_uniprot_names(fasta_path)
-    _uniprot_loaded = True
+    _uniprot_loaded_path = fasta_path
 
 
 def load_pdb_fasta(
@@ -224,8 +219,11 @@ def process_molecule_info(
           - "pdb_id": str
           - "atom_data": list[dict] of chain dicts with at least "chain_id".
     """
-    load_sifts_mapping(SIFTS_TSV_PATH)
-    load_uniprot_fasta(UNIPROT_FASTA_PATH)
+    pdb_fasta_path = str(config.get("pdb_fasta_path") or "")
+    sifts_tsv_path = str(config.get("sifts_tsv_path") or "")
+    uniprot_fasta_path = str(config.get("uniprot_fasta_path") or "")
+    load_sifts_mapping(sifts_tsv_path)
+    load_uniprot_fasta(uniprot_fasta_path)
 
     requested: set[str] = set()
     for structure in combined_data:
@@ -239,7 +237,7 @@ def process_molecule_info(
     pdb_fasta = (
         pdb_fasta_headers
         if pdb_fasta_headers is not None
-        else load_pdb_fasta(PDB_FASTA_PATH, requested_pdb_ids)
+        else load_pdb_fasta(pdb_fasta_path, requested_pdb_ids)
     )
 
     annotation_cfg = network_annotation_config()

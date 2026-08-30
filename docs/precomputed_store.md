@@ -55,6 +55,17 @@ the same unpublished build may reuse an entry only when its complete profile ID
 and source hash match. Once a manifest exists, the store is immutable; updates
 use a new directory.
 
+Before processing, `precompute` inventories each canonical source once for its
+content identity, file signature, compressed and expanded sizes, and initial
+SHA-256. Pending batches reuse that inventory without separate identity or
+fingerprint discovery passes; parsing still revalidates the expected identity
+and content. Failures during per-source transport inspection, identity
+preflight, or parsing are isolated; other valid sources may still produce
+entries for a later retry, but any failure still prevents manifest publication.
+Count and aggregate byte limits apply to the complete canonical input set,
+independent of cache hits, and the source fingerprint is checked again
+immediately before writing an entry to detect input mutation.
+
 The manifest has exactly:
 
 ```json

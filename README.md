@@ -100,6 +100,12 @@ Now, generate the BLAST database from the downloaded UniProt FASTA file.
 
 > 🗂️ Paths support `~` and `$VARS` expansion.
 
+Each CLI invocation builds a fresh merged configuration snapshot. `--config`
+selects the explicit-file layer without changing `PDB2NET_CONFIG_FILE` for a
+later invocation. Invalid types in validated configuration sections and invalid
+environment values fail before the scientific pipeline starts, with a concise
+configuration error.
+
 ### Core keys (by file)
 
 `config.base.json`(defaults):

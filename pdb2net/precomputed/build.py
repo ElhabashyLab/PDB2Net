@@ -8,7 +8,7 @@ from typing import Any, Mapping, Sequence
 
 from ..config_loader import config
 from ..distances import calculate_distances_with_ckdtree, coords_cache, tree_cache
-from ..file_parser import get_structure_identity, is_valid_file
+from ..file_parser import FileSignature, is_valid_file
 from ..input_contract import InputValidationError
 from ..structure_identity import ChainIdentity, StructureIdentity, identity_from_official_id
 from .io import (
@@ -24,6 +24,7 @@ from .schema import (
     ANNOTATION_CHAIN_FIELDS,
     ARTIFACT_SCHEMA_VERSION,
     GEOMETRY_CHAIN_FIELDS,
+    SOURCE_SCOPE,
     manifest_document,
     normalize_pdb_id,
     producer,
@@ -66,10 +67,12 @@ def discover_source_files(input_dir: Path | str, *, recursive: bool) -> list[Pat
     return files
 
 
-def _source_map(paths: Sequence[Path]) -> dict[str, Path]:
+def _source_map(
+    paths: Sequence[Path], identities_by_path: Mapping[str, StructureIdentity]
+) -> dict[str, Path]:
     mapped: dict[str, Path] = {}
     for path in paths:
-        identity = get_structure_identity(str(path))
+        identity = identities_by_path[str(path)]
         if identity.source != "pdb":
             raise InputValidationError(
                 "INVALID_PRECOMPUTE_SOURCE",
@@ -301,9 +304,20 @@ def precompute_sources(store: Path | str, paths: Sequence[Path]) -> dict[str, An
     profile = scientific_profile()
     selected_profile = profile_id(profile)
     pipeline._validate_required_reference_files()
+    report: dict[str, Any] = {
+        "artifact_schema_version": ARTIFACT_SCHEMA_VERSION,
+        "profile_id": selected_profile,
+        "written": 0,
+        "cache_hits": 0,
+        "failed": 0,
+        "entries": [],
+        "errors": [],
+    }
 
     raw_paths = [Path(path).expanduser() for path in paths]
     canonical_paths: list[Path] = []
+    canonical_sizes: dict[Path, int] = {}
+    seen_paths: set[Path] = set()
     for path in raw_paths:
         try:
             metadata = path.lstat()
@@ -320,25 +334,90 @@ def precompute_sources(store: Path | str, paths: Sequence[Path]) -> dict[str, An
             raise InputValidationError(
                 "INVALID_PRECOMPUTE_SOURCE", f"Unsupported precompute source: {path}"
             )
-        canonical_paths.append(resolved)
-    sources = _source_map(canonical_paths)
+        if resolved not in seen_paths:
+            canonical_paths.append(resolved)
+            canonical_sizes[resolved] = metadata.st_size
+            seen_paths.add(resolved)
+    path_values = [str(path) for path in canonical_paths]
+    limits = pipeline._resource_limits()
+    pipeline._validate_input_file_count(path_values, limits)
+    pipeline._validate_input_total_bytes(
+        sum(canonical_sizes[path] for path in canonical_paths), limits
+    )
+    inspected_sizes: dict[str, int] = {}
+    inspected_expanded_sizes: dict[str, int] = {}
+    inspected_signatures: dict[str, FileSignature] = {}
+    inspected_digests: dict[str, str] = {}
+    identities_by_path: dict[str, StructureIdentity] = {}
+    for path in path_values:
+        try:
+            source_inventory = pipeline.inspect_input_files(
+                [path], enforce_aggregate_limits=False
+            )
+            inspected_sizes[path] = source_inventory.file_sizes[0]
+            inspected_expanded_sizes[path] = (
+                source_inventory.effective_expanded_file_sizes[0]
+            )
+            inspected_signatures[path] = (source_inventory.file_signatures or ())[0]
+            inspected_digests[path] = (source_inventory.file_sha256 or ())[0]
+            identity = pipeline._preflight_structure_identities(
+                [path], source_inventory
+            )[path]
+            if identity.source != "pdb":
+                raise InputValidationError(
+                    "INVALID_PRECOMPUTE_SOURCE",
+                    f"Precomputed entries require an official PDB identity: {Path(path).name}",
+                )
+            identities_by_path[path] = identity
+        except Exception as exc:
+            report["failed"] += 1
+            report["errors"].append(
+                {
+                    "pdb_id": Path(path).name,
+                    "code": getattr(exc, "code", exc.__class__.__name__),
+                    "message": str(exc)[:500],
+                }
+            )
+    pipeline._validate_input_total_bytes(
+        sum(
+            inspected_sizes.get(str(path), canonical_sizes[path])
+            for path in canonical_paths
+        ),
+        limits,
+    )
+    pipeline._validate_input_total_expanded_bytes(
+        sum(inspected_expanded_sizes.values()), limits
+    )
+    valid_paths = [Path(path) for path in identities_by_path]
+    sources = _source_map(valid_paths, identities_by_path)
     if not sources:
+        if report["failed"]:
+            return report
         raise InputValidationError(
             "NO_VALID_INPUT_FILES", "At least one precompute source is required."
         )
+    signatures_by_path = {
+        path: inspected_signatures[path] for path in identities_by_path
+    }
+    digests_by_path = {
+        path: inspected_digests[path] for path in identities_by_path
+    }
+    file_sizes_by_path = {
+        path: inspected_sizes[path] for path in identities_by_path
+    }
+    expanded_sizes_by_path = {
+        path: inspected_expanded_sizes[path]
+        for path in identities_by_path
+    }
     fingerprints = {
-        pdb_id: source_fingerprint(path) for pdb_id, path in sources.items()
+        identity.canonical_id: {
+            "sha256": digests_by_path[path],
+            "size_bytes": file_sizes_by_path[path],
+            "scope": SOURCE_SCOPE,
+        }
+        for path, identity in identities_by_path.items()
     }
 
-    report: dict[str, Any] = {
-        "artifact_schema_version": ARTIFACT_SCHEMA_VERSION,
-        "profile_id": selected_profile,
-        "written": 0,
-        "cache_hits": 0,
-        "failed": 0,
-        "entries": [],
-        "errors": [],
-    }
     pending: list[Path] = []
     for pdb_id, path in sorted(sources.items()):
         if _existing_entry_matches(
@@ -355,31 +434,70 @@ def precompute_sources(store: Path | str, paths: Sequence[Path]) -> dict[str, An
     if pending:
         pending_ids: set[str] = set()
         for path in pending:
-            pdb_id = get_structure_identity(str(path)).canonical_id
-            pending_ids.add(pdb_id)
-            legacy = identity_from_official_id(pdb_id).legacy_id
-            if legacy:
-                pending_ids.add(legacy)
+            identity = identities_by_path[str(path)]
+            pending_ids.add(identity.canonical_id)
+            if identity.legacy_id:
+                pending_ids.add(identity.legacy_id)
         pdb_fasta_headers = load_pdb_fasta_headers(
             str(config.get("pdb_fasta_path") or ""), tuple(sorted(pending_ids))
         )
-        inventory = pipeline.inspect_input_files([str(path) for path in pending])
-        batches = pipeline.create_processing_batches(
-            [str(path) for path in pending], inventory
+        pending_path_values = [str(path) for path in pending]
+        pending_inventory = pipeline.InputInventory(
+            tuple(file_sizes_by_path[path] for path in pending_path_values),
+            tuple(expanded_sizes_by_path[path] for path in pending_path_values),
+            tuple(signatures_by_path[path] for path in pending_path_values),
+            tuple(digests_by_path[path] for path in pending_path_values),
         )
+        batches = pipeline.create_processing_batches(
+            pending_path_values, pending_inventory
+        )
+        maximum_expanded_bytes = pipeline._resource_limits()[
+            "max_single_input_expanded_bytes"
+        ]
         for batch_paths_raw in batches:
             batch_paths = [Path(path).resolve() for path in batch_paths_raw]
             expected = {
-                get_structure_identity(str(path)).canonical_id: path
+                identities_by_path[str(path)].canonical_id: path
                 for path in batch_paths
             }
+            parse_errors: dict[str, Exception] = {}
+            failed_in_batch: set[str] = set()
             try:
-                batch_data = pipeline._parse_input_files([str(path) for path in batch_paths])
+                batch_data = pipeline._parse_input_files(
+                    [str(path) for path in batch_paths],
+                    expected_identities={
+                        str(path): identities_by_path[str(path)] for path in batch_paths
+                    },
+                    expected_signatures={
+                        str(path): signatures_by_path[str(path)] for path in batch_paths
+                    },
+                    expected_sha256={
+                        str(path): digests_by_path[str(path)] for path in batch_paths
+                    },
+                    maximum_expanded_bytes=maximum_expanded_bytes,
+                    errors_by_path=parse_errors,
+                )
+                for path, exc in sorted(
+                    parse_errors.items(),
+                    key=lambda item: identities_by_path[item[0]].canonical_id,
+                ):
+                    identity = identities_by_path[path]
+                    failed_in_batch.add(identity.canonical_id)
+                    report["failed"] += 1
+                    report["errors"].append(
+                        {
+                            "pdb_id": identity.canonical_id,
+                            "code": getattr(exc, "code", exc.__class__.__name__),
+                            "message": str(exc)[:500],
+                        }
+                    )
                 process_molecule_info(batch_data, pdb_fasta_headers=pdb_fasta_headers)
                 pipeline._run_blast_annotation(batch_data)
                 batch_edges = calculate_distances_with_ckdtree(batch_data)
             except Exception as exc:
                 for pdb_id in expected:
+                    if pdb_id in failed_in_batch:
+                        continue
                     report["failed"] += 1
                     report["errors"].append(
                         {

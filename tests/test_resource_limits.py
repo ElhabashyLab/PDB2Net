@@ -129,6 +129,7 @@ def test_parser_scheduler_never_submits_more_than_worker_count(tmp_path: Path, m
         _write_bytes(path, 1)
 
     observed_pending = []
+    executor_options = {}
 
     class ImmediateFuture:
         def __init__(self, fn, *arguments):
@@ -138,10 +139,15 @@ def test_parser_scheduler_never_submits_more_than_worker_count(tmp_path: Path, m
             return self._result
 
     class RecordingExecutor:
-        def __init__(self, max_workers):
+        def __init__(self, max_workers, initializer=None, initargs=()):
             self.max_workers = max_workers
+            self.initializer = initializer
+            self.initargs = initargs
+            executor_options.update(initializer=initializer, initargs=initargs)
 
         def __enter__(self):
+            if self.initializer is not None:
+                self.initializer(*self.initargs)
             return self
 
         def __exit__(self, exc_type, exc, traceback):
@@ -168,6 +174,69 @@ def test_parser_scheduler_never_submits_more_than_worker_count(tmp_path: Path, m
 
     assert [entry["pdb_id"] for entry in parsed] == [str(index) for index in range(5)]
     assert max(observed_pending) == 2
+    assert executor_options["initializer"] is pipeline._activate_parsing_worker
+    assert executor_options["initargs"] == (pipeline.config,)
+
+
+def test_parser_scheduler_can_collect_one_file_error_without_losing_successes(
+    tmp_path: Path, monkeypatch
+) -> None:
+    paths = [tmp_path / "good.cif", tmp_path / "bad.cif"]
+    for path in paths:
+        _write_bytes(path, 1)
+
+    class ImmediateFuture:
+        def __init__(self, fn, *arguments):
+            try:
+                self._result = fn(*arguments)
+                self._error = None
+            except Exception as exc:
+                self._result = None
+                self._error = exc
+
+        def result(self):
+            if self._error is not None:
+                raise self._error
+            return self._result
+
+    class RecordingExecutor:
+        def __init__(self, max_workers, initializer=None, initargs=()):
+            del max_workers
+            if initializer is not None:
+                initializer(*initargs)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+        def submit(self, fn, *arguments):
+            return ImmediateFuture(fn, *arguments)
+
+    def fake_wait(pending, return_when):
+        del return_when
+        first = next(iter(pending))
+        return {first}, set(pending) - {first}
+
+    def fake_parse(path, *_args):
+        if Path(path).name == "bad.cif":
+            raise InputValidationError("INVALID_MMCIF_INPUT", "bad input")
+        return {"file_path": path, "pdb_id": "GOOD", "atom_data": []}
+
+    monkeypatch.setitem(pipeline.config, "workers", {"parsing": 2, "blast_threads": 1})
+    monkeypatch.setattr(pipeline, "ProcessPoolExecutor", RecordingExecutor)
+    monkeypatch.setattr(pipeline, "wait", fake_wait)
+    monkeypatch.setattr(pipeline, "process_single_file", fake_parse)
+    errors: dict[str, Exception] = {}
+
+    parsed = pipeline._parse_input_files(
+        [str(path) for path in paths], errors_by_path=errors
+    )
+
+    assert [entry["pdb_id"] for entry in parsed] == ["GOOD"]
+    assert list(errors) == [str(paths[1])]
+    assert isinstance(errors[str(paths[1])], InputValidationError)
 
 
 def test_compaction_preserves_network_metadata_but_drops_atoms() -> None:

@@ -117,13 +117,9 @@ def test_real_gemmi_to_store_to_headless_cx2_matches_raw_pipeline(
         },
     )
 
-    monkeypatch.setattr(file_parser, "PDB_FASTA_PATH", str(pdb_fasta))
     monkeypatch.setattr(file_parser, "VALID_PDB_IDS", None)
-    monkeypatch.setattr(unknown_molecule_uniprot, "PDB_FASTA_PATH", str(pdb_fasta))
-    monkeypatch.setattr(unknown_molecule_uniprot, "SIFTS_TSV_PATH", str(sifts))
-    monkeypatch.setattr(unknown_molecule_uniprot, "UNIPROT_FASTA_PATH", str(uniprot))
-    monkeypatch.setattr(unknown_molecule_uniprot, "_sifts_loaded", False)
-    monkeypatch.setattr(unknown_molecule_uniprot, "_uniprot_loaded", False)
+    monkeypatch.setattr(unknown_molecule_uniprot, "_sifts_loaded_path", None)
+    monkeypatch.setattr(unknown_molecule_uniprot, "_uniprot_loaded_path", None)
     monkeypatch.setattr(unknown_molecule_uniprot, "pdb_to_uniprot", {})
     monkeypatch.setattr(unknown_molecule_uniprot, "uniprot_dict", {})
     reference_data.load_valid_pdb_ids.cache_clear()

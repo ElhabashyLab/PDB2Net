@@ -117,6 +117,121 @@ def test_run_returns_nonzero_for_missing_input_dir(tmp_path, capsys) -> None:
     assert "PDB2Net run failed" in captured.err
 
 
+def test_run_reports_invalid_environment_config_without_traceback(tmp_path: Path) -> None:
+    environment = dict(os.environ)
+    environment["PDB2NET_DIAMOND_THREADS"] = "not-an-integer"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pdb2net",
+            "run",
+            "--input-dir",
+            str(tmp_path / "missing"),
+            "--output-dir",
+            str(tmp_path / "outputs"),
+            "--headless",
+        ],
+        cwd=Path(__file__).resolve().parents[1],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "Invalid value for PDB2NET_DIAMOND_THREADS" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("section", "flag"),
+    [
+        ("distance_thresholds", ["--ca-radius", "8"]),
+        ("networks", ["--chain-per-pdb"]),
+    ],
+)
+def test_run_rejects_non_object_config_sections_without_traceback(
+    section: str, flag: list[str], tmp_path: Path, capsys
+) -> None:
+    explicit = tmp_path / f"bad-{section}.json"
+    explicit.write_text(json.dumps({section: []}), encoding="utf-8")
+
+    exit_code = main(
+        [
+            "run",
+            "--input-dir",
+            str(tmp_path / "missing"),
+            "--output-dir",
+            str(tmp_path / "outputs"),
+            "--config",
+            str(explicit),
+            "--headless",
+            *flag,
+        ]
+    )
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert f"{section} must be a JSON object" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_legacy_module_reports_invalid_config_without_traceback(tmp_path: Path) -> None:
+    environment = dict(os.environ)
+    environment["PDB2NET_DIAMOND_THREADS"] = "not-an-integer"
+
+    result = subprocess.run(
+        [sys.executable, "-m", "pdb2net.main"],
+        cwd=Path(__file__).resolve().parents[1],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "Invalid value for PDB2NET_DIAMOND_THREADS" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_repeated_cli_calls_activate_fresh_explicit_configs(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    from pdb2net.config_loader import config
+
+    first = tmp_path / "first.json"
+    second = tmp_path / "second.json"
+    first.write_text(
+        json.dumps({"distance_thresholds": {"ca_radius": 8.0}}),
+        encoding="utf-8",
+    )
+    second.write_text(
+        json.dumps({"distance_thresholds": {"ca_radius": 9.0}}),
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("PDB2NET_CONFIG_FILE", raising=False)
+
+    for index, explicit in enumerate((first, second), start=1):
+        assert main(
+            [
+                "run",
+                "--input-dir",
+                str(tmp_path / f"missing-{index}"),
+                "--output-dir",
+                str(tmp_path / f"outputs-{index}"),
+                "--config",
+                str(explicit),
+                "--headless",
+            ]
+        ) == 1
+        capsys.readouterr()
+
+    assert config["distance_thresholds"]["ca_radius"] == 9.0
+    assert "PDB2NET_CONFIG_FILE" not in os.environ
+
+
 def test_run_returns_nonzero_and_web_summary_for_empty_input_dir(tmp_path) -> None:
     input_dir = tmp_path / "inputs"
     input_dir.mkdir()

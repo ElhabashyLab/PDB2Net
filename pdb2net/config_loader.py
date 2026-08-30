@@ -9,11 +9,16 @@ detects headless/container environments to disable GUI-dependent features
 (e.g., opening Cytoscape) unless explicitly enabled.
 """
 from __future__ import annotations
+
+import copy
 import json
 import os
 import platform
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, Tuple
+
+if TYPE_CHECKING:
+    config: Dict[str, Any]
 
 SERVER_ENVIRONMENT = {
     "PDB2NET_PDB_FASTA": "pdb_fasta_path",
@@ -24,36 +29,49 @@ SERVER_ENVIRONMENT = {
     "PDB2NET_BLAST_CACHE_PATH": "blast_cache_path",
 }
 
-# === Minimal logging switch (default: quiet) ===
-VERBOSE = os.environ.get("PDB2NET_VERBOSE", "").strip().lower() in {"1", "true", "yes", "on"}
+class ConfigError(ValueError):
+    """Raised when a requested configuration cannot be loaded or normalized."""
 
-# Global cache
-_config_cache: Dict[str, Any] | None = None
+
+def _verbose_enabled() -> bool:
+    return os.environ.get("PDB2NET_VERBOSE", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
 
 def _log(msg: str) -> None:
-    if VERBOSE:
+    if _verbose_enabled():
         print(f"[config] {msg}")
 
 
 def _read_json(p: Path, strict: bool = False) -> Dict[str, Any]:
-    """Read a JSON file. If strict=True, a JSON error terminates the program."""
+    """Read one JSON object, failing clearly for an explicitly requested file."""
     try:
         with p.open("r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        if VERBOSE:
+            value = json.load(f)
+        if not isinstance(value, dict):
+            raise ConfigError(f"Configuration file must contain a JSON object: {p}")
+        return value
+    except FileNotFoundError as exc:
+        if strict:
+            raise ConfigError(f"Configuration file does not exist: {p}") from exc
+        if _verbose_enabled():
             _log(f"Info: {p} nicht gefunden.")
         return {}
     except json.JSONDecodeError as e:
         msg = f"Fehler in {p}: Ungültiges JSON ({e})."
         if strict:
-            raise SystemExit(msg)
+            raise ConfigError(msg) from e
         _log("Warn: " + msg)
         return {}
+    except ConfigError:
+        raise
     except Exception as e:
         if strict:
-            raise SystemExit(f"Konnte {p} nicht lesen: {e}")
+            raise ConfigError(f"Konnte {p} nicht lesen: {e}") from e
         _log(f"Warn: Konnte {p} nicht lesen: {e}")
         return {}
 
@@ -68,8 +86,30 @@ def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any
     return base
 
 
+def _section(cfg: Dict[str, Any], name: str) -> Dict[str, Any]:
+    value = cfg.setdefault(name, {})
+    if not isinstance(value, dict):
+        raise ConfigError(f"{name} must be a JSON object.")
+    return value
+
+
 def _bool_from_env(value: str) -> bool:
-    return value.strip().lower() in {"1", "true", "yes", "on", "y"}
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "on", "y"}:
+        return True
+    if normalized in {"0", "false", "no", "off", "n"}:
+        return False
+    raise ConfigError("expected a Boolean value")
+
+
+def _worker_from_env(value: str) -> int | str:
+    normalized = value.strip().lower()
+    if normalized == "auto":
+        return "auto"
+    parsed = int(normalized)
+    if parsed < 1:
+        raise ValueError("worker count must be positive")
+    return parsed
 
 
 def _normalize_path(value: Any) -> Any:
@@ -133,61 +173,89 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
             int,
         ),
     }
-    nested: Dict[str, Tuple[str, str]] = {
-        "PDB2NET_WORKERS_PARSING": ("workers", "parsing"),
-        "PDB2NET_WORKERS_BLAST": ("workers", "blast_threads"),
-        "PDB2NET_CA_RADIUS": ("distance_thresholds", "ca_radius"),
-        "PDB2NET_ALL_ATOMS_RADIUS": ("distance_thresholds", "all_atoms_radius"),
-        "PDB2NET_PP_MIN_CA_NEIGHBORS": ("interaction_filters", "protein_protein_min_ca_neighbors"),
-        "PDB2NET_PP_MIN_ALL_ATOM_CONTACTS": ("interaction_filters", "protein_protein_min_all_atom_contacts"),
-        "PDB2NET_PNA_MIN_ALL_ATOM_CONTACTS": ("interaction_filters", "protein_nucleic_acid_min_all_atom_contacts"),
-        "PDB2NET_NA_MIN_ALL_ATOM_CONTACTS": ("interaction_filters", "nucleic_acid_min_all_atom_contacts"),
-        "PDB2NET_MAX_INPUT_FILES": ("resource_limits", "max_input_files"),
-        "PDB2NET_MAX_TOTAL_INPUT_BYTES": ("resource_limits", "max_total_input_bytes"),
-        "PDB2NET_MAX_SINGLE_INPUT_BYTES": ("resource_limits", "max_single_input_bytes"),
-        "PDB2NET_MAX_PROCESSING_BATCH_BYTES": ("resource_limits", "max_processing_batch_bytes"),
-        "PDB2NET_MAX_TOTAL_INPUT_EXPANDED_BYTES": ("resource_limits", "max_total_input_expanded_bytes"),
-        "PDB2NET_MAX_SINGLE_INPUT_EXPANDED_BYTES": ("resource_limits", "max_single_input_expanded_bytes"),
+    nested: Dict[str, Tuple[str, str, Callable[[str], Any]]] = {
+        "PDB2NET_WORKERS_PARSING": ("workers", "parsing", _worker_from_env),
+        "PDB2NET_WORKERS_BLAST": ("workers", "blast_threads", _worker_from_env),
+        "PDB2NET_CA_RADIUS": ("distance_thresholds", "ca_radius", float),
+        "PDB2NET_ALL_ATOMS_RADIUS": ("distance_thresholds", "all_atoms_radius", float),
+        "PDB2NET_PP_MIN_CA_NEIGHBORS": (
+            "interaction_filters",
+            "protein_protein_min_ca_neighbors",
+            int,
+        ),
+        "PDB2NET_PP_MIN_ALL_ATOM_CONTACTS": (
+            "interaction_filters",
+            "protein_protein_min_all_atom_contacts",
+            int,
+        ),
+        "PDB2NET_PNA_MIN_ALL_ATOM_CONTACTS": (
+            "interaction_filters",
+            "protein_nucleic_acid_min_all_atom_contacts",
+            int,
+        ),
+        "PDB2NET_NA_MIN_ALL_ATOM_CONTACTS": (
+            "interaction_filters",
+            "nucleic_acid_min_all_atom_contacts",
+            int,
+        ),
+        "PDB2NET_MAX_INPUT_FILES": ("resource_limits", "max_input_files", int),
+        "PDB2NET_MAX_TOTAL_INPUT_BYTES": ("resource_limits", "max_total_input_bytes", int),
+        "PDB2NET_MAX_SINGLE_INPUT_BYTES": ("resource_limits", "max_single_input_bytes", int),
+        "PDB2NET_MAX_PROCESSING_BATCH_BYTES": (
+            "resource_limits",
+            "max_processing_batch_bytes",
+            int,
+        ),
+        "PDB2NET_MAX_TOTAL_INPUT_EXPANDED_BYTES": (
+            "resource_limits",
+            "max_total_input_expanded_bytes",
+            int,
+        ),
+        "PDB2NET_MAX_SINGLE_INPUT_EXPANDED_BYTES": (
+            "resource_limits",
+            "max_single_input_expanded_bytes",
+            int,
+        ),
         "PDB2NET_MAX_DETAILED_INTERACTION_ROWS": (
             "resource_limits",
             "max_detailed_interaction_rows",
+            int,
         ),
         "PDB2NET_MAX_DETAILED_INTERACTION_BYTES": (
             "resource_limits",
             "max_detailed_interaction_bytes",
+            int,
         ),
         "PDB2NET_MIN_OUTPUT_FREE_BYTES": (
             "resource_limits",
             "min_output_free_bytes",
+            int,
         ),
-        "PDB2NET_COMBINED_MAX_NODES": ("combined_graph_limits", "max_nodes"),
-        "PDB2NET_COMBINED_MAX_EDGES": ("combined_graph_limits", "max_edges"),
+        "PDB2NET_COMBINED_MAX_NODES": ("combined_graph_limits", "max_nodes", int),
+        "PDB2NET_COMBINED_MAX_EDGES": ("combined_graph_limits", "max_edges", int),
     }
 
     for env, (key, caster) in flat.items():
         raw = os.environ.get(env)
         if raw:
-            value = caster(raw) if callable(caster) else raw
+            try:
+                value = caster(raw) if callable(caster) else raw
+            except (ConfigError, TypeError, ValueError) as exc:
+                raise ConfigError(f"Invalid value for {env}: {exc}") from exc
             if "." in key:
                 first, second = key.split(".", 1)
-                cfg.setdefault(first, {})
-                cfg[first][second] = value
+                _section(cfg, first)[second] = value
             else:
                 cfg[key] = value
 
-    for env, (k1, k2) in nested.items():
+    for env, (k1, k2, caster) in nested.items():
         raw = os.environ.get(env)
         if not raw:
             continue
-        cfg.setdefault(k1, {})
-        # Allow numbers or strings (e.g., "auto")
         try:
-            if raw.replace(".", "", 1).isdigit():
-                cfg[k1][k2] = float(raw) if "." in raw else int(raw)
-            else:
-                cfg[k1][k2] = raw
-        except Exception:
-            cfg[k1][k2] = raw
+            _section(cfg, k1)[k2] = caster(raw)
+        except (ConfigError, TypeError, ValueError) as exc:
+            raise ConfigError(f"Invalid value for {env}: {exc}") from exc
 
 
 def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
@@ -213,6 +281,9 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
         elif key in cfg and cfg[key]:
             cfg[key] = _normalize_path(cfg[key])
 
+    _section(cfg, "networks")
+    _section(cfg, "distance_thresholds")
+
     # Headless/Container => disable Cytoscape by default (unless explicitly set)
     if "open_in_cytoscape" not in cfg or cfg["open_in_cytoscape"] is None:
         if _is_headless_linux() or _is_container():
@@ -227,64 +298,67 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
         )
 
     # Keep worker defaults; "auto" is resolved later in the code
-    cfg.setdefault("workers", {})
-    cfg["workers"].setdefault("parsing", "auto")
-    cfg["workers"].setdefault("blast_threads", "auto")
-    cfg.setdefault("resource_limits", {})
-    cfg["resource_limits"].setdefault("max_input_files", None)
-    cfg["resource_limits"].setdefault("max_total_input_bytes", None)
-    cfg["resource_limits"].setdefault("max_single_input_bytes", None)
-    cfg["resource_limits"].setdefault("max_processing_batch_bytes", None)
-    cfg["resource_limits"].setdefault("max_total_input_expanded_bytes", None)
-    cfg["resource_limits"].setdefault("max_single_input_expanded_bytes", None)
-    cfg["resource_limits"].setdefault("max_detailed_interaction_rows", None)
-    cfg["resource_limits"].setdefault("max_detailed_interaction_bytes", None)
-    cfg["resource_limits"].setdefault("min_output_free_bytes", None)
-    cfg.setdefault("network_annotations", {})
-    cfg["network_annotations"].setdefault("use_embedded_sifts", True)
-    cfg["network_annotations"].setdefault("tooltip_fields", ["uniprot"])
-    cfg["network_annotations"].setdefault("max_tooltip_segments_per_database", 20)
-    cfg.setdefault("combined_graph_limits", {})
-    cfg["combined_graph_limits"].setdefault("max_nodes", None)
-    cfg["combined_graph_limits"].setdefault("max_edges", None)
+    workers = _section(cfg, "workers")
+    workers.setdefault("parsing", "auto")
+    workers.setdefault("blast_threads", "auto")
+    resource_limits = _section(cfg, "resource_limits")
+    resource_limits.setdefault("max_input_files", None)
+    resource_limits.setdefault("max_total_input_bytes", None)
+    resource_limits.setdefault("max_single_input_bytes", None)
+    resource_limits.setdefault("max_processing_batch_bytes", None)
+    resource_limits.setdefault("max_total_input_expanded_bytes", None)
+    resource_limits.setdefault("max_single_input_expanded_bytes", None)
+    resource_limits.setdefault("max_detailed_interaction_rows", None)
+    resource_limits.setdefault("max_detailed_interaction_bytes", None)
+    resource_limits.setdefault("min_output_free_bytes", None)
+    annotations = _section(cfg, "network_annotations")
+    annotations.setdefault("use_embedded_sifts", True)
+    annotations.setdefault("tooltip_fields", ["uniprot"])
+    annotations.setdefault("max_tooltip_segments_per_database", 20)
+    combined_limits = _section(cfg, "combined_graph_limits")
+    combined_limits.setdefault("max_nodes", None)
+    combined_limits.setdefault("max_edges", None)
     cfg.setdefault("reference_manifest_id", "")
     cfg.setdefault("layout_mode", "python_fast")
+    layout_mode = str(cfg["layout_mode"]).strip().lower()
+    if layout_mode not in {"python_fast", "cytoscape_live"}:
+        raise ConfigError(
+            "layout_mode must be 'python_fast' or 'cytoscape_live'."
+        )
+    cfg["layout_mode"] = layout_mode
     cfg.setdefault("structure_model_policy", "first")
-    cfg.setdefault("diamond", {})
-    cfg["diamond"].setdefault("enabled", False)
-    cfg["diamond"].setdefault("executable", "diamond")
-    cfg["diamond"].setdefault("uniref90_db_path", "")
-    cfg["diamond"].setdefault("temp_dir", "")
-    cfg["diamond"].setdefault("threads", 6)
-    cfg["diamond"].setdefault("iterate", True)
-    cfg["diamond"].setdefault("sensitivity", "sensitive")
-    cfg["diamond"].setdefault("block_size", 1.0)
-    cfg["diamond"].setdefault("index_chunks", 4)
-    cfg["diamond"].setdefault("max_target_seqs", 50)
-    cfg["diamond"].setdefault("batch_max_sequences", 5000)
-    cfg["diamond"].setdefault("batch_max_fasta_bytes", 50 * 1024 * 1024)
-    cfg["diamond"].setdefault("assign_uniprot_id", "never")
-    if not isinstance(cfg.get("interaction_filters"), dict):
-        cfg["interaction_filters"] = {}
-    cfg["interaction_filters"].setdefault("protein_protein_min_ca_neighbors", 10)
-    cfg["interaction_filters"].setdefault("protein_protein_min_all_atom_contacts", 1)
-    cfg["interaction_filters"].setdefault("protein_nucleic_acid_min_all_atom_contacts", 1)
-    cfg["interaction_filters"].setdefault("nucleic_acid_min_all_atom_contacts", 1)
+    diamond = _section(cfg, "diamond")
+    diamond.setdefault("enabled", False)
+    diamond.setdefault("executable", "diamond")
+    diamond.setdefault("uniref90_db_path", "")
+    diamond.setdefault("temp_dir", "")
+    diamond.setdefault("threads", 6)
+    diamond.setdefault("iterate", True)
+    diamond.setdefault("sensitivity", "sensitive")
+    diamond.setdefault("block_size", 1.0)
+    diamond.setdefault("index_chunks", 4)
+    diamond.setdefault("max_target_seqs", 50)
+    diamond.setdefault("batch_max_sequences", 5000)
+    diamond.setdefault("batch_max_fasta_bytes", 50 * 1024 * 1024)
+    diamond.setdefault("assign_uniprot_id", "never")
+    interaction_filters = _section(cfg, "interaction_filters")
+    interaction_filters.setdefault("protein_protein_min_ca_neighbors", 10)
+    interaction_filters.setdefault("protein_protein_min_all_atom_contacts", 1)
+    interaction_filters.setdefault("protein_nucleic_acid_min_all_atom_contacts", 1)
+    interaction_filters.setdefault("nucleic_acid_min_all_atom_contacts", 1)
 
 
-def load_config() -> Dict[str, Any]:
+def load_config(*, explicit_file: str | os.PathLike[str] | None = None) -> Dict[str, Any]:
     """Load configuration in layers: base → OS-specific → local → explicit file → environment variables."""
-    global _config_cache
-    if _config_cache is not None:
-        return _config_cache
-
     root = Path(__file__).resolve().parent
     os_key = {"Windows": "windows", "Linux": "linux", "Darwin": "darwin"}.get(
         platform.system(), platform.system().lower()
     )
 
     # Configuration directory (default: ./configs)
-    cfg_dir = Path(os.environ.get("PDB2NET_CONFIG_DIR") or (root / "configs"))
+    cfg_dir = Path(
+        _normalize_path(os.environ.get("PDB2NET_CONFIG_DIR") or (root / "configs"))
+    )
 
     candidates: list[Tuple[Path, bool]] = [
         (cfg_dir / "config.base.json", False),
@@ -298,9 +372,9 @@ def load_config() -> Dict[str, Any]:
         candidates.append((legacy, False))
 
     # Explicit file override via ENV
-    env_cfg = os.environ.get("PDB2NET_CONFIG_FILE")
+    env_cfg = explicit_file or os.environ.get("PDB2NET_CONFIG_FILE")
     if env_cfg:
-        candidates.append((Path(env_cfg), True))
+        candidates.append((Path(_normalize_path(os.fspath(env_cfg))), True))
 
     # Merge in order
     cfg: Dict[str, Any] = {}
@@ -308,22 +382,59 @@ def load_config() -> Dict[str, Any]:
         part = _read_json(path, strict=strict)
         _deep_merge(cfg, part)
 
-    # Post-processing and environment overrides
-    _postprocess(cfg, os_key)
+    # Environment values have the highest file-independent priority. Normalize
+    # paths and derived defaults only after every layer has been applied.
     _apply_env_overrides(cfg)
+    _postprocess(cfg, os_key)
 
-    if VERBOSE:
+    if _verbose_enabled():
         _log(f"OS={os_key} | headless={_is_headless_linux()} | container={_is_container()}")
         safe = dict(cfg)
         if "cytoscape_path" in safe and isinstance(safe["cytoscape_path"], str) and safe["cytoscape_path"]:
             safe["cytoscape_path"] = "<set>"
         _log("Aktive Schlüssel: " + ", ".join(sorted(safe.keys())))
 
-    _config_cache = cfg
     return cfg
 
 
-# Load on import (lazy + cache)
-config = load_config()
+_active_config: Dict[str, Any] = {}
+_config_revision = 0
 
-__all__ = ["SERVER_ENVIRONMENT", "config", "load_config"]
+
+def activate_config(values: Dict[str, Any]) -> Dict[str, Any]:
+    """Replace the active process config without changing the shared mapping object."""
+    global _config_revision
+    snapshot = copy.deepcopy(values)
+    _active_config.clear()
+    _active_config.update(snapshot)
+    _config_revision += 1
+    return _active_config
+
+
+def get_config() -> Dict[str, Any]:
+    """Return the active config, loading the default layers on first use."""
+    if not _active_config:
+        activate_config(load_config())
+    return _active_config
+
+
+def config_revision() -> int:
+    """Return the active-config revision for config-dependent runtime caches."""
+    return _config_revision
+
+
+def __getattr__(name: str) -> Any:
+    if name == "config":
+        return get_config()
+    raise AttributeError(name)
+
+
+__all__ = [
+    "ConfigError",
+    "SERVER_ENVIRONMENT",
+    "activate_config",
+    "config",
+    "config_revision",
+    "get_config",
+    "load_config",
+]

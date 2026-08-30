@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -253,19 +252,22 @@ def _apply_run_overrides(args: argparse.Namespace, config: dict[str, Any]) -> No
 
 def run_command(args: argparse.Namespace) -> int:
     """Run the pipeline through the config-backed public API."""
-    if args.config:
-        os.environ["PDB2NET_CONFIG_FILE"] = args.config
+    try:
+        from .config_loader import ConfigError, activate_config, load_config
 
-    from .config_loader import config
-
-    _apply_run_overrides(args, config)
-
-    if config.get("open_in_cytoscape", True):
-        from .cytoscape import ensure_cytoscape_running
-
-        ensure_cytoscape_running()
+        loaded = load_config(explicit_file=args.config)
+        _apply_run_overrides(args, loaded)
+        config = activate_config(loaded)
+    except ConfigError as exc:
+        print(f"PDB2Net run configuration failed: {exc}", file=sys.stderr)
+        return 1
 
     try:
+        if config.get("open_in_cytoscape", True):
+            from .cytoscape import ensure_cytoscape_running
+
+            ensure_cytoscape_running()
+
         from .pipeline import run_pipeline
 
         output_paths = run_pipeline(config["input_folder_path"], web_output_dir=args.web_output_dir)
@@ -284,19 +286,24 @@ def run_command(args: argparse.Namespace) -> int:
 
 def _load_auxiliary_config(args: argparse.Namespace) -> dict[str, Any]:
     """Load config for additive commands without changing normal ``run`` flags."""
-    if args.config:
-        os.environ["PDB2NET_CONFIG_FILE"] = args.config
+    from .config_loader import activate_config, load_config
 
-    from .config_loader import config
-
+    loaded = load_config(explicit_file=args.config)
     if getattr(args, "headless", False):
-        config["open_in_cytoscape"] = False
-    return config
+        loaded["open_in_cytoscape"] = False
+    return activate_config(loaded)
 
 
 def precompute_command(args: argparse.Namespace) -> int:
     """Populate a portable store with compact standard-profile graph entries."""
-    _load_auxiliary_config(args)
+    from .config_loader import ConfigError
+
+    try:
+        _load_auxiliary_config(args)
+    except ConfigError as exc:
+        print(f"PDB2Net precompute configuration failed: {exc}", file=sys.stderr)
+        return 1
+
     try:
         from .precomputed import precompute_directory
 
@@ -323,15 +330,21 @@ def precompute_command(args: argparse.Namespace) -> int:
 
 def assemble_command(args: argparse.Namespace) -> int:
     """Create normal outputs from selected validated cache entries."""
-    config = _load_auxiliary_config(args)
-    config["output_path"] = str(Path(args.output_dir).expanduser())
-
-    if config.get("open_in_cytoscape", True):
-        from .cytoscape import ensure_cytoscape_running
-
-        ensure_cytoscape_running()
+    from .config_loader import ConfigError
 
     try:
+        config = _load_auxiliary_config(args)
+        config["output_path"] = str(Path(args.output_dir).expanduser())
+    except ConfigError as exc:
+        print(f"PDB2Net assemble configuration failed: {exc}", file=sys.stderr)
+        return 1
+
+    try:
+        if config.get("open_in_cytoscape", True):
+            from .cytoscape import ensure_cytoscape_running
+
+            ensure_cytoscape_running()
+
         from .precomputed import run_assemble_pipeline
 
         output_paths = run_assemble_pipeline(

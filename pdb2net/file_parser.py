@@ -26,7 +26,6 @@ from .structure_identity import (
 )
 
 CORE_STRUCTURE_EXTENSIONS = (".pdb", ".ent", ".cif", ".mmcif")
-PDB_FASTA_PATH = str(config.get("pdb_fasta_path") or "")
 ALLOWED_EXTENSIONS = set(CORE_STRUCTURE_EXTENSIONS)
 GZIP_MAGIC = b"\x1f\x8b"
 IO_CHUNK_BYTES = 1024 * 1024
@@ -36,7 +35,7 @@ FileSignature = tuple[int, int, int, int, int]
 def load_valid_pdb_ids() -> set[str]:
     """Compatibility loader; identity detection never depends on this list."""
     try:
-        return _load_valid_pdb_ids(PDB_FASTA_PATH)
+        return _load_valid_pdb_ids(str(config.get("pdb_fasta_path") or ""))
     except Exception as exc:
         print(f"Error loading pdb_seqres.txt: {exc}")
         return set()

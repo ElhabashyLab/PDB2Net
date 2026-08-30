@@ -13,7 +13,7 @@ from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Mapping, Optional, Union
+from typing import Any, Dict, Iterator, List, Mapping, MutableMapping, Optional, Union
 
 from .config_loader import config
 from .components import build_identity_edges, find_linked_components, make_component_title
@@ -220,6 +220,13 @@ def process_single_file(
     return processed
 
 
+def _activate_parsing_worker(config_snapshot: Mapping[str, Any]) -> None:
+    """Install the parent run's config once in a spawned parsing worker."""
+    from .config_loader import activate_config
+
+    activate_config(dict(config_snapshot))
+
+
 def discover_input_files(input_path_or_filelist: Union[str, List[str]]) -> List[str]:
     """Resolve a folder or internal file list into valid structure files."""
     if isinstance(input_path_or_filelist, list):
@@ -414,15 +421,47 @@ def _preflight_structure_identities(
     return resolved
 
 
-def inspect_input_files(file_paths: List[str]) -> InputInventory:
-    """Stat inputs and enforce configured count/byte limits before parsing."""
-    limits = _resource_limits()
-    max_files = limits["max_input_files"]
-    if max_files is not None and len(file_paths) > max_files:
+def _validate_input_file_count(
+    file_paths: List[str], limits: Mapping[str, Optional[int]]
+) -> None:
+    maximum = limits["max_input_files"]
+    if maximum is not None and len(file_paths) > maximum:
         raise InputValidationError(
             "INPUT_FILE_COUNT_LIMIT_EXCEEDED",
-            f"Input contains {len(file_paths)} files; configured maximum is {max_files}.",
+            f"Input contains {len(file_paths)} files; configured maximum is {maximum}.",
         )
+
+
+def _validate_input_total_bytes(
+    total_bytes: int, limits: Mapping[str, Optional[int]]
+) -> None:
+    maximum = limits["max_total_input_bytes"]
+    if maximum is not None and total_bytes > maximum:
+        raise InputValidationError(
+            "INPUT_TOTAL_BYTES_LIMIT_EXCEEDED",
+            f"Input totals {total_bytes} bytes; configured maximum is {maximum}.",
+        )
+
+
+def _validate_input_total_expanded_bytes(
+    total_expanded_bytes: int, limits: Mapping[str, Optional[int]]
+) -> None:
+    maximum_expanded = limits["max_total_input_expanded_bytes"]
+    if maximum_expanded is not None and total_expanded_bytes > maximum_expanded:
+        raise InputValidationError(
+            "INPUT_TOTAL_EXPANDED_BYTES_LIMIT_EXCEEDED",
+            f"Expanded input totals {total_expanded_bytes} bytes; "
+            f"configured maximum is {maximum_expanded}.",
+        )
+
+
+def inspect_input_files(
+    file_paths: List[str], *, enforce_aggregate_limits: bool = True
+) -> InputInventory:
+    """Inspect inputs, enforcing single-file and optionally aggregate limits."""
+    limits = _resource_limits()
+    if enforce_aggregate_limits:
+        _validate_input_file_count(file_paths, limits)
 
     file_sizes: List[int] = []
     expanded_file_sizes: List[int] = []
@@ -482,19 +521,9 @@ def inspect_input_files(file_paths: List[str]) -> InputInventory:
         tuple(file_signatures),
         tuple(file_sha256),
     )
-    max_total = limits["max_total_input_bytes"]
-    if max_total is not None and inventory.total_bytes > max_total:
-        raise InputValidationError(
-            "INPUT_TOTAL_BYTES_LIMIT_EXCEEDED",
-            f"Input totals {inventory.total_bytes} bytes; configured maximum is {max_total}.",
-        )
-    max_total_expanded = limits["max_total_input_expanded_bytes"]
-    if max_total_expanded is not None and inventory.total_expanded_bytes > max_total_expanded:
-        raise InputValidationError(
-            "INPUT_TOTAL_EXPANDED_BYTES_LIMIT_EXCEEDED",
-            f"Expanded input totals {inventory.total_expanded_bytes} bytes; "
-            f"configured maximum is {max_total_expanded}.",
-        )
+    if enforce_aggregate_limits:
+        _validate_input_total_bytes(inventory.total_bytes, limits)
+        _validate_input_total_expanded_bytes(inventory.total_expanded_bytes, limits)
     return inventory
 
 
@@ -563,13 +592,18 @@ def _parse_input_files(
     expected_signatures: Mapping[str, FileSignature] | None = None,
     expected_sha256: Mapping[str, str] | None = None,
     maximum_expanded_bytes: int | None = None,
+    errors_by_path: MutableMapping[str, Exception] | None = None,
 ) -> List[Dict[str, Any]]:
-    """Parse files with at most one submitted task per parsing worker."""
+    """Parse files with bounded scheduling and optional per-file error collection."""
     configured_workers = resolve_workers(config.get("workers", {}).get("parsing"), kind="parsing")
     parsing_workers = min(configured_workers, max(1, len(file_paths)))
     logger.info("[Workers] Parsing processes: %s", parsing_workers)
     indexed_results: Dict[int, Optional[Dict[str, Any]]] = {}
-    with ProcessPoolExecutor(max_workers=parsing_workers) as executor:
+    with ProcessPoolExecutor(
+        max_workers=parsing_workers,
+        initializer=_activate_parsing_worker,
+        initargs=(config,),
+    ) as executor:
         pending: Dict[Any, int] = {}
         next_index = 0
 
@@ -599,7 +633,13 @@ def _parse_input_files(
             completed, _ = wait(pending, return_when=FIRST_COMPLETED)
             for future in completed:
                 index = pending.pop(future)
-                indexed_results[index] = future.result()
+                try:
+                    indexed_results[index] = future.result()
+                except Exception as exc:
+                    if errors_by_path is None:
+                        raise
+                    errors_by_path[file_paths[index]] = exc
+                    indexed_results[index] = None
 
     return [
         result

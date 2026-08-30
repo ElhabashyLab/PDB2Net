@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from pdb2net import main as pipeline
+from pdb2net.config_loader import config
 
 
 class FailingProcess:
@@ -36,16 +37,16 @@ def main() -> int:
         fixture = input_dir / "6m17.cif"
         fixture.write_text("data_6m17\n", encoding="utf-8")
 
-        original_output = pipeline.config.get("output_path")
-        original_open = pipeline.config.get("open_in_cytoscape")
+        original_output = config.get("output_path")
+        original_open = config.get("open_in_cytoscape")
         try:
-            pipeline.config["output_path"] = str(output_dir)
-            pipeline.config["open_in_cytoscape"] = False
+            config["output_path"] = str(output_dir)
+            config["open_in_cytoscape"] = False
             with patch.object(pipeline.multiprocessing, "Process", FailingProcess):
                 pipeline.batch_run(str(input_dir), timeout_minutes=1, size_limit_kb=1000)
         finally:
-            pipeline.config["output_path"] = original_output
-            pipeline.config["open_in_cytoscape"] = original_open
+            config["output_path"] = original_output
+            config["open_in_cytoscape"] = original_open
 
         log_path = output_dir / "error_in_batch_log" / "skipped_batches.txt"
         log_text = log_path.read_text(encoding="utf-8")

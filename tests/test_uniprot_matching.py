@@ -69,8 +69,8 @@ def test_short_blast_query_uses_more_targets_one_hsp_and_blastp_short(
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
     monkeypatch.setattr(uniprot_matcher.subprocess, "run", fake_run)
-    monkeypatch.setattr(uniprot_matcher, "BLAST_DB_PATH", str(tmp_path))
-    monkeypatch.setattr(uniprot_matcher, "BLAST_EXECUTABLE", "blastp")
+    monkeypatch.setitem(uniprot_matcher.config, "blast_db_path", str(tmp_path))
+    monkeypatch.setitem(uniprot_matcher.config, "blastp_executable", "blastp")
 
     hit = uniprot_matcher.run_blast_search("ACDEFGHIKLMNPQRSTVWY")
 
@@ -130,8 +130,8 @@ def test_diamond_uniref90_fallback_parses_tabular_output(tmp_path, monkeypatch: 
 
     monkeypatch.setattr(uniprot_matcher.subprocess, "run", fake_run)
     monkeypatch.setattr(uniprot_matcher, "_CACHE_ENABLED", False)
-    monkeypatch.setattr(uniprot_matcher, "BLAST_DB_PATH", str(tmp_path))
-    monkeypatch.setattr(uniprot_matcher, "BLAST_EXECUTABLE", "blastp")
+    monkeypatch.setitem(uniprot_matcher.config, "blast_db_path", str(tmp_path))
+    monkeypatch.setitem(uniprot_matcher.config, "blastp_executable", "blastp")
     monkeypatch.setitem(
         uniprot_matcher.config,
         "diamond",
@@ -299,8 +299,8 @@ def test_swissprot_batch_uses_one_multifasta_process_for_same_task_group(
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
     monkeypatch.setattr(uniprot_matcher.subprocess, "run", fake_run)
-    monkeypatch.setattr(uniprot_matcher, "BLAST_DB_PATH", str(tmp_path))
-    monkeypatch.setattr(uniprot_matcher, "BLAST_EXECUTABLE", "blastp")
+    monkeypatch.setitem(uniprot_matcher.config, "blast_db_path", str(tmp_path))
+    monkeypatch.setitem(uniprot_matcher.config, "blastp_executable", "blastp")
     monkeypatch.setitem(
         uniprot_matcher.config,
         "blast",
@@ -489,7 +489,7 @@ def test_batch_failures_are_distinct_from_no_hit(
     monkeypatch.setattr(uniprot_matcher.subprocess, "run", fake_run)
     query = [("query-key", "ACDEFGHIKLMNPQRSTVWY" * 5, "test query")]
     if batch_kind == "swissprot":
-        monkeypatch.setattr(uniprot_matcher, "BLAST_DB_PATH", str(tmp_path))
+        monkeypatch.setitem(uniprot_matcher.config, "blast_db_path", str(tmp_path))
         outcome = uniprot_matcher._run_blastp_swissprot_batch(query)["query-key"]
     else:
         monkeypatch.setitem(
@@ -521,7 +521,7 @@ def test_successful_empty_batch_output_is_a_real_no_hit(
     monkeypatch.setattr(uniprot_matcher.subprocess, "run", fake_run)
     query = [("query-key", "ACDEFGHIKLMNPQRSTVWY" * 5, "test query")]
     if batch_kind == "swissprot":
-        monkeypatch.setattr(uniprot_matcher, "BLAST_DB_PATH", str(tmp_path))
+        monkeypatch.setitem(uniprot_matcher.config, "blast_db_path", str(tmp_path))
         outcome = uniprot_matcher._run_blastp_swissprot_batch(query)["query-key"]
     else:
         monkeypatch.setitem(
@@ -668,7 +668,7 @@ def test_cache_signature_tracks_result_policies_but_not_chunk_sizes(
     swissprot.write_text(">sp|P12345|TEST\nACDEFGHIK\n", encoding="utf-8")
     diamond_db = tmp_path / "mini_uniref90.dmnd"
     diamond_db.write_bytes(b"test database signature")
-    monkeypatch.setattr(uniprot_matcher, "UNIPROT_FASTA_PATH", str(swissprot))
+    monkeypatch.setitem(uniprot_matcher.config, "uniprot_fasta_path", str(swissprot))
     baseline_config = {
         "enabled": True,
         "uniref90_db_path": str(diamond_db),
@@ -697,10 +697,10 @@ def test_cache_signature_tracks_result_policies_but_not_chunk_sizes(
     assert signature(batch_max_sequences=1, batch_max_fasta_bytes=1024) == baseline
 
     monkeypatch.setitem(uniprot_matcher.config, "diamond", baseline_config)
-    monkeypatch.setattr(
-        uniprot_matcher,
-        "BLAST_MAX_TARGET_SEQS_DEFAULT",
-        uniprot_matcher.BLAST_MAX_TARGET_SEQS_DEFAULT + 1,
+    monkeypatch.setitem(
+        uniprot_matcher.config,
+        "blast",
+        {**uniprot_matcher.config["blast"], "max_target_seqs_default": 51},
     )
     assert uniprot_matcher._db_signature() != baseline
 
@@ -721,8 +721,8 @@ def test_cache_signature_tracks_every_blast_component_and_reference_manifest(
     blast_dir.mkdir()
     for suffix in ("pin", "phr", "psq"):
         (blast_dir / f"uniprot_db.{suffix}").write_bytes(suffix.encode("ascii"))
-    monkeypatch.setattr(uniprot_matcher, "UNIPROT_FASTA_PATH", str(fasta))
-    monkeypatch.setattr(uniprot_matcher, "BLAST_DB_PATH", str(blast_dir))
+    monkeypatch.setitem(uniprot_matcher.config, "uniprot_fasta_path", str(fasta))
+    monkeypatch.setitem(uniprot_matcher.config, "blast_db_path", str(blast_dir))
     monkeypatch.setitem(uniprot_matcher.config, "diamond", {"enabled": False})
     monkeypatch.setitem(uniprot_matcher.config, "reference_manifest_id", "release-a")
     baseline = uniprot_matcher._db_signature()

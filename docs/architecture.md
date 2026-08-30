@@ -95,6 +95,9 @@ Configuration is loaded in layers:
 5. environment variable overrides
 
 `config.local.json` is intended for machine-specific paths and is ignored by Git.
+The CLI creates and validates a fresh snapshot after applying every layer, then
+passes that same snapshot to spawned parser workers. Runtime config loading does
+not mutate `PDB2NET_CONFIG_FILE` or leak CLI overrides into a later invocation.
 
 ## Testing Strategy
 

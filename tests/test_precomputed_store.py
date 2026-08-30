@@ -335,6 +335,212 @@ def test_failed_build_leaves_no_manifest_and_retry_reuses_valid_entry(
     assert precomputed.load_manifest(root)["entry_count"] == 2
 
 
+def test_precompute_reuses_one_identity_and_initial_fingerprint_inventory(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from pdb2net import pipeline
+
+    first = _source(tmp_path, "1abc")
+    second = _source(tmp_path, "2xyz")
+    _install_fake_science(monkeypatch)
+    identity_calls: list[str] = []
+    fingerprint_calls: list[Path] = []
+    parse_options: list[dict] = []
+    original_identity = pipeline.get_structure_identity
+    original_fingerprint = build.source_fingerprint
+
+    def recording_identity(path: str, **kwargs):
+        identity_calls.append(path)
+        return original_identity(path, **kwargs)
+
+    def recording_fingerprint(path: Path):
+        fingerprint_calls.append(path)
+        return original_fingerprint(path)
+
+    def recording_parse(paths, **kwargs):
+        parse_options.append(kwargs)
+        return [_raw_structure(Path(path), Path(path).stem.upper()) for path in paths]
+
+    monkeypatch.setattr(pipeline, "get_structure_identity", recording_identity)
+    monkeypatch.setattr(build, "source_fingerprint", recording_fingerprint)
+    monkeypatch.setattr(pipeline, "_parse_input_files", recording_parse)
+
+    report = precomputed.precompute_sources(tmp_path / "store", [first, second])
+
+    assert report["failed"] == 0
+    assert identity_calls == [str(first.resolve()), str(second.resolve())]
+    assert fingerprint_calls == [first.resolve(), second.resolve()]
+    assert len(parse_options) == 1
+    options = parse_options[0]
+    assert set(options["expected_identities"]) == {str(first.resolve()), str(second.resolve())}
+    assert set(options["expected_signatures"]) == {str(first.resolve()), str(second.resolve())}
+    assert set(options["expected_sha256"]) == {str(first.resolve()), str(second.resolve())}
+    assert options["errors_by_path"] == {}
+
+
+def test_parse_failure_is_isolated_and_successful_entry_is_reused_on_retry(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from pdb2net import pipeline
+
+    first = _source(tmp_path, "1abc")
+    second = _source(tmp_path, "2xyz")
+    _install_fake_science(monkeypatch)
+
+    def partial_parse(paths, *, errors_by_path, **_kwargs):
+        errors_by_path[str(second.resolve())] = InputValidationError(
+            "INVALID_PDB_INPUT", "Cannot parse structure input: 2xyz.pdb"
+        )
+        return [_raw_structure(first, "1ABC")]
+
+    monkeypatch.setattr(pipeline, "_parse_input_files", partial_parse)
+    root = tmp_path / "store"
+
+    failed = precomputed.precompute_sources(root, [first, second])
+
+    assert failed["written"] == 1
+    assert failed["failed"] == 1
+    assert failed["errors"] == [
+        {
+            "pdb_id": identity_from_official_id("2xyz").canonical_id,
+            "code": "INVALID_PDB_INPUT",
+            "message": "INVALID_PDB_INPUT: Cannot parse structure input: 2xyz.pdb",
+        }
+    ]
+    assert precomputed.entry_path(root, "1abc").is_file()
+    assert not (root / "manifest.json").exists()
+
+    _install_fake_science(monkeypatch)
+    retried = precomputed.precompute_sources(root, [first, second])
+
+    assert retried["cache_hits"] == 1
+    assert retried["written"] == 1
+    assert retried["failed"] == 0
+    assert precomputed.load_manifest(root)["entry_count"] == 2
+
+
+def test_identity_preflight_failure_does_not_block_a_valid_source(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    first = _source(tmp_path, "1abc")
+    invalid = tmp_path / "2xyz.cif"
+    invalid.write_text("data_2xyz\ndata_second\n", encoding="utf-8")
+    _install_fake_science(monkeypatch)
+    root = tmp_path / "store"
+
+    failed = precomputed.precompute_sources(root, [first, invalid])
+
+    assert failed["written"] == 1
+    assert failed["failed"] == 1
+    assert failed["errors"][0]["pdb_id"] == "2xyz.cif"
+    assert failed["errors"][0]["code"] == "INVALID_MMCIF_DATA_BLOCK_COUNT"
+    assert precomputed.entry_path(root, "1abc").is_file()
+    assert not (root / "manifest.json").exists()
+
+    retried = precomputed.precompute_sources(root, [first, invalid])
+
+    assert retried["cache_hits"] == 1
+    assert retried["written"] == 0
+    assert retried["failed"] == 1
+
+
+def test_precompute_enforces_raw_total_limit_globally_before_writing(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    first = _source(tmp_path, "1abc")
+    second = _source(tmp_path, "2xyz")
+    _install_fake_science(monkeypatch)
+    total = first.stat().st_size + second.stat().st_size
+    monkeypatch.setitem(
+        config,
+        "resource_limits",
+        {
+            **config.get("resource_limits", {}),
+            "max_total_input_bytes": total - 1,
+        },
+    )
+    root = tmp_path / "store"
+
+    with pytest.raises(InputValidationError) as error:
+        precomputed.precompute_sources(root, [first, second])
+
+    assert error.value.code == "INPUT_TOTAL_BYTES_LIMIT_EXCEEDED"
+    assert not precomputed.entry_path(root, "1abc").exists()
+    assert not precomputed.entry_path(root, "2xyz").exists()
+
+
+def test_precompute_enforces_expanded_total_limit_globally_before_writing(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    first_text = "HEADER TEST 1ABC\n" + "REMARK " + ("A" * 200) + "\n"
+    second_text = "HEADER TEST 2XYZ\n" + "REMARK " + ("B" * 200) + "\n"
+    first = tmp_path / "1abc.pdb.gz"
+    second = tmp_path / "2xyz.pdb.gz"
+    first.write_bytes(gzip.compress(first_text.encode("utf-8")))
+    second.write_bytes(gzip.compress(second_text.encode("utf-8")))
+    _install_fake_science(monkeypatch)
+    expanded_total = len(first_text.encode("utf-8")) + len(second_text.encode("utf-8"))
+    monkeypatch.setitem(
+        config,
+        "resource_limits",
+        {
+            **config.get("resource_limits", {}),
+            "max_total_input_bytes": None,
+            "max_total_input_expanded_bytes": expanded_total - 1,
+        },
+    )
+    root = tmp_path / "store"
+
+    with pytest.raises(InputValidationError) as error:
+        precomputed.precompute_sources(root, [first, second])
+
+    assert error.value.code == "INPUT_TOTAL_EXPANDED_BYTES_LIMIT_EXCEEDED"
+    assert not precomputed.entry_path(root, "1abc").exists()
+    assert not precomputed.entry_path(root, "2xyz").exists()
+
+
+def test_precompute_rechecks_raw_total_after_source_growth(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from pdb2net import pipeline
+
+    first = _source(tmp_path, "1abc")
+    second = _source(tmp_path, "2xyz")
+    _install_fake_science(monkeypatch)
+    initial_total = first.stat().st_size + second.stat().st_size
+    monkeypatch.setitem(
+        config,
+        "resource_limits",
+        {
+            **config.get("resource_limits", {}),
+            "max_total_input_bytes": initial_total,
+        },
+    )
+    original_inspect = pipeline.inspect_input_files
+    grown = False
+
+    def inspect_after_growth(paths, **kwargs):
+        nonlocal grown
+        if Path(paths[0]) == second and not grown:
+            second.write_text(
+                second.read_text(encoding="utf-8") + ("REMARK GROWTH\n" * 20),
+                encoding="utf-8",
+            )
+            grown = True
+        return original_inspect(paths, **kwargs)
+
+    monkeypatch.setattr(pipeline, "inspect_input_files", inspect_after_growth)
+    root = tmp_path / "store"
+
+    with pytest.raises(InputValidationError) as error:
+        precomputed.precompute_sources(root, [first, second])
+
+    assert error.value.code == "INPUT_TOTAL_BYTES_LIMIT_EXCEEDED"
+    assert not precomputed.entry_path(root, "1abc").exists()
+    assert not precomputed.entry_path(root, "2xyz").exists()
+    assert not (root / "manifest.json").exists()
+
+
 def test_unpublished_retry_recomputes_an_entry_when_its_source_hash_changes(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

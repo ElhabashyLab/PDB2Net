@@ -18,6 +18,12 @@ as current compatibility requirements.
   installed-wheel checks to the Python 3.11/3.12 quality matrix.
 - Remove the unused experimental external Java/Prefuse layout backend; headless
   exports continue to use the deterministic built-in Python layout.
+- Build and validate a fresh configuration snapshot per CLI invocation, apply
+  path normalization after all override layers, and propagate the snapshot to
+  spawned parser workers without mutating `PDB2NET_CONFIG_FILE`.
+- Reuse one bounded source inventory during offline precompute and isolate
+  invalid sources so completed entries remain available for unpublished-store
+  retries while global input limits and manifest-last publication stay strict.
 
 ## v0.2.0-rc4 - 2026-08-26
 

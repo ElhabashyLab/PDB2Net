@@ -56,7 +56,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 from Bio.Data import IUPACData
-from .config_loader import config
+from .config_loader import config, config_revision
 from .residue_types import (
     AMINO_ACIDS,
     DNA_RESIDUES,
@@ -66,19 +66,29 @@ from .residue_types import (
     normalize_residue_name,
 )
 
-# --- Paths from configuration ---
-BLAST_DB_PATH: str = config["blast_db_path"]
-BLAST_EXECUTABLE: str = config["blastp_executable"]
-UNIPROT_FASTA_PATH: str = config["uniprot_fasta_path"]
+def _blast_config() -> Dict[str, Any]:
+    raw = config.get("blast", {})
+    return raw if isinstance(raw, dict) else {}
 
-_BLAST_CONFIG: Dict[str, Any] = config.get("blast", {}) if isinstance(config.get("blast", {}), dict) else {}
-BLAST_MAX_TARGET_SEQS_DEFAULT: int = int(_BLAST_CONFIG.get("max_target_seqs_default", 50))
-BLAST_MAX_TARGET_SEQS_SHORT: int = int(_BLAST_CONFIG.get("max_target_seqs_short", 100))
-BLAST_SHORT_QUERY_LENGTH: int = int(_BLAST_CONFIG.get("short_query_length", 80))
-BLAST_VERY_SHORT_QUERY_LENGTH: int = int(_BLAST_CONFIG.get("very_short_query_length", 30))
-BLAST_USE_BLASTP_SHORT: bool = bool(_BLAST_CONFIG.get("use_blastp_short", True))
-BLAST_MAX_HSPS: int = int(_BLAST_CONFIG.get("max_hsps", 1))
-BLAST_MAX_X_FRACTION: float = float(_BLAST_CONFIG.get("max_x_fraction", 0.20))
+
+def _blast_db_path() -> str:
+    return str(config.get("blast_db_path") or "")
+
+
+def _blast_executable() -> str:
+    return str(config.get("blastp_executable") or "blastp")
+
+
+def _uniprot_fasta_path() -> str:
+    return str(config.get("uniprot_fasta_path") or "")
+
+
+def _blast_cache_path() -> str:
+    return str(
+        config.get("blast_cache_path")
+        or os.environ.get("PDB2NET_BLAST_CACHE_PATH", "").strip()
+        or os.path.join(_blast_db_path(), "blast_cache.sqlite3")
+    )
 
 # 3-letter → 1-letter amino-acid mapping (Biopython)
 three_to_one: Dict[str, str] = IUPACData.protein_letters_3to1
@@ -178,29 +188,25 @@ def _diag_print_summary() -> None:
 # Cache can be disabled via: PDB2NET_BLAST_CACHE=0
 _CACHE_ENABLED: bool = str(os.environ.get("PDB2NET_BLAST_CACHE", "1")).strip().lower() not in {"0", "false", "no", "off"}
 
-BLAST_CACHE_PATH: str = str(
-    config.get("blast_cache_path")
-    or os.environ.get("PDB2NET_BLAST_CACHE_PATH", "").strip()
-    or os.path.join(BLAST_DB_PATH, "blast_cache.sqlite3")
-)
-
 _CACHE_LOCK = threading.Lock()
 _CACHE_CONN: sqlite3.Connection | None = None
 _CACHE_DB_SIG: str | None = None
+_CACHE_CONFIG_REVISION = -1
 
 
 def _search_policy_payload() -> Dict[str, Any]:
     """Return result-relevant search settings used to namespace cache rows."""
+    blast_cfg = _blast_config()
     diamond_cfg = _diamond_config()
     return {
         "swissprot": {
-            "max_target_seqs_default": BLAST_MAX_TARGET_SEQS_DEFAULT,
-            "max_target_seqs_short": BLAST_MAX_TARGET_SEQS_SHORT,
-            "short_query_length": BLAST_SHORT_QUERY_LENGTH,
-            "very_short_query_length": BLAST_VERY_SHORT_QUERY_LENGTH,
-            "use_blastp_short": BLAST_USE_BLASTP_SHORT,
-            "max_hsps": BLAST_MAX_HSPS,
-            "max_x_fraction": BLAST_MAX_X_FRACTION,
+            "max_target_seqs_default": int(blast_cfg.get("max_target_seqs_default", 50)),
+            "max_target_seqs_short": int(blast_cfg.get("max_target_seqs_short", 100)),
+            "short_query_length": int(blast_cfg.get("short_query_length", 80)),
+            "very_short_query_length": int(blast_cfg.get("very_short_query_length", 30)),
+            "use_blastp_short": bool(blast_cfg.get("use_blastp_short", True)),
+            "max_hsps": int(blast_cfg.get("max_hsps", 1)),
+            "max_x_fraction": float(blast_cfg.get("max_x_fraction", 0.20)),
             "thresholds": {
                 "short": _blast_search_parameters(20)[:4],
                 "medium": _blast_search_parameters(100)[:4],
@@ -253,10 +259,11 @@ def _db_signature() -> str:
 
     fasta_signature: tuple[str, int, int, int] | None = None
     try:
-        st = os.stat(UNIPROT_FASTA_PATH)
-        if os.path.isfile(UNIPROT_FASTA_PATH):
+        uniprot_fasta_path = _uniprot_fasta_path()
+        st = os.stat(uniprot_fasta_path)
+        if os.path.isfile(uniprot_fasta_path):
             fasta_signature = (
-                os.path.abspath(UNIPROT_FASTA_PATH),
+                os.path.abspath(uniprot_fasta_path),
                 st.st_size,
                 st.st_mtime_ns,
                 st.st_ctime_ns,
@@ -266,7 +273,7 @@ def _db_signature() -> str:
 
     blast_components: list[tuple[str, int, int, int]] = []
     try:
-        with os.scandir(BLAST_DB_PATH) as entries:
+        with os.scandir(_blast_db_path()) as entries:
             for entry in entries:
                 if not entry.name.startswith("uniprot_db.") or not entry.is_file(
                     follow_symlinks=False
@@ -279,7 +286,7 @@ def _db_signature() -> str:
     except Exception:
         pass
     swissprot_payload = {
-        "blast_db_path": os.path.abspath(BLAST_DB_PATH),
+        "blast_db_path": os.path.abspath(_blast_db_path()),
         "components": sorted(blast_components),
         "fasta": fasta_signature,
         "reference_manifest_id": reference_manifest_id,
@@ -309,21 +316,27 @@ def _seq_cache_key(sequence: str) -> str:
 
 
 def _cache_init() -> None:
-    global _CACHE_CONN, _CACHE_DB_SIG
+    global _CACHE_CONFIG_REVISION, _CACHE_CONN, _CACHE_DB_SIG
     if not _CACHE_ENABLED:
         return
-    if _CACHE_CONN is not None:
+    revision = config_revision()
+    if _CACHE_CONN is not None and _CACHE_CONFIG_REVISION == revision:
         return
 
     with _CACHE_LOCK:
-        if _CACHE_CONN is not None:
+        if _CACHE_CONN is not None and _CACHE_CONFIG_REVISION == revision:
             return
+        if _CACHE_CONN is not None:
+            _CACHE_CONN.close()
+            _CACHE_CONN = None
+            _CACHE_DB_SIG = None
         try:
-            cache_dir = os.path.dirname(BLAST_CACHE_PATH)
+            cache_path = _blast_cache_path()
+            cache_dir = os.path.dirname(cache_path)
             if cache_dir:
                 os.makedirs(cache_dir, exist_ok=True)
 
-            conn = sqlite3.connect(BLAST_CACHE_PATH, timeout=30, check_same_thread=False)
+            conn = sqlite3.connect(cache_path, timeout=30, check_same_thread=False)
             conn.execute("PRAGMA journal_mode=WAL;")
             conn.execute("PRAGMA synchronous=NORMAL;")
             conn.execute(
@@ -362,9 +375,11 @@ def _cache_init() -> None:
             conn.commit()
             _CACHE_CONN = conn
             _CACHE_DB_SIG = _db_signature()
+            _CACHE_CONFIG_REVISION = revision
         except Exception:
             _CACHE_CONN = None
             _CACHE_DB_SIG = None
+            _CACHE_CONFIG_REVISION = revision
             _diag_inc("blast_cache_error")
 
 
@@ -629,8 +644,9 @@ def _apply_direct_uniprot_to_structure(structure: Dict[str, Any], debug: bool = 
 
 def create_blast_database(force_rebuild: bool = False) -> None:
     """Create a BLAST database from the UniProt FASTA if needed."""
-    os.makedirs(BLAST_DB_PATH, exist_ok=True)
-    db_prefix = os.path.join(BLAST_DB_PATH, "uniprot_db")
+    blast_db_path = _blast_db_path()
+    os.makedirs(blast_db_path, exist_ok=True)
+    db_prefix = os.path.join(blast_db_path, "uniprot_db")
     pin_file = db_prefix + ".pin"
 
     if os.path.exists(pin_file) and not force_rebuild:
@@ -639,7 +655,7 @@ def create_blast_database(force_rebuild: bool = False) -> None:
     makeblastdb = config.get("makeblastdb_executable", "makeblastdb")
     cmd = [
         makeblastdb,
-        "-in", UNIPROT_FASTA_PATH,
+        "-in", _uniprot_fasta_path(),
         "-dbtype", "prot",
         "-out", db_prefix,
     ]
@@ -719,14 +735,25 @@ def _protein_name_from_uniprot_title(stitle: str) -> Optional[str]:
 
 def _blast_search_parameters(qlen: int) -> Tuple[float, float, float, float, int, Optional[str]]:
     """Return thresholds and process options for one Swiss-Prot query."""
+    blast_cfg = _blast_config()
     if qlen < 80:
         thresholds = (1e-6, 0.85, 35.0, 60.0)
     elif qlen < 200:
         thresholds = (1e-10, 0.70, 30.0, 70.0)
     else:
         thresholds = (1e-20, 0.60, 25.0, 80.0)
-    max_targets = BLAST_MAX_TARGET_SEQS_SHORT if qlen < BLAST_SHORT_QUERY_LENGTH else BLAST_MAX_TARGET_SEQS_DEFAULT
-    blast_task = "blastp-short" if BLAST_USE_BLASTP_SHORT and qlen < BLAST_VERY_SHORT_QUERY_LENGTH else None
+    short_query_length = int(blast_cfg.get("short_query_length", 80))
+    max_targets = (
+        int(blast_cfg.get("max_target_seqs_short", 100))
+        if qlen < short_query_length
+        else int(blast_cfg.get("max_target_seqs_default", 50))
+    )
+    blast_task = (
+        "blastp-short"
+        if bool(blast_cfg.get("use_blastp_short", True))
+        and qlen < int(blast_cfg.get("very_short_query_length", 30))
+        else None
+    )
     return (*thresholds, max_targets, blast_task)
 
 
@@ -934,13 +961,13 @@ def _run_blastp_swissprot_batch(
                         query_ids[query_id] = (key, sequence, label)
                         handle.write(f">{query_id}\n{sequence}\n")
 
-                db_prefix = os.path.join(BLAST_DB_PATH, "uniprot_db")
+                db_prefix = os.path.join(_blast_db_path(), "uniprot_db")
                 outfmt_qcovs = "6 qseqid sseqid pident length qstart qend qlen qcovs evalue bitscore stitle"
                 outfmt_span = "6 qseqid sseqid pident length qstart qend qlen evalue bitscore stitle"
 
                 def run_process(outfmt: str) -> subprocess.CompletedProcess[str]:
                     command = [
-                        BLAST_EXECUTABLE,
+                        _blast_executable(),
                         "-query", query_file,
                         "-db", db_prefix,
                         "-out", output_file,
@@ -948,8 +975,9 @@ def _run_blastp_swissprot_batch(
                         "-max_target_seqs", str(max_targets),
                         "-outfmt", outfmt,
                     ]
-                    if BLAST_MAX_HSPS > 0:
-                        command.extend(["-max_hsps", str(BLAST_MAX_HSPS)])
+                    max_hsps = int(_blast_config().get("max_hsps", 1))
+                    if max_hsps > 0:
+                        command.extend(["-max_hsps", str(max_hsps)])
                     if task:
                         command.extend(["-task", task])
                     return subprocess.run(command, capture_output=True, text=True)
@@ -1384,7 +1412,7 @@ def parallel_blast_search(parsed_data: List[Dict[str, Any]], max_workers: int = 
 
     _diag_reset()
 
-    max_x_fraction: float = BLAST_MAX_X_FRACTION
+    max_x_fraction = float(_blast_config().get("max_x_fraction", 0.20))
     na_types = NUCLEIC_ACID_TYPES
 
     # Dedupe by sequence: seq_key -> { "qlen": int, "seq": str, "targets": [(chain_dict, label), ...] }

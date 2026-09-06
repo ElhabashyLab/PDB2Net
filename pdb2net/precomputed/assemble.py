@@ -174,6 +174,7 @@ def run_assemble_pipeline(
         collect_generated_outputs,
         collect_web_outputs,
         create_run_output_paths,
+        reserve_web_output_directory,
         write_failed_run_manifest,
         write_run_manifest,
         write_run_summary,
@@ -183,6 +184,9 @@ def run_assemble_pipeline(
     started_at = datetime.now().isoformat(timespec="seconds")
     start = time.monotonic()
     labels: list[str] = []
+    output_paths = None
+    web_output_reservation_attempted = False
+    web_output_reserved = False
     try:
         network_annotation_config()
         if bool(config.get("export_detailed_interactions", False)):
@@ -191,6 +195,10 @@ def run_assemble_pipeline(
                 "Precomputed entries contain no atom pairs; use raw-file mode for detailed CSVs.",
             )
         pipeline._validate_output_root()
+        if web_output_dir:
+            web_output_reservation_attempted = True
+            reserve_web_output_directory(web_output_dir)
+            web_output_reserved = True
         pipeline._combined_graph_limits()
         requested = normalize_requested_ids(pdb_ids)
         resource_limits = pipeline._resource_limits()
@@ -280,19 +288,32 @@ def run_assemble_pipeline(
         )
         write_run_summary(output_paths)
         if web_output_dir:
-            collect_web_outputs(output_paths, web_output_dir)
+            collect_web_outputs(
+                output_paths,
+                web_output_dir,
+                web_output_prepared=True,
+            )
         return output_paths
     except Exception as exc:
-        output_paths = write_failed_run_manifest(
-            config.get("output_path", ""),
-            input_path="precomputed:"
-            + ",".join(labels or [str(value) for value in pdb_ids]),
-            config_snapshot=pipeline._config_snapshot(config.get("networks", {})),
-            error=exc,
-            started_at=started_at,
-        )
-        if web_output_dir:
-            collect_web_outputs(output_paths, web_output_dir)
+        base_output_path = str(config.get("output_path") or "").strip()
+        if base_output_path:
+            output_paths = write_failed_run_manifest(
+                base_output_path,
+                input_path="precomputed:"
+                + ",".join(labels or [str(value) for value in pdb_ids]),
+                config_snapshot=pipeline._config_snapshot(config.get("networks", {})),
+                error=exc,
+                started_at=started_at,
+                output_paths=output_paths,
+            )
+            if web_output_dir and (
+                web_output_reserved or not web_output_reservation_attempted
+            ):
+                collect_web_outputs(
+                    output_paths,
+                    web_output_dir,
+                    web_output_prepared=web_output_reserved,
+                )
         raise
     finally:
         tree_cache.clear()

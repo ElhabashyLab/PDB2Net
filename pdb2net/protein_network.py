@@ -76,7 +76,6 @@ def create_protein_network(
     chain_to_uniprot: Dict[str, str] = {}
     uniprot_to_pdb_ids: Dict[str, Set[str]] = {}
     uniprot_to_file_labels: Dict[str, Set[str]] = {}
-    uniprot_to_name: Dict[str, str] = {}
     pdb_to_uniprots: Dict[str, Set[str]] = {}
     chain_info: Dict[str, Dict[str, Any]] = {}
     uniprot_pdb_to_chains: Dict[Tuple[str, str], Set[str]] = {}
@@ -106,7 +105,6 @@ def create_protein_network(
             up = chain.get("uniprot_id")
             if up:
                 chain_to_uniprot[uid] = up
-                uniprot_to_name[up] = chain.get("molecule_name", up)
                 uniprot_to_pdb_ids.setdefault(up, set()).add(pdb_id)
                 uniprot_to_file_labels.setdefault(up, set()).add(file_label)
                 pdb_to_uniprots.setdefault(pdb_id, set()).add(up)
@@ -136,8 +134,15 @@ def create_protein_network(
         }
         return sorted(labels)
 
+    def protein_name(up_id: str, pdb_scope: Optional[str]) -> str:
+        for uid in source_chain_uids_for_uniprot(up_id, pdb_scope):
+            name = chain_info[uid].get("molecule_name")
+            if name and name != "Unknown":
+                return str(name)
+        return up_id
+
     def protein_tooltip(up_id: str, pdb_scope: Optional[str]) -> str:
-        lines = [str(uniprot_to_name.get(up_id, up_id))]
+        lines = [protein_name(up_id, pdb_scope)]
         lines.append("Type: Protein")
         lines.append(f"UniProt: {up_id}")
 
@@ -267,9 +272,12 @@ def create_protein_network(
         nodes: List[Dict[str, Any]] = []
         for up in sorted(uniprot_ids):
             cg = "Protein" if force_protein_color else get_color_group_for_combined(up)
-            pdbs = sorted(uniprot_to_pdb_ids.get(up, []))
+            pdbs = [pdb_scope] if pdb_scope is not None else sorted(uniprot_to_pdb_ids.get(up, []))
             source_chains = source_chains_for_uniprot(up, pdb_scope=pdb_scope)
-            source_files = sorted(uniprot_to_file_labels.get(up, []))
+            source_files = sorted({
+                chain_info[uid]["file_label"]
+                for uid in source_chain_uids_for_uniprot(up, pdb_scope)
+            })
             display_name = up
             if pdb_scope is None and len(pdbs) > 1:
                 display_name = f"{up}\n{len(pdbs)} PDBs"
@@ -283,7 +291,7 @@ def create_protein_network(
                 "pdb_ids": ", ".join(pdbs),
                 "source_chains": ", ".join(source_chains),
                 "source_files": ", ".join(source_files),
-                "molecule_name": uniprot_to_name.get(up, up),
+                "molecule_name": protein_name(up, pdb_scope),
                 "tooltip": protein_tooltip(up, pdb_scope=pdb_scope),
             })
             annotation_metadata = protein_annotation_metadata(up, pdb_scope)

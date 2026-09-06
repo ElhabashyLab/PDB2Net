@@ -58,6 +58,21 @@ def test_internal_list_run_keeps_documented_no_failed_manifest_behavior(
     assert not list(output_root.glob("*/manifest.json"))
 
 
+def test_internal_list_run_rejects_web_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output_root = tmp_path / "outputs"
+    web_root = tmp_path / "web"
+    monkeypatch.setitem(pipeline.config, "output_path", str(output_root))
+
+    with pytest.raises(InputValidationError) as error:
+        pipeline.run_pipeline([], web_output_dir=str(web_root))
+
+    assert error.value.code == "WEB_OUTPUT_UNAVAILABLE_FOR_FILE_LIST"
+    assert not web_root.exists()
+    assert not list(output_root.glob("*/manifest.json"))
+
+
 def test_run_pipeline_writes_failed_web_summary_for_empty_input_folder(tmp_path: Path, monkeypatch) -> None:
     output_root = tmp_path / "outputs"
     web_root = tmp_path / "web_outputs"
@@ -131,6 +146,39 @@ def test_output_preflight_rejects_missing_output_path(monkeypatch) -> None:
     assert exc_info.value.code == "OUTPUT_PATH_MISSING"
 
 
+def test_run_pipeline_preserves_missing_output_path_error(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setitem(pipeline.config, "output_path", "")
+
+    with pytest.raises(InputValidationError) as exc_info:
+        pipeline.run_pipeline(str(tmp_path / "inputs"))
+
+    assert exc_info.value.code == "OUTPUT_PATH_MISSING"
+
+
+def test_web_output_is_reserved_before_input_inspection(tmp_path: Path, monkeypatch) -> None:
+    output_root = tmp_path / "outputs"
+    input_dir = tmp_path / "inputs"
+    input_dir.mkdir()
+    (input_dir / "1abc.cif").write_text("data_1abc\n", encoding="utf-8")
+    web_root = tmp_path / "web"
+    web_root.mkdir()
+    sentinel = web_root / "existing.txt"
+    sentinel.write_text("keep", encoding="utf-8")
+    monkeypatch.setitem(pipeline.config, "output_path", str(output_root))
+    monkeypatch.setitem(pipeline.config, "reference_manifest_id", "test-reference-v1")
+    monkeypatch.setattr(
+        pipeline,
+        "inspect_input_files",
+        lambda _paths: (_ for _ in ()).throw(AssertionError("inspection must not start")),
+    )
+
+    with pytest.raises(InputValidationError) as exc_info:
+        pipeline.run_pipeline(str(input_dir), web_output_dir=str(web_root))
+
+    assert exc_info.value.code == "WEB_OUTPUT_DIR_NOT_EMPTY"
+    assert set(web_root.iterdir()) == {sentinel}
+
+
 def test_run_pipeline_fails_when_no_structure_parses(tmp_path: Path, monkeypatch) -> None:
     output_root = tmp_path / "outputs"
     input_dir = tmp_path / "inputs"
@@ -139,11 +187,21 @@ def test_run_pipeline_fails_when_no_structure_parses(tmp_path: Path, monkeypatch
     monkeypatch.setitem(pipeline.config, "output_path", str(output_root))
     monkeypatch.setattr(pipeline, "_validate_required_reference_files", lambda: None)
     monkeypatch.setattr(pipeline, "_parse_input_files", lambda _files, **_kwargs: [])
+    failed_output_paths = []
+    write_failed_run_manifest = pipeline.write_failed_run_manifest
+
+    def record_failed_output_paths(*args, **kwargs):
+        failed_output_paths.append(kwargs.get("output_paths"))
+        return write_failed_run_manifest(*args, **kwargs)
+
+    monkeypatch.setattr(pipeline, "write_failed_run_manifest", record_failed_output_paths)
 
     with pytest.raises(InputValidationError) as exc_info:
         pipeline.run_pipeline(str(input_dir))
 
     assert exc_info.value.code == "NO_PARSEABLE_STRUCTURES"
+    assert failed_output_paths and failed_output_paths[0] is not None
+    assert len(list(output_root.iterdir())) == 1
     manifest = json.loads(next(output_root.glob("20*/manifest.json")).read_text(encoding="utf-8"))
     assert manifest["status"] == "failed"
     assert manifest["errors"][0]["code"] == "NO_PARSEABLE_STRUCTURES"

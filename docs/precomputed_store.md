@@ -34,6 +34,10 @@ rejected. Network selections and tooltip display fields are not profile inputs;
 they affect rendering from the same stored chains and edges. Detailed atom or
 residue interaction export is unavailable during assembly.
 
+The parser fingerprint includes merging noncontiguous author-chain parts within
+each model. Entries from a different parser fingerprint are incompatible and
+are not reused, including during retries of unpublished builds.
+
 ## Layout and publication
 
 ```text

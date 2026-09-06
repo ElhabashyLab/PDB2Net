@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from pdb2net import main as pipeline
+from pdb2net import batching
 from pdb2net.config_loader import config
 
 
@@ -42,8 +43,8 @@ def main() -> int:
         try:
             config["output_path"] = str(output_dir)
             config["open_in_cytoscape"] = False
-            with patch.object(pipeline.multiprocessing, "Process", FailingProcess):
-                pipeline.batch_run(str(input_dir), timeout_minutes=1, size_limit_kb=1000)
+            with patch.object(batching.multiprocessing, "Process", FailingProcess):
+                assert pipeline.batch_run(str(input_dir), timeout_minutes=1, size_limit_kb=1000) is False
         finally:
             config["output_path"] = original_output
             config["open_in_cytoscape"] = original_open

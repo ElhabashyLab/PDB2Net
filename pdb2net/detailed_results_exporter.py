@@ -212,6 +212,7 @@ def export_detailed_interactions(
     from .config_loader import config
 
     radius = float(config["distance_thresholds"]["all_atoms_radius"])
+    include_models = str(config.get("structure_model_policy", "first")).strip().lower() == "all"
     active_budget = budget or DetailedInteractionBudget()
 
     residues_atoms_lookup: Dict[str, Dict[str, Any]] = {}
@@ -256,8 +257,8 @@ def export_detailed_interactions(
             chain_b_data = chains_by_unique_id.get(chain_b_raw)
             if not chain_a_data or not chain_b_data:
                 continue
-            chain_a_id = str(chain_a_data.get("chain_id") or "")
-            chain_b_id = str(chain_b_data.get("chain_id") or "")
+            chain_a_id = chain_a_raw if include_models else str(chain_a_data.get("chain_id") or "")
+            chain_b_id = chain_b_raw if include_models else str(chain_b_data.get("chain_id") or "")
 
             data_a = residues_atoms_lookup.get(
                 chain_a_raw, {"atoms": [], "coords": np.empty((0, 3))}

@@ -25,7 +25,7 @@ from .residue_types import AMINO_ACIDS, DNA_RESIDUES, RNA_RESIDUES, normalize_re
 from .structure_identity import ChainIdentity, StructureIdentity
 
 PARSER_SEMANTICS = (
-    "validated-single-document-gemmi-heavy-atoms-no-hydrogen-or-deuterium-v3"
+    "validated-single-document-gemmi-merged-chains-heavy-atoms-no-hydrogen-or-deuterium-v4"
 )
 
 # Set of allowed residue names for proteins and nucleic acids.

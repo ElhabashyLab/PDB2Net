@@ -23,7 +23,8 @@ require explicit user approval.
    and validate compressed and expanded input limits.
 2. Group files into optional expanded-size-bounded processing batches.
 3. Parse each batch once with Gemmi, derive a content-first structure identity,
-   and extract chain, residue, atom, and embedded SIFTS data.
+   merge noncontiguous author-chain parts within each model, and extract chain,
+   residue, atom, and embedded SIFTS data.
 4. Annotate chains using embedded SIFTS, external SIFTS, and PDB/UniProt FASTA
    reference files in that precedence order.
 5. Run BLAST/DIAMOND fallback for unresolved protein chains.
@@ -65,7 +66,8 @@ The full pipeline depends on reference files that are intentionally not committe
 - `pdb_seqres.txt`: PDB chain FASTA reference.
 - `pdb_chain_uniprot.tsv`: SIFTS PDB-to-UniProt mapping.
 - `uniprot_sprot.fasta`: Swiss-Prot FASTA used to build the BLAST database.
-- BLAST database files generated from the Swiss-Prot FASTA.
+- BLAST database files generated from the Swiss-Prot FASTA when unresolved
+  chains require sequence-search fallback.
 
 ## Execution Modes
 

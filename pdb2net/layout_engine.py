@@ -143,12 +143,9 @@ def calculate_positions(
     nodes_df,
     edges_df,
     network_title: str,
-    layout_mode: str | None,
+    layout_mode: str,
 ) -> PositionMap:
     """Calculate final positions for all nodes using the selected layout backend."""
-    mode = (layout_mode or "python_fast").strip().lower()
-    if mode == "cytoscape_live":
-        print("[layout] cytoscape_live is handled by the live Cytoscape path; using python_fast for CX2 preset positions.")
-    elif mode != "python_fast":
-        print(f"[layout] Unknown layout_mode {layout_mode!r}; using python_fast.")
+    if not isinstance(layout_mode, str) or layout_mode.strip().lower() != "python_fast":
+        raise ValueError(f"Unsupported layout_mode: {layout_mode!r}")
     return calculate_python_fast_layout(nodes_df, edges_df, network_title)

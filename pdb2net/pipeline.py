@@ -52,6 +52,7 @@ from .outputs import (
     collect_generated_outputs,
     collect_web_outputs,
     create_run_output_paths,
+    reserve_web_output_directory,
     write_failed_run_manifest,
     write_run_manifest,
     write_run_summary,
@@ -320,6 +321,12 @@ def _validate_analysis_config() -> None:
             raise InputValidationError(
                 "INVALID_NETWORK_CONFIG", f"networks.{field} must be true or false."
             )
+
+    if config.get("layout_mode", "python_fast") != "python_fast":
+        raise InputValidationError(
+            "INVALID_LAYOUT_MODE",
+            "layout_mode must be 'python_fast'.",
+        )
 
     policy = config.get("structure_model_policy", "first")
     if not isinstance(policy, str) or policy.strip().lower() not in STRUCTURE_MODEL_POLICIES:
@@ -1157,7 +1164,7 @@ def _config_snapshot(network_config: Dict[str, Any]) -> Dict[str, Any]:
         "workers": config.get("workers", {}),
         "resource_limits": config.get("resource_limits", {}),
         "combined_graph_limits": config.get("combined_graph_limits", {}),
-        "layout_mode": config.get("layout_mode"),
+        "layout_mode": config.get("layout_mode", "python_fast"),
         "open_in_cytoscape": config.get("open_in_cytoscape"),
         "export_detailed_interactions": config.get("export_detailed_interactions", False),
         "blast_cache_path": config.get("blast_cache_path", ""),
@@ -1252,7 +1259,7 @@ def _create_linked_identity_network(
                 continue
 
             node["uniprot_border_color"] = original.get("uniprot_border_color", "#555555")
-            node["color_group"] = original.get("_parent_file_path") or original.get("_parent_pdb_id") or "Unknown"
+            node["color_group"] = original.get("_parent_structure_key") or original.get("_parent_pdb_id") or "Unknown"
 
             up_id = original.get("uniprot_id")
             if up_id:
@@ -1312,13 +1319,25 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
     start_time_total = time.time()
     started_at = datetime.now().isoformat(timespec="seconds")
     timings = PipelineTimings()
+    output_paths: RunOutputPaths | None = None
+    web_output_reservation_attempted = False
+    web_output_reserved = False
 
     try:
         _validate_output_root()
+        if isinstance(input_path_or_filelist, list) and web_output_dir:
+            raise InputValidationError(
+                "WEB_OUTPUT_UNAVAILABLE_FOR_FILE_LIST",
+                "Web output requires a folder-based run.",
+            )
         _validate_analysis_config()
         network_annotation_config()
         file_paths = discover_input_files(input_path_or_filelist)
         _validate_web_reference_manifest(web_output_dir)
+        if web_output_dir:
+            web_output_reservation_attempted = True
+            reserve_web_output_directory(web_output_dir)
+            web_output_reserved = True
         inventory = inspect_input_files(file_paths)
         _combined_graph_limits()
         preflight_identities = _preflight_structure_identities(file_paths, inventory)
@@ -1511,21 +1530,33 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
         )
         write_run_summary(output_paths)
         if web_output_dir:
-            collect_web_outputs(output_paths, web_output_dir)
+            collect_web_outputs(
+                output_paths,
+                web_output_dir,
+                web_output_prepared=True,
+            )
         logger.info("Run finished successfully in %.1f seconds", total_time)
         return output_paths
     except Exception as exc:
         logger.error("Run failed: %s", exc)
-        if not isinstance(input_path_or_filelist, list):
+        base_output_path = str(config.get("output_path") or "").strip()
+        if not isinstance(input_path_or_filelist, list) and base_output_path:
             output_paths = write_failed_run_manifest(
-                config["output_path"],
+                base_output_path,
                 input_path=str(input_path_or_filelist),
                 config_snapshot=_config_snapshot(network_config),
                 error=exc,
                 started_at=started_at,
+                output_paths=output_paths,
             )
-            if web_output_dir:
-                collect_web_outputs(output_paths, web_output_dir)
+            if web_output_dir and (
+                web_output_reserved or not web_output_reservation_attempted
+            ):
+                collect_web_outputs(
+                    output_paths,
+                    web_output_dir,
+                    web_output_prepared=web_output_reserved,
+                )
         raise
     finally:
         tree_cache.clear()

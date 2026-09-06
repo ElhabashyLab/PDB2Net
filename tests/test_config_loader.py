@@ -152,11 +152,12 @@ def test_explicit_config_must_exist(tmp_path: Path) -> None:
         config_loader.load_config(explicit_file=tmp_path / "missing.json")
 
 
+@pytest.mark.parametrize("layout_mode", ["prefuse_headless", "cytoscape_live"])
 def test_removed_layout_backend_fails_instead_of_silent_fallback(
-    tmp_path: Path,
+    tmp_path: Path, layout_mode: str
 ) -> None:
     explicit = tmp_path / "old-layout.json"
-    explicit.write_text(json.dumps({"layout_mode": "prefuse_headless"}), encoding="utf-8")
+    explicit.write_text(json.dumps({"layout_mode": layout_mode}), encoding="utf-8")
 
     with pytest.raises(config_loader.ConfigError, match="layout_mode"):
         config_loader.load_config(explicit_file=explicit)
@@ -178,6 +179,29 @@ def test_higher_priority_explicit_config_can_replace_an_old_layout_value(
     loaded = config_loader.load_config(explicit_file=explicit)
 
     assert loaded["layout_mode"] == "python_fast"
+
+
+@pytest.mark.parametrize("layout_mode", [None, "prefuse_headless", "cytoscape_live"])
+def test_pipeline_preflight_rejects_noncanonical_layout_mode(
+    monkeypatch: pytest.MonkeyPatch, layout_mode: object
+) -> None:
+    from pdb2net import pipeline
+
+    monkeypatch.setitem(pipeline.config, "layout_mode", layout_mode)
+
+    with pytest.raises(pipeline.InputValidationError) as error:
+        pipeline._validate_analysis_config()
+    assert error.value.code == "INVALID_LAYOUT_MODE"
+
+
+def test_config_snapshot_records_effective_layout_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from pdb2net import pipeline
+
+    monkeypatch.delitem(pipeline.config, "layout_mode", raising=False)
+
+    assert pipeline._config_snapshot(pipeline.config["networks"])["layout_mode"] == "python_fast"
 
 
 def test_spawned_worker_activates_the_parent_config_snapshot() -> None:

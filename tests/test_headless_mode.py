@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from pdb2net import cytoscape
+from pdb2net import cytoscape, layout_engine
 
 
 def test_headless_export_does_not_import_or_require_live_cytoscape(monkeypatch, tmp_path: Path) -> None:
@@ -90,6 +90,23 @@ def test_headless_export_failure_propagates(monkeypatch, tmp_path: Path) -> None
             "Broken_Export",
             str(tmp_path),
             nodes_data=[{"id": "A", "name": "A", "color_group": "Protein"}],
+        )
+
+
+@pytest.mark.parametrize(
+    "layout_mode", [None, "prefuse_headless", "cytoscape_live", "", "unknown"]
+)
+def test_removed_or_unknown_layout_mode_does_not_silently_fallback(
+    layout_mode: str | None,
+) -> None:
+    nodes = pd.DataFrame([{"id": "A"}])
+
+    with pytest.raises(ValueError, match="Unsupported layout_mode"):
+        layout_engine.calculate_positions(
+            nodes,
+            pd.DataFrame(),
+            "Invalid_Layout",
+            layout_mode,
         )
 
 

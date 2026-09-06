@@ -52,8 +52,16 @@ class RunOutputPaths:
 def create_run_output_paths(base_output_path: str, timestamp: str | None = None) -> RunOutputPaths:
     """Create and return the standard output folders for one run."""
     run_timestamp = timestamp or datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    run_output_path = os.path.join(base_output_path, run_timestamp)
-    os.makedirs(run_output_path, exist_ok=True)
+    os.makedirs(base_output_path, exist_ok=True)
+    collision_index = 1
+    while True:
+        directory_name = run_timestamp if collision_index == 1 else f"{run_timestamp}_{collision_index}"
+        run_output_path = os.path.join(base_output_path, directory_name)
+        try:
+            os.mkdir(run_output_path)
+            break
+        except FileExistsError:
+            collision_index += 1
 
     combined_dir = os.path.join(run_output_path, "combined")
     protein_dir = os.path.join(run_output_path, "protein")
@@ -61,7 +69,7 @@ def create_run_output_paths(base_output_path: str, timestamp: str | None = None)
     distances_dir = os.path.join(run_output_path, "distances")
 
     for directory in (combined_dir, protein_dir, chain_dir, distances_dir):
-        os.makedirs(directory, exist_ok=True)
+        os.mkdir(directory)
 
     return RunOutputPaths(
         run_output_path=run_output_path,
@@ -201,19 +209,81 @@ def _copy_unique(source: Path, destination_dir: Path) -> Path:
             f"Generated artifact is missing or is a symlink: {source.name}",
         )
     candidate = destination_dir / source.name
-    if not candidate.exists():
-        shutil.copy2(source, candidate)
-        return candidate
-
-    stem = source.stem
-    suffix = source.suffix
-    index = 2
-    while True:
-        candidate = destination_dir / f"{stem}_{index}{suffix}"
-        if not candidate.exists():
-            shutil.copy2(source, candidate)
-            return candidate
+    index = 1
+    while candidate.exists() or candidate.is_symlink():
         index += 1
+        candidate = destination_dir / f"{source.stem}_{index}{source.suffix}"
+    try:
+        shutil.copy2(source, candidate)
+    except Exception:
+        candidate.unlink(missing_ok=True)
+        raise
+    return candidate
+
+
+def _create_web_output_directories(web_root: Path) -> tuple[Path, Path]:
+    """Reserve an absent or explicitly empty web-output directory for one run."""
+    if web_root.is_symlink():
+        raise InputValidationError(
+            "INVALID_WEB_OUTPUT_DIR",
+            "Web output must be a regular directory, not a symbolic link.",
+        )
+    if web_root.exists():
+        if not web_root.is_dir():
+            raise InputValidationError(
+                "INVALID_WEB_OUTPUT_DIR",
+                "Web output must be a directory.",
+            )
+        if any(web_root.iterdir()):
+            raise InputValidationError(
+                "WEB_OUTPUT_DIR_NOT_EMPTY",
+                "Web output must be absent or empty before a run starts.",
+            )
+    else:
+        try:
+            web_root.mkdir(parents=True)
+        except FileExistsError as exc:
+            raise InputValidationError(
+                "WEB_OUTPUT_DIR_NOT_EMPTY",
+                "Web output was claimed by another run.",
+            ) from exc
+
+    networks_dir = web_root / "networks"
+    interactions_dir = web_root / "interactions"
+    try:
+        networks_dir.mkdir()
+        interactions_dir.mkdir()
+    except FileExistsError as exc:
+        raise InputValidationError(
+            "WEB_OUTPUT_DIR_NOT_EMPTY",
+            "Web output was claimed by another run.",
+        ) from exc
+    return networks_dir, interactions_dir
+
+
+def reserve_web_output_directory(web_output_dir: str) -> None:
+    """Reserve a fresh web-output directory before processing starts."""
+    _create_web_output_directories(Path(web_output_dir))
+
+
+def _reserved_web_output_directories(web_root: Path) -> tuple[Path, Path]:
+    """Return the safe artifact directories reserved earlier by this run."""
+    if web_root.is_symlink() or not web_root.is_dir():
+        raise InputValidationError(
+            "INVALID_WEB_OUTPUT_DIR",
+            "Reserved web output is no longer a regular directory.",
+        )
+    networks_dir = web_root / "networks"
+    interactions_dir = web_root / "interactions"
+    if any(
+        directory.is_symlink() or not directory.is_dir()
+        for directory in (networks_dir, interactions_dir)
+    ):
+        raise InputValidationError(
+            "INVALID_WEB_OUTPUT_DIR",
+            "Reserved web output directories are missing or unsafe.",
+        )
+    return networks_dir, interactions_dir
 
 
 def _safe_input_label(value: object, *, fallback: str = "input") -> str:
@@ -489,12 +559,11 @@ def _csv_counts(path: Path) -> tuple[int, list[str]]:
     return rows, header
 
 
-def _artifact_record(path: Path, web_root: Path, *, kind: str) -> dict[str, Any]:
+def _artifact_metadata(path: Path, *, kind: str) -> dict[str, Any]:
     size = path.stat().st_size
     if size > MAX_WEB_ARTIFACT_BYTES:
         raise InputValidationError("WEB_ARTIFACT_TOO_LARGE", f"Artifact {path.name} exceeds the size limit.")
     record: dict[str, Any] = {
-        "path": path.relative_to(web_root).as_posix(),
         "size_bytes": size,
         "sha256": _sha256_file(path),
     }
@@ -593,25 +662,29 @@ def _write_public_summary(path: Path, summary: Mapping[str, Any]) -> None:
     if len(serialized) > MAX_WEB_SUMMARY_BYTES:
         raise InputValidationError("WEB_SUMMARY_TOO_LARGE", "Public summary exceeds the 1 MiB contract limit.")
     temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
-    with temporary.open("wb") as handle:
-        handle.write(serialized)
-        handle.flush()
-        os.fsync(handle.fileno())
-    os.replace(temporary, path)
-    descriptor = os.open(path.parent, os.O_RDONLY)
     try:
-        os.fsync(descriptor)
+        with temporary.open("wb") as handle:
+            handle.write(serialized)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        descriptor = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
     finally:
-        os.close(descriptor)
+        temporary.unlink(missing_ok=True)
 
 
-def collect_web_outputs(output_paths: RunOutputPaths, web_output_dir: str) -> dict[str, Any]:
+def collect_web_outputs(
+    output_paths: RunOutputPaths,
+    web_output_dir: str,
+    *,
+    web_output_prepared: bool = False,
+) -> dict[str, Any]:
     """Copy run artifacts into the stable filesystem contract for web workers."""
     web_root = Path(web_output_dir)
-    networks_dir = web_root / "networks"
-    interactions_dir = web_root / "interactions"
-    networks_dir.mkdir(parents=True, exist_ok=True)
-    interactions_dir.mkdir(parents=True, exist_ok=True)
 
     source_summary = Path(output_paths.summary_file)
     if not source_summary.exists():
@@ -660,60 +733,86 @@ def collect_web_outputs(output_paths: RunOutputPaths, web_output_dir: str) -> di
         artifact_source_bytes += size
     if artifact_source_bytes > MAX_WEB_ARTIFACT_TOTAL_BYTES:
         raise InputValidationError("WEB_ARTIFACT_TOTAL_TOO_LARGE", "Web artifacts exceed the aggregate size limit.")
-    copied_network_paths = [_copy_unique(path, networks_dir) for path in network_sources]
-    copied_interaction_paths = [_copy_unique(path, interactions_dir) for path in interaction_sources]
-    runtime_analysis = None
-    if generated.get("runtime_analysis"):
-        runtime_analysis = _copy_unique(Path(generated["runtime_analysis"]), web_root).relative_to(web_root).as_posix()
-    network_artifacts = [
-        _artifact_record(path, web_root, kind="network") for path in copied_network_paths
+    network_metadata = [_artifact_metadata(path, kind="network") for path in network_sources]
+    interaction_metadata = [
+        _artifact_metadata(path, kind="interaction") for path in interaction_sources
     ]
-    interaction_artifacts = [
-        _artifact_record(path, web_root, kind="interaction") for path in copied_interaction_paths
-    ]
-    artifact_bytes = sum(
-        entry["size_bytes"] for entry in network_artifacts + interaction_artifacts
-    )
-    if artifact_bytes > MAX_WEB_ARTIFACT_TOTAL_BYTES:
-        raise InputValidationError("WEB_ARTIFACT_TOTAL_TOO_LARGE", "Web artifacts exceed the aggregate size limit.")
-    copied_networks = [entry["path"] for entry in network_artifacts]
-    copied_interactions = [entry["path"] for entry in interaction_artifacts]
-    internal_counts = internal_summary.get("counts") if isinstance(internal_summary.get("counts"), Mapping) else {}
-    summary = {
-        "output_contract_version": internal_summary.get("output_contract_version", OUTPUT_CONTRACT_VERSION),
-        "pdb2net_version": internal_summary.get("pdb2net_version", __version__),
-        "status": status,
-        "started_at": internal_summary.get("started_at"),
-        "finished_at": internal_summary.get("finished_at"),
-        "input_files": input_files,
-        "identities": identities if success else [],
-        "structure_inputs": structure_inputs if success else [],
-        "networks": copied_networks,
-        "interactions": copied_interactions,
-        "artifacts": {
-            "networks": network_artifacts,
-            "interactions": interaction_artifacts,
-        },
-        "runtime_analysis": runtime_analysis,
-        "counts": {
-            "networks": len(copied_networks),
-            "interactions": len(copied_interactions),
-            "structures": int(internal_counts.get("structures", len(identities) if success else 0)),
-            "chains": int(internal_counts.get("chains", 0)),
-            "skipped_outputs": len(internal_summary.get("skipped_outputs", [])),
-        },
-        "annotations": internal_summary.get("annotations", {}),
-        "references": references,
-        "resources": internal_summary.get("resources", {}),
-        "skipped_outputs": internal_summary.get("skipped_outputs", []),
-        "config": _public_config(internal_summary.get("config")),
-        "errors": [] if success else _public_diagnostics(internal_summary.get("errors")),
-        "warnings": _public_diagnostics(internal_summary.get("warnings")),
-    }
-
+    if web_output_prepared:
+        networks_dir, interactions_dir = _reserved_web_output_directories(web_root)
+    else:
+        networks_dir, interactions_dir = _create_web_output_directories(web_root)
+    copied_paths: list[Path] = []
     summary_path = web_root / "summary.json"
-    _write_public_summary(summary_path, summary)
-    return summary
+    summary_existed = summary_path.exists()
+
+    def copy_artifact(source: Path, destination: Path) -> Path:
+        copied = _copy_unique(source, destination)
+        copied_paths.append(copied)
+        return copied
+
+    try:
+        copied_network_paths = [copy_artifact(path, networks_dir) for path in network_sources]
+        copied_interaction_paths = [copy_artifact(path, interactions_dir) for path in interaction_sources]
+        runtime_analysis = None
+        if generated.get("runtime_analysis"):
+            runtime_analysis = copy_artifact(Path(generated["runtime_analysis"]), web_root).relative_to(web_root).as_posix()
+        network_artifacts = [
+            {"path": path.relative_to(web_root).as_posix(), **metadata}
+            for path, metadata in zip(copied_network_paths, network_metadata)
+        ]
+        interaction_artifacts = [
+            {"path": path.relative_to(web_root).as_posix(), **metadata}
+            for path, metadata in zip(copied_interaction_paths, interaction_metadata)
+        ]
+        artifact_bytes = sum(
+            entry["size_bytes"] for entry in network_artifacts + interaction_artifacts
+        )
+        if artifact_bytes > MAX_WEB_ARTIFACT_TOTAL_BYTES:
+            raise InputValidationError("WEB_ARTIFACT_TOTAL_TOO_LARGE", "Web artifacts exceed the aggregate size limit.")
+        copied_networks = [entry["path"] for entry in network_artifacts]
+        copied_interactions = [entry["path"] for entry in interaction_artifacts]
+        internal_counts = internal_summary.get("counts") if isinstance(internal_summary.get("counts"), Mapping) else {}
+        summary = {
+            "output_contract_version": internal_summary.get("output_contract_version", OUTPUT_CONTRACT_VERSION),
+            "pdb2net_version": internal_summary.get("pdb2net_version", __version__),
+            "status": status,
+            "started_at": internal_summary.get("started_at"),
+            "finished_at": internal_summary.get("finished_at"),
+            "input_files": input_files,
+            "identities": identities if success else [],
+            "structure_inputs": structure_inputs if success else [],
+            "networks": copied_networks,
+            "interactions": copied_interactions,
+            "artifacts": {
+                "networks": network_artifacts,
+                "interactions": interaction_artifacts,
+            },
+            "runtime_analysis": runtime_analysis,
+            "counts": {
+                "networks": len(copied_networks),
+                "interactions": len(copied_interactions),
+                "structures": int(internal_counts.get("structures", len(identities) if success else 0)),
+                "chains": int(internal_counts.get("chains", 0)),
+                "skipped_outputs": len(internal_summary.get("skipped_outputs", [])),
+            },
+            "annotations": internal_summary.get("annotations", {}),
+            "references": references,
+            "resources": internal_summary.get("resources", {}),
+            "skipped_outputs": internal_summary.get("skipped_outputs", []),
+            "config": _public_config(internal_summary.get("config")),
+            "errors": [] if success else _public_diagnostics(internal_summary.get("errors")),
+            "warnings": _public_diagnostics(internal_summary.get("warnings")),
+        }
+
+        _write_public_summary(summary_path, summary)
+        return summary
+    except Exception:
+        # Remove only files created by this publication attempt.
+        for path in reversed(copied_paths):
+            path.unlink(missing_ok=True)
+        if not summary_existed:
+            summary_path.unlink(missing_ok=True)
+        raise
 
 
 def write_failed_run_manifest(
@@ -723,9 +822,10 @@ def write_failed_run_manifest(
     config_snapshot: Mapping[str, Any],
     error: Exception,
     started_at: str | None = None,
+    output_paths: RunOutputPaths | None = None,
 ) -> RunOutputPaths:
     """Create a failed run folder and write a machine-readable manifest."""
-    output_paths = create_run_output_paths(base_output_path)
+    output_paths = output_paths or create_run_output_paths(base_output_path)
     finished_at = datetime.now().isoformat(timespec="seconds")
     started = started_at or finished_at
 

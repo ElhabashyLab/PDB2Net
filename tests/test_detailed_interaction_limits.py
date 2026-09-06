@@ -63,6 +63,33 @@ def _interactions(pdb_id: str) -> list[dict]:
     ]
 
 
+@pytest.mark.parametrize("policy", ["first", "all", "ALL", " all "])
+def test_csv_chain_labels_preserve_model_identity(tmp_path, monkeypatch, policy) -> None:
+    from pdb2net.config_loader import config
+
+    monkeypatch.setitem(config, "structure_model_policy", policy)
+    include_models = policy.strip().lower() == "all"
+    model_indices = (1, 2) if include_models else (1,)
+    chains, interactions = [], []
+    for model in model_indices:
+        structure = _structure("TST1")
+        ids = []
+        for chain in structure["atom_data"]:
+            chain["model_index"] = model
+            if include_models:
+                chain["unique_chain_id"] = f"TST1:model{model}:{chain['chain_id']}"
+            ids.append(chain["unique_chain_id"])
+            chains.append(chain)
+        interactions.append({"chain_a": ids[0], "chain_b": ids[1],
+                             "model_index": model, "interaction_type": "Protein-Protein"})
+    export_detailed_interactions({"pdb_id": "TST1", "atom_data": chains}, interactions, str(tmp_path))
+    frame = pd.read_csv(tmp_path / "TST1_detailed_interactions.csv")
+    assert list(frame.columns) == list(DETAILED_INTERACTION_COLUMNS)
+    assert len(frame) == len(model_indices)
+    expected = [(f"TST1:model{i}:A", f"TST1:model{i}:B") for i in model_indices] if include_models else [("A", "B")]
+    assert list(zip(frame["Chain_A"], frame["Chain_B"])) == expected
+
+
 def test_detailed_export_streams_stable_csv_and_records_exact_budget(tmp_path: Path) -> None:
     budget = DetailedInteractionBudget(max_rows=2, max_bytes=10_000)
 

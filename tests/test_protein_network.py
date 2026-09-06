@@ -1,6 +1,8 @@
 from pdb2net import protein_network
 from pdb2net.protein_network import create_protein_network
 
+import pytest
+
 
 def _protein_chain(chain_id: str, uniprot_id: str) -> dict:
     return {
@@ -20,6 +22,39 @@ def _dna_chain(chain_id: str) -> dict:
         "uniprot_id": None,
         "residues": [{"residue_name": "DA"}, {"residue_name": "DT"}],
     }
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_per_pdb_protein_metadata_does_not_leak_other_inputs(monkeypatch, reverse) -> None:
+    exported = {}
+    monkeypatch.setattr(
+        protein_network,
+        "create_cytoscape_network",
+        lambda edges, title, output_path, nodes_data=None: exported.update({title: nodes_data}),
+    )
+    structures = [
+        {"pdb_id": pdb_id, "file_path": f"/inputs/{pdb_id}.cif", "atom_data": [
+            {**_protein_chain("A", "P12345"), "molecule_name": f"Name from {pdb_id}"}
+        ]}
+        for pdb_id in ("ONE1", "TWO2")
+    ]
+    create_protein_network(
+        [], structures[::-1] if reverse else structures, "/tmp/unused",
+        {"protein_per_pdb": True, "combined_protein_network": True},
+    )
+    for pdb_id in ("ONE1", "TWO2"):
+        node, = exported[f"Protein_Network_{pdb_id}"]
+        assert node["pdb_count"] == 1
+        assert node["pdb_ids"] == pdb_id
+        assert node["source_files"] == f"{pdb_id}.cif"
+        assert node["source_chains"] == f"{pdb_id}:A"
+        assert node["molecule_name"] == f"Name from {pdb_id}"
+        assert node["tooltip"].splitlines()[0] == f"Name from {pdb_id}"
+    combined, = exported["Combined_Protein_Network_P12345"]
+    assert combined["pdb_count"] == 2
+    assert combined["pdb_ids"] == "ONE1, TWO2"
+    assert combined["source_files"] == "ONE1.cif, TWO2.cif"
+    assert combined["source_chains"] == "ONE1:A, TWO2:A"
 
 
 def test_combined_protein_networks_follow_linked_chain_components(monkeypatch) -> None:

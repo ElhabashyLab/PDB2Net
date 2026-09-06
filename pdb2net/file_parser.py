@@ -652,6 +652,8 @@ def parse_structure_input(
         else:
             structure = gemmi.read_pdb_string(text)
             input_format = "pdb"
+        # Match read_structure(): one author chain per model, retaining all parts.
+        structure.merge_chain_parts()
     except InputValidationError:
         raise
     except Exception as exc:

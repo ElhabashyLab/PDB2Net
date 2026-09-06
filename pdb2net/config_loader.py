@@ -321,10 +321,8 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
     cfg.setdefault("reference_manifest_id", "")
     cfg.setdefault("layout_mode", "python_fast")
     layout_mode = str(cfg["layout_mode"]).strip().lower()
-    if layout_mode not in {"python_fast", "cytoscape_live"}:
-        raise ConfigError(
-            "layout_mode must be 'python_fast' or 'cytoscape_live'."
-        )
+    if layout_mode != "python_fast":
+        raise ConfigError("layout_mode must be 'python_fast'.")
     cfg["layout_mode"] = layout_mode
     cfg.setdefault("structure_model_policy", "first")
     diamond = _section(cfg, "diamond")

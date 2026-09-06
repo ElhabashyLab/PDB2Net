@@ -8,6 +8,7 @@ import pytest
 
 from pdb2net import __version__
 from pdb2net.__main__ import main
+from pdb2net.input_contract import InputValidationError
 
 
 def test_cli_help_includes_run_command(capsys) -> None:
@@ -194,6 +195,82 @@ def test_legacy_module_reports_invalid_config_without_traceback(tmp_path: Path) 
     assert result.returncode == 1
     assert "Invalid value for PDB2NET_DIAMOND_THREADS" in result.stderr
     assert "Traceback" not in result.stderr
+
+
+@pytest.mark.parametrize(("complete", "exit_code"), [(True, 0), (False, 1)])
+def test_legacy_command_maps_aggregate_batch_status_to_exit_code(
+    monkeypatch, complete: bool, exit_code: int
+) -> None:
+    from pdb2net import config_loader
+    from pdb2net import main as legacy_main
+
+    monkeypatch.setattr(
+        config_loader,
+        "get_config",
+        lambda: {"input_folder_path": "/inputs", "open_in_cytoscape": False},
+    )
+    monkeypatch.setattr(legacy_main, "batch_run", lambda _folder: complete)
+
+    assert legacy_main.legacy_command() == exit_code
+
+
+def test_legacy_command_reports_runtime_failure_without_traceback(
+    monkeypatch, capsys
+) -> None:
+    from pdb2net import config_loader
+    from pdb2net import main as legacy_main
+
+    monkeypatch.setattr(
+        config_loader,
+        "get_config",
+        lambda: {"input_folder_path": "/missing", "open_in_cytoscape": False},
+    )
+    monkeypatch.setattr(
+        legacy_main,
+        "batch_run",
+        lambda _folder: (_ for _ in ()).throw(InputValidationError("INPUT_PATH_NOT_FOUND", "missing")),
+    )
+
+    assert legacy_main.legacy_command() == 1
+    captured = capsys.readouterr()
+    assert "INPUT_PATH_NOT_FOUND" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_legacy_child_reports_failure_without_traceback(monkeypatch, capsys) -> None:
+    from pdb2net import main as legacy_main
+
+    monkeypatch.setattr(
+        legacy_main,
+        "main",
+        lambda _files: (_ for _ in ()).throw(RuntimeError("child failed")),
+    )
+
+    with pytest.raises(SystemExit) as error:
+        legacy_main.run_main(["input.cif"])
+
+    assert error.value.code == 1
+    captured = capsys.readouterr()
+    assert "child failed" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_legacy_batch_wrapper_uses_default_tree_managed_process_factory(
+    monkeypatch,
+) -> None:
+    from pdb2net import batching
+    from pdb2net import main as legacy_main
+
+    observed = {}
+
+    def fake_batch_run(input_folder, run_batch, **kwargs):
+        observed.update(input_folder=input_folder, run_batch=run_batch, kwargs=kwargs)
+        return True
+
+    monkeypatch.setattr(batching, "batch_run", fake_batch_run)
+
+    assert legacy_main.batch_run("/inputs", timeout_minutes=3, size_limit_kb=4) is True
+    assert observed["kwargs"] == {"timeout_minutes": 3, "size_limit_kb": 4}
 
 
 def test_repeated_cli_calls_activate_fresh_explicit_configs(

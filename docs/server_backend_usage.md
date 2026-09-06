@@ -204,6 +204,10 @@ PDB2Net always keeps its normal timestamped internal output under
 - `manifest.json`
 - `run_summary.json`
 
+Run directories are reserved atomically. Concurrent runs that start during the
+same second receive distinct names; collisions use suffixes such as `_2` while
+retaining the timestamp prefix.
+
 When `--web-output-dir` is provided, PDB2Net also creates a stable
 user-facing structure:
 
@@ -215,6 +219,16 @@ outputs/
 └── interactions/
     └── *.csv
 ```
+
+The Web output path must be absent or an existing empty regular directory.
+Core reserves it before processing, accepts the empty directory created by the
+worker, and rejects a non-empty target without modifying its existing files.
+Workers and standalone callers must use a fresh Web output path for every run.
+
+A failed-run summary is diagnostic-only and lists no public networks or
+interaction tables. If publication fails partway through, Core removes the
+partial copies created by that attempt; internal run artifacts remain available
+for diagnosis.
 
 Contract `2.0` contains `identities` and `structure_inputs` alongside annotation
 counts, reference identity/metadata, resource observations, and

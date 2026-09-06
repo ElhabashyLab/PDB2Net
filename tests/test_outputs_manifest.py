@@ -1,13 +1,18 @@
 import json
 import hashlib
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import pytest
+
 from pdb2net import __version__
+from pdb2net import outputs
 from pdb2net.input_contract import InputValidationError
 from pdb2net.outputs import (
     OUTPUT_CONTRACT_VERSION,
     collect_web_outputs,
     create_run_output_paths,
+    reserve_web_output_directory,
     write_failed_run_manifest,
     write_run_manifest,
     write_run_summary,
@@ -86,6 +91,30 @@ def test_write_run_manifest_is_additive_and_machine_readable(tmp_path: Path) -> 
     assert manifest["skipped_outputs"][0]["name"] == "Combined_Network_X"
 
 
+def test_create_run_output_paths_reserves_a_unique_directory(tmp_path: Path) -> None:
+    first = create_run_output_paths(str(tmp_path), timestamp="2026-01-02_03-04-05")
+    Path(first.chain_dir, "first.cx2").write_text("first", encoding="utf-8")
+
+    second = create_run_output_paths(str(tmp_path), timestamp="2026-01-02_03-04-05")
+
+    assert Path(first.run_output_path).name == "2026-01-02_03-04-05"
+    assert Path(second.run_output_path).name == "2026-01-02_03-04-05_2"
+    assert first.run_output_path != second.run_output_path
+    assert not Path(second.chain_dir, "first.cx2").exists()
+
+
+def test_create_run_output_paths_is_safe_under_concurrency(tmp_path: Path) -> None:
+    def create_path(_index: int) -> str:
+        return create_run_output_paths(
+            str(tmp_path), timestamp="2026-01-02_03-04-05"
+        ).run_output_path
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        paths = list(executor.map(create_path, range(8)))
+
+    assert len(set(paths)) == 8
+
+
 def test_write_failed_run_manifest_records_error_code(tmp_path: Path) -> None:
     error = InputValidationError("NO_VALID_INPUT_FILES", "no valid files")
 
@@ -154,6 +183,7 @@ def test_collect_web_outputs_creates_stable_summary_networks_and_interactions(tm
     )
     write_run_summary(paths)
 
+    (tmp_path / "outputs").mkdir()
     collect_web_outputs(paths, str(tmp_path / "outputs"))
 
     web_root = tmp_path / "outputs"
@@ -198,6 +228,44 @@ def test_collect_web_outputs_creates_stable_summary_networks_and_interactions(tm
     assert csv_record["columns"] == ["source", "target"]
 
 
+def test_collect_web_outputs_rejects_a_nonempty_target(tmp_path: Path) -> None:
+    paths = create_run_output_paths(str(tmp_path / "internal"), timestamp="2026-01-02_03-04-05")
+    write_run_manifest(
+        paths.manifest_file,
+        input_files=[],
+        output_paths=paths,
+        config_snapshot={},
+        status="failed",
+        started_at="2026-01-02T03:04:05",
+        finished_at="2026-01-02T03:04:06",
+        total_time=1.0,
+        errors=[{"code": "CORE_FAILED", "message": "failed"}],
+    )
+    write_run_summary(paths)
+    web_root = tmp_path / "outputs"
+    web_root.mkdir()
+    sentinel = web_root / "existing.txt"
+    sentinel.write_text("keep", encoding="utf-8")
+
+    with pytest.raises(InputValidationError) as error:
+        collect_web_outputs(paths, str(web_root))
+
+    assert error.value.code == "WEB_OUTPUT_DIR_NOT_EMPTY"
+    assert sentinel.read_text(encoding="utf-8") == "keep"
+    assert set(web_root.iterdir()) == {sentinel}
+
+
+def test_web_output_reservation_is_exclusive(tmp_path: Path) -> None:
+    web_root = tmp_path / "outputs"
+    web_root.mkdir()
+
+    reserve_web_output_directory(str(web_root))
+
+    with pytest.raises(InputValidationError) as error:
+        reserve_web_output_directory(str(web_root))
+    assert error.value.code == "WEB_OUTPUT_DIR_NOT_EMPTY"
+
+
 def test_failed_web_summary_is_diagnostic_only_and_never_copies_partial_artifacts(
     tmp_path: Path,
 ) -> None:
@@ -224,3 +292,57 @@ def test_failed_web_summary_is_diagnostic_only_and_never_copies_partial_artifact
     assert summary["artifacts"] == {"networks": [], "interactions": []}
     assert list((tmp_path / "outputs" / "networks").iterdir()) == []
     assert "/private" not in json.dumps(summary)
+
+
+@pytest.mark.parametrize("failure", ["second_copy", "partial_copy", "summary"])
+def test_publication_failure_removes_only_its_own_artifacts(tmp_path, monkeypatch, failure) -> None:
+    paths = create_run_output_paths(str(tmp_path / "internal"))
+    for name in ("A.cx2", "B.cx2"):
+        Path(paths.chain_dir, name).write_text(_literal_cx2(), encoding="utf-8")
+    Path(paths.distances_dir, "contacts.csv").write_text("a,b\n1,2\n", encoding="utf-8")
+    Path(paths.log_file).write_text("runtime", encoding="utf-8")
+    identity = identity_from_official_id("1abc").as_dict()
+    write_run_manifest(
+        paths.manifest_file, input_files=["1abc.pdb"], output_paths=paths,
+        config_snapshot={}, status="success", started_at="2026-01-01T00:00:00",
+        finished_at="2026-01-01T00:00:01", total_time=1,
+        references={"manifest_id": "review-fixture"}, identities=[identity],
+        structure_inputs=[{"file": "1abc.pdb", "identity": identity, "format": "pdb", "kind": "pdb",
+                           "embedded_annotation_counts": {key: 0 for key in ("uniprot", "pfam", "cath", "scop2")}}],
+    )
+    write_run_summary(paths)
+    web = tmp_path / "web"
+    reserve_web_output_directory(str(web))
+    sentinel = web / "networks" / "keep.txt"
+    sentinel.write_text("unrelated", encoding="utf-8")
+    original_copy = outputs.shutil.copy2
+    original_summary = outputs._write_public_summary
+    calls = 0
+
+    def copy(source, destination, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 2 and failure != "summary":
+            if failure == "partial_copy":
+                Path(destination).write_bytes(b"incomplete")
+            raise OSError("injected publication failure")
+        return original_copy(source, destination, **kwargs)
+
+    def summary(path, value):
+        original_summary(path, value)
+        if value["status"] == "success":
+            raise OSError("injected publication failure")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(outputs.shutil, "copy2", copy)
+        if failure == "summary":
+            patch.setattr(outputs, "_write_public_summary", summary)
+        with pytest.raises(OSError, match="injected publication failure"):
+            collect_web_outputs(paths, str(web), web_output_prepared=True)
+
+    assert list((web / "networks").iterdir()) == [sentinel]
+    assert list((web / "interactions").iterdir()) == []
+    assert not (web / "runtime_analysis.txt").exists()
+    assert not (web / "summary.json").exists()
+    assert sentinel.read_text(encoding="utf-8") == "unrelated"
+    assert Path(paths.chain_dir, "A.cx2").read_text(encoding="utf-8") == _literal_cx2()

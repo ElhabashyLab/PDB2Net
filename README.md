@@ -247,6 +247,24 @@ For automated webserver jobs, keep `open_in_cytoscape: false`, set
 `structure_model_policy: "first"` unless you intentionally want all models from
 multi-model structures represented as separate chain nodes.
 
+For `"all"`, disable both protein-network outputs; they require the first-model
+policy. For example:
+
+```json
+{
+  "structure_model_policy": "all",
+  "networks": {
+    "chain_per_pdb": true,
+    "combined_chain_network": true,
+    "protein_per_pdb": false,
+    "combined_protein_network": false
+  }
+}
+```
+
+Detailed CSVs then use model-qualified chain IDs such as `1ABC:model2:A` in
+`Chain_A` and `Chain_B`; the default `"first"` mode keeps author chain IDs.
+
 ### Optional DIAMOND/UniRef90 fallback
 
 PDB2Net can optionally run DIAMOND against a local UniRef90 DIAMOND database
@@ -316,8 +334,14 @@ The legacy config-driven entry point remains available:
 python3 -m pdb2net.main
 ```
 
+The legacy batch runner continues with later batches after a child failure or
+timeout, but exits with status 1 if any batch or eligible input file was not
+processed successfully.
+
 - Output goes to a **timestamped** subfolder in `output_path`, e.g.:
-  `/…/Networks/2025-10-20_18-32-45/`
+  `/…/Networks/2025-10-20_18-32-45/`. If that name is already reserved,
+  PDB2Net creates a distinct suffixed directory such as
+  `2025-10-20_18-32-45_2/`.
 
 For backend-style jobs, add `--web-output-dir` to collect stable
 user-facing outputs:
@@ -330,6 +354,10 @@ python3 -m pdb2net run \
   --headless
 ```
 
+The `--web-output-dir` path must either not exist or be an empty regular
+directory. PDB2Net reserves it before processing and rejects non-empty targets;
+use a fresh path for every run.
+
 See [`docs/server_backend_usage.md`](docs/server_backend_usage.md) for the
 worker-facing output contract.
 
@@ -340,6 +368,18 @@ document. `tooltip_fields` controls which of `uniprot`, `pfam`, `cath`, and
 `scop2` are added to existing network-node tooltips. UniProt is enabled by
 default; the other categories are opt-in. Ambiguous embedded UniProt mappings
 remain explicitly unassigned instead of being guessed.
+
+Valid structure files may have arbitrary filenames: an identifier in the file
+content takes precedence. Renaming a file does not require editing its internal
+IDs. Conflicting IDs inside the document are rejected, as are duplicate
+structure identities supplied in the same run.
+
+Single-chain AlphaFold DB structures are also supported as raw PDB/mmCIF input.
+An AlphaFold-style filename or retained internal AlphaFold identity can provide
+the UniProt accession directly. After renaming, mmCIF may retain that identity;
+a PDB file without it may need BLAST fallback. Normal reference-data requirements
+still apply. The [optional real-file tests](docs/development.md#optional-real-file-integration-tests)
+exercise these cases alongside complete NextGen files.
 
 ### Optional precomputed PDB store
 

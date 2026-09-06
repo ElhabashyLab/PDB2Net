@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from pdb2net import precomputed
+from pdb2net import outputs, precomputed
 from pdb2net.__main__ import main
 from pdb2net.config_loader import config
 from pdb2net.input_contract import InputValidationError
@@ -667,6 +667,95 @@ def test_missing_entry_fails_without_modifying_store(
     assert _store_digest(root) == before
 
 
+def test_failed_assemble_reuses_its_reserved_run_directory(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    root, _sources, _report = _build_store(monkeypatch, tmp_path, "1abc")
+
+    with pytest.raises(InputValidationError) as error:
+        precomputed.run_assemble_pipeline(root, ["2xyz"])
+
+    assert error.value.code == "PRECOMPUTED_ENTRY_MISSING"
+    run_directories = list((tmp_path / "outputs").iterdir())
+    assert len(run_directories) == 1
+    manifest = json.loads((run_directories[0] / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["status"] == "failed"
+    assert manifest["errors"][0]["code"] == "PRECOMPUTED_ENTRY_MISSING"
+
+
+def test_assemble_preserves_missing_output_path_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setitem(config, "output_path", "")
+
+    with pytest.raises(InputValidationError) as error:
+        precomputed.run_assemble_pipeline(tmp_path / "store", ["1abc"])
+
+    assert error.value.code == "OUTPUT_PATH_MISSING"
+
+
+def test_assemble_reserves_web_output_before_loading_store(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    web_root = tmp_path / "web"
+    web_root.mkdir()
+    sentinel = web_root / "existing.txt"
+    sentinel.write_text("keep", encoding="utf-8")
+    monkeypatch.setattr(
+        assemble,
+        "load_manifest",
+        lambda _root: (_ for _ in ()).throw(AssertionError("store must not be loaded")),
+    )
+
+    with pytest.raises(InputValidationError) as error:
+        precomputed.run_assemble_pipeline(
+            tmp_path / "store",
+            ["1abc"],
+            web_output_dir=str(web_root),
+        )
+
+    assert error.value.code == "WEB_OUTPUT_DIR_NOT_EMPTY"
+    assert set(web_root.iterdir()) == {sentinel}
+
+
+def test_assemble_web_publish_failure_writes_diagnostic_summary(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    root, _sources, _report = _build_store(monkeypatch, tmp_path, "1abc")
+    monkeypatch.setitem(
+        config,
+        "networks",
+        {
+            "chain_per_pdb": True,
+            "protein_per_pdb": False,
+            "combined_chain_network": False,
+            "combined_protein_network": False,
+        },
+    )
+    monkeypatch.setattr(
+        outputs,
+        "_cx2_counts",
+        lambda _path: (_ for _ in ()).throw(
+            InputValidationError("INVALID_CX2_ARTIFACT", "invalid generated network")
+        ),
+    )
+    web_root = tmp_path / "web"
+
+    with pytest.raises(InputValidationError) as error:
+        precomputed.run_assemble_pipeline(
+            root,
+            ["1abc"],
+            web_output_dir=str(web_root),
+        )
+
+    assert error.value.code == "INVALID_CX2_ARTIFACT"
+    summary = json.loads((web_root / "summary.json").read_text(encoding="utf-8"))
+    assert summary["status"] == "failed"
+    assert summary["errors"][0]["code"] == "INVALID_CX2_ARTIFACT"
+    assert list((web_root / "networks").iterdir()) == []
+    assert list((web_root / "interactions").iterdir()) == []
+
+
 @pytest.mark.parametrize("content", [b"not-gzip", gzip.compress(b"not-json", mtime=0)])
 def test_corrupt_entry_fails_closed(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, content: bytes
@@ -779,6 +868,29 @@ def test_manifest_profile_mismatch_fails_closed(
     with pytest.raises(InputValidationError) as error:
         precomputed.load_manifest(root)
     assert error.value.code == "PRECOMPUTED_PROFILE_MISMATCH"
+
+
+def test_store_built_before_chain_part_fix_is_not_reused(monkeypatch, tmp_path) -> None:
+    previous_semantics = "validated-single-document-gemmi-heavy-atoms-no-hydrogen-or-deuterium-v3"
+    assert schema.PARSER_SEMANTICS != previous_semantics
+    with monkeypatch.context() as old_parser:
+        old_parser.setattr(schema, "PARSER_SEMANTICS", previous_semantics)
+        root, sources, _report = _build_store(old_parser, tmp_path, "1abc")
+        old_profile_id = precomputed.profile_id()
+
+    assert precomputed.profile_id() != old_profile_id
+    before = _store_digest(root)
+    with pytest.raises(InputValidationError) as error:
+        precomputed.load_manifest(root)
+    assert error.value.code == "PRECOMPUTED_PROFILE_MISMATCH"
+    assert _store_digest(root) == before
+
+    # An unpublished retry must recompute the old-profile entry as well.
+    (root / "manifest.json").unlink()
+    _install_fake_science(monkeypatch)
+    report = precomputed.precompute_sources(root, sources)
+    assert report["written"] == 1
+    assert precomputed.load_manifest(root)["profile_id"] != old_profile_id
 
 
 def test_cli_help_and_dispatch_have_no_lazy_surface(

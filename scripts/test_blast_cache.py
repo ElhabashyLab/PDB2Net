@@ -13,14 +13,13 @@ def _reset_cache(path: Path) -> None:
         matcher._CACHE_CONN.close()
     matcher._CACHE_CONN = None
     matcher._CACHE_DB_SIG = None
-    matcher.BLAST_CACHE_PATH = str(path)
+    matcher.config["blast_cache_path"] = str(path)
 
 
 def main() -> int:
     with tempfile.TemporaryDirectory(prefix="pdb2net-blast-cache-") as temp_dir:
         cache_path = Path(temp_dir) / "blast_cache.sqlite3"
         matcher._CACHE_ENABLED = True
-        matcher._CACHE_DB_SIG = "test-db-sig"
 
         _reset_cache(cache_path)
         hit = matcher.BlastHit(
@@ -31,6 +30,8 @@ def main() -> int:
             qcov=0.95,
             pident=88.8,
             title="sp|P12345| Example protein",
+            matched_id="P12345",
+            representative_accession="P12345",
         )
         matcher._cache_put("positive-seq", hit)
         matcher._cache_put("negative-seq", None)
@@ -44,6 +45,12 @@ def main() -> int:
             raise AssertionError(f"positive cache entry mismatch: {positive_cached=} {positive_hit=}")
         if not negative_cached or negative_hit is not None:
             raise AssertionError(f"negative cache entry mismatch: {negative_cached=} {negative_hit=}")
+
+        if not cache_path.is_file():
+            raise AssertionError("cache was not created in the temporary test directory")
+        if matcher._CACHE_CONN is not None:
+            matcher._CACHE_CONN.close()
+            matcher._CACHE_CONN = None
 
     print("blast_cache_persistence: ok")
     return 0

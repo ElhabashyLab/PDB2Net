@@ -56,7 +56,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 from Bio.Data import IUPACData
-from .config_loader import config, config_revision
+from .config_loader import config, config_revision, validate_sequence_search_timeout
+from .search_process import SearchAborted, SearchProcesses
 from .residue_types import (
     AMINO_ACIDS,
     DNA_RESIDUES,
@@ -607,25 +608,43 @@ def _lookup_direct_uniprot_name(accession: str) -> Optional[str]:
     return None
 
 
-def _apply_direct_uniprot_to_structure(structure: Dict[str, Any], debug: bool = False) -> bool:
-    """Annotate a single-chain AlphaFold-style structure from its file name."""
-    file_path = str(structure.get("file_path") or "")
-    pdb_id = str(structure.get("pdb_id") or "")
-    accession = extract_direct_uniprot_accession(file_path) or extract_direct_uniprot_accession(pdb_id)
-    if not accession:
-        return False
-
+def _direct_uniprot_accession_for_structure(structure: Dict[str, Any]) -> Optional[str]:
+    """Return an AF hint only when it respects structure and chain evidence."""
     chains = list(structure.get("atom_data", []))
     if len(chains) != 1:
-        _diag_inc("direct_uniprot_skip_multichain")
-        if debug:
-            print(
-                f"[BLASTSEL][{os.path.basename(file_path) or pdb_id}] "
-                f"SKIP_DIRECT_UNIPROT: accession={accession} chains={len(chains)}"
-            )
-        return False
-
+        return None
     chain = chains[0]
+    if (
+        chain.get("external_sifts_status") == "ambiguous_external_mapping"
+        or chain.get("embedded_uniprot_status") == "ambiguous_multi_mapping"
+        and chain.get("annotation_source") == "embedded_sifts"
+    ):
+        return None
+    molecule_type = str(chain.get("molecule_type") or "").strip()
+    if molecule_type in {"", "Unknown", "UNKNOWN"}:
+        molecule_type = classify_molecule_type(chain)
+    if molecule_type in NUCLEIC_ACID_TYPES:
+        return None
+
+    identity = structure.get("structure_identity")
+    if isinstance(identity, dict):
+        # The parser already resolved content versus filename. Do not reopen
+        # that decision using a conflicting filename as a second identity.
+        if identity.get("source") == "pdb":
+            return None
+        return extract_direct_uniprot_accession(str(identity.get("canonical_id") or ""))
+    pdb_id = str(structure.get("pdb_id") or "").strip()
+    if pdb_id:
+        return extract_direct_uniprot_accession(pdb_id)
+    return extract_direct_uniprot_accession(str(structure.get("file_path") or ""))
+
+
+def _apply_direct_uniprot_to_structure(structure: Dict[str, Any], debug: bool = False) -> bool:
+    """Apply an eligible single-chain AlphaFold identity without overriding SIFTS."""
+    accession = _direct_uniprot_accession_for_structure(structure)
+    if not accession:
+        return False
+    chain = structure["atom_data"][0]
     if chain.get("uniprot_id") not in [None, "Unknown"]:
         return False
 
@@ -636,7 +655,7 @@ def _apply_direct_uniprot_to_structure(structure: Dict[str, Any], debug: bool = 
 
     if debug:
         chain_id = chain.get("chain_id", "?")
-        uniq = chain.get("unique_chain_id", f"{pdb_id}:{chain_id}")
+        uniq = chain.get("unique_chain_id", f"{structure.get('pdb_id', '?')}:{chain_id}")
         print(f"[BLASTSEL][{uniq}] DIRECT_UNIPROT: {accession}")
 
     return True
@@ -662,13 +681,22 @@ def create_blast_database(force_rebuild: bool = False) -> None:
     subprocess.run(cmd, check=True)
 
 
+def _polymer_residues(chain_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Select annotation residues without changing the chain's contact atoms.
+
+    Parser records carry an explicit role; existing dictionary callers without
+    that marker retain their previous residue-list meaning.
+    """
+    return [res for res in chain_data.get("residues", []) if res.get("is_polymer", True)]
+
+
 def extract_sequence_from_parsed_data(chain_data: Dict[str, Any]) -> str:
     """Extract 1-letter protein-like sequence from parsed chain residues.
 
     Uses residue key 'residue_name' (project convention) with a fallback to 'resname'.
-    Unknown / unmapped residues become 'X'.
+    Known non-polymers are excluded. Unknown / unmapped polymer residues become 'X'.
     """
-    residues = chain_data.get("residues", [])
+    residues = _polymer_residues(chain_data)
     if not residues:
         return ""
 
@@ -920,6 +948,7 @@ def _run_blastp_swissprot_batch(
     }
     if not queries:
         return results
+    execution = SearchProcesses(validate_sequence_search_timeout(config.get("sequence_search_timeout_seconds")))
     debug = bool(debug or _DEBUG_BLAST)
     blast_cfg = config.get("blast", {}) if isinstance(config.get("blast"), dict) else {}
     max_sequences = _positive_int_config(blast_cfg.get("batch_max_sequences"), 5000)
@@ -942,6 +971,7 @@ def _run_blastp_swissprot_batch(
     def run_job(
         job: Tuple[float, int, Optional[str], List[Tuple[str, str, str]]]
     ) -> Dict[str, _SearchOutcome]:
+        execution.check()
         max_evalue, max_targets, task, chunk = job
         chunk_results = {
             key: _error_outcome("Swiss-Prot batch did not complete")
@@ -980,7 +1010,7 @@ def _run_blastp_swissprot_batch(
                         command.extend(["-max_hsps", str(max_hsps)])
                     if task:
                         command.extend(["-task", task])
-                    return subprocess.run(command, capture_output=True, text=True)
+                    return execution.run(command, tool="BLASTP")
 
                 use_qcovs = True
                 process_result = run_process(outfmt_qcovs)
@@ -1020,6 +1050,8 @@ def _run_blastp_swissprot_batch(
                         debug=debug,
                     )
                     chunk_results[key] = _hit_outcome(hit) if hit is not None else _no_hit_outcome()
+        except SearchAborted:
+            raise
         except Exception as exc:
             _diag_inc("blast_exception")
             for key in chunk_results:
@@ -1029,9 +1061,17 @@ def _run_blastp_swissprot_batch(
         return chunk_results
 
     worker_count = max(1, min(_positive_int_config(max_workers, 1), len(jobs)))
-    with ThreadPoolExecutor(max_workers=worker_count) as executor:
-        for chunk_results in executor.map(run_job, jobs):
-            results.update(chunk_results)
+    try:
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            try:
+                for chunk_results in executor.map(run_job, jobs):
+                    results.update(chunk_results)
+            except BaseException:
+                # Signal before the executor context waits for its workers.
+                execution.cancel()
+                raise
+    except SearchAborted as exc:
+        raise SequenceSearchError(str(exc)) from exc
     return results
 
 
@@ -1232,6 +1272,8 @@ def _run_diamond_uniref90_batch(
     if not diamond_uniref90_enabled():
         return {key: _no_hit_outcome() for key in results}
 
+    execution = SearchProcesses(validate_sequence_search_timeout(config.get("sequence_search_timeout_seconds")))
+
     debug = bool(debug or _DEBUG_BLAST)
     diamond_cfg = _diamond_config()
     max_sequences = _positive_int_config(diamond_cfg.get("batch_max_sequences"), 5000)
@@ -1289,7 +1331,7 @@ def _run_diamond_uniref90_batch(
                 if sensitivity and sensitivity != "default":
                     cmd.append(f"--{sensitivity}")
 
-                result = subprocess.run(cmd, capture_output=True, text=True)
+                result = execution.run(cmd, tool="DIAMOND")
                 if result.returncode != 0:
                     _diag_inc("diamond_error")
                     error = (result.stderr or "").strip()
@@ -1321,6 +1363,8 @@ def _run_diamond_uniref90_batch(
                         debug=debug,
                     )
                     results[key] = _hit_outcome(hit) if hit is not None else _no_hit_outcome()
+        except SearchAborted as exc:
+            raise SequenceSearchError(str(exc)) from exc
         except Exception as exc:
             _diag_inc("diamond_exception")
             for key, _sequence, _label in chunk:
@@ -1359,11 +1403,11 @@ def run_blast_search(query_sequence: str, label: str = "", debug: bool = False) 
 
 
 def classify_molecule_type(chain_data: Dict[str, Any], label: str = "", debug: bool = False) -> str:
-    """Infer molecule type based on residue composition.
+    """Infer molecule type based on polymer residue composition.
 
     Reads residue key 'residue_name' with fallback to 'resname'.
     """
-    residues = chain_data.get("residues", [])
+    residues = _polymer_residues(chain_data)
     if not residues:
         return "Unknown"
 

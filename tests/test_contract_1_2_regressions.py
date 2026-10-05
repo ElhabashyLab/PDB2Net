@@ -355,8 +355,10 @@ def test_all_model_chain_interactions_are_kept_and_exported_separately(
     chains = [
         _protein_chain("TST:model1:A", "A", 1, 0.0),
         _protein_chain("TST:model1:B", "B", 1, 1.0),
-        _protein_chain("TST:model2:A", "A", 2, 10.0),
-        _protein_chain("TST:model2:B", "B", 2, 11.0),
+        # Alternative models overlap: only the model guard can exclude
+        # otherwise geometrically valid cross-model contacts.
+        _protein_chain("TST:model2:A", "A", 2, 0.0),
+        _protein_chain("TST:model2:B", "B", 2, 1.0),
     ]
     structure = {
         "file_path": "/inputs/tst.cif",

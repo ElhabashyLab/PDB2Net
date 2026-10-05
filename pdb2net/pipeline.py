@@ -15,7 +15,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Mapping, MutableMapping, Optional, Union
 
-from .config_loader import config
+from .config_loader import config, validate_sequence_search_timeout
 from .components import build_identity_edges, find_linked_components, make_component_title
 from .cytoscape import create_cytoscape_network, generate_nodes_from_atom_data
 from .data_processor import process_structure
@@ -40,7 +40,7 @@ from .file_parser import (
     read_validated_structure_bytes,
 )
 from .graph_limits import combined_graph_skip, normalize_combined_graph_limits
-from .input_contract import InputValidationError
+from .input_contract import INPUT_EXCLUSION_REASONS, InputValidationError, is_excludable_input_error
 from .logging_utils import get_logger
 from .network_annotations import (
     apply_embedded_annotations,
@@ -62,8 +62,10 @@ from .protein_network import create_protein_network
 from .residue_types import NUCLEIC_ACID_TYPES, count_polymer_lengths
 from .structure_identity import StructureIdentity, identity_from_official_id
 from .uniprot_matcher import (
+    _direct_uniprot_accession_for_structure,
+    classify_molecule_type,
     diamond_uniref90_enabled,
-    extract_direct_uniprot_accession,
+    extract_sequence_from_parsed_data,
     get_diamond_executable,
     get_diamond_uniref90_db_path,
     parallel_blast_search,
@@ -202,8 +204,24 @@ def process_single_file(
             "pdb_id": identity.display_id,
             "structure_identity": identity.as_dict(),
             "structure": parsed["structure"],
+            "atom_occupancies": parsed.get("atom_occupancies", {}),
         }
     )
+    from .contact_atoms import contact_positions
+
+    retained_chains, contact_warnings = [], []
+    for chain in processed["atom_data"]:
+        # Consume all candidates so invalid metadata cannot hide after a valid atom.
+        if sum(1 for _ in contact_positions(chain)):
+            retained_chains.append(chain)
+        else:
+            contact_warnings.append({
+                "code": "CHAIN_WITHOUT_CONTACT_ATOMS",
+                "message": (f"{Path(file_path).name}: model {chain.get('model_index', 1)}, "
+                            f"chain {chain['chain_id']!r} excluded: no usable protein/DNA/RNA "
+                            "heavy contact atoms. Check polymer assignment and occupancy."),
+            })
+    processed["atom_data"] = retained_chains
     annotation_cfg = network_annotation_config()
     apply_embedded_annotations(
         processed["atom_data"],
@@ -214,7 +232,7 @@ def process_single_file(
     processed["identity_claims"] = parsed.get("identity_claims", [])
     processed["input_warnings"] = list(parsed.get("identity_warnings", [])) + list(
         parsed.get("embedded_annotations", {}).get("warnings", [])
-    )
+    ) + contact_warnings
     processed["input_format"] = parsed["input_format"]
     processed["input_kind"] = parsed["input_kind"]
     processed["embedded_annotation_counts"] = embedded_annotation_counts(processed["atom_data"])
@@ -313,6 +331,7 @@ def _combined_graph_limits() -> Dict[str, Optional[int]]:
 
 def _validate_analysis_config() -> None:
     """Validate scientific settings before references, parsing, or Cytoscape."""
+    validate_sequence_search_timeout(config.get("sequence_search_timeout_seconds"))
     networks = config.get("networks")
     if not isinstance(networks, Mapping):
         raise InputValidationError("INVALID_NETWORK_CONFIG", "networks must be a JSON object.")
@@ -388,7 +407,8 @@ def _validate_analysis_config() -> None:
 
 
 def _preflight_structure_identities(
-    file_paths: List[str], inventory: InputInventory
+    file_paths: List[str], inventory: InputInventory,
+    *, errors_by_path: MutableMapping[str, Exception] | None = None,
 ) -> dict[str, StructureIdentity]:
     """Resolve unique run identities before expensive parsing and annotation."""
     signatures = inventory.file_signatures or tuple(input_file_signature(path) for path in file_paths)
@@ -400,17 +420,30 @@ def _preflight_structure_identities(
     resolved: dict[str, StructureIdentity] = {}
     seen: dict[str, str] = {}
     for file_path, expected_signature, expected_sha256 in zip(file_paths, signatures, digests):
+        if errors_by_path is not None and file_path in errors_by_path:
+            continue
         if input_file_signature(file_path) != expected_signature:
             raise InputValidationError(
                 "INPUT_CHANGED_DURING_PROCESSING",
                 f"Input file changed before identity resolution: {Path(file_path).name}",
             )
-        identity = get_structure_identity(
-            file_path,
-            expected_signature=expected_signature,
-            expected_sha256=expected_sha256,
-            maximum_expanded_bytes=maximum_expanded_bytes,
-        )
+        try:
+            identity = get_structure_identity(
+                file_path,
+                expected_signature=expected_signature,
+                expected_sha256=expected_sha256,
+                maximum_expanded_bytes=maximum_expanded_bytes,
+            )
+        except InputValidationError as exc:
+            if errors_by_path is None or not is_excludable_input_error(exc):
+                raise
+            if input_file_signature(file_path) != expected_signature:
+                raise InputValidationError(
+                    "INPUT_CHANGED_DURING_PROCESSING",
+                    f"Input file changed during identity resolution: {Path(file_path).name}.",
+                ) from exc
+            errors_by_path[file_path] = exc
+            continue
         if input_file_signature(file_path) != expected_signature:
             raise InputValidationError(
                 "INPUT_CHANGED_DURING_PROCESSING",
@@ -463,7 +496,8 @@ def _validate_input_total_expanded_bytes(
 
 
 def inspect_input_files(
-    file_paths: List[str], *, enforce_aggregate_limits: bool = True
+    file_paths: List[str], *, enforce_aggregate_limits: bool = True,
+    errors_by_path: MutableMapping[str, Exception] | None = None,
 ) -> InputInventory:
     """Inspect inputs, enforcing single-file and optionally aggregate limits."""
     limits = _resource_limits()
@@ -492,13 +526,21 @@ def inspect_input_files(
             )
         file_sizes.append(size)
 
-        _payload, expanded_size, raw_sha256 = read_validated_structure_bytes(
-            str(path),
-            expected_signature=signature,
-            maximum_expanded_bytes=limits["max_single_input_expanded_bytes"],
-            collect=False,
-            include_sha256=True,
-        )
+        try:
+            _payload, expanded_size, raw_sha256 = read_validated_structure_bytes(
+                str(path),
+                expected_signature=signature,
+                maximum_expanded_bytes=limits["max_single_input_expanded_bytes"],
+                collect=False,
+                include_sha256=True,
+            )
+        except InputValidationError as exc:
+            if errors_by_path is None or exc.code != "EMPTY_INPUT_FILE":
+                raise
+            # Preserve every original input in resource accounting. This empty
+            # file will not enter identity resolution or the parsing scheduler.
+            errors_by_path[file_path] = exc
+            expanded_size, raw_sha256 = 0, ""
         maximum_expanded = limits["max_single_input_expanded_bytes"]
         if maximum_expanded is not None and expanded_size > maximum_expanded:
             raise InputValidationError(
@@ -697,13 +739,7 @@ def _run_blast_annotation(combined_data: List[Dict[str, Any]]) -> None:
 def _blast_fallback_needed(combined_data: List[Dict[str, Any]]) -> bool:
     """Return whether at least one chain may require BLAST fallback annotation."""
     for structure in combined_data:
-        file_path = str(structure.get("file_path") or "")
-        pdb_id = str(structure.get("pdb_id") or "")
-        atom_data = list(structure.get("atom_data", []))
-        has_direct_single_chain_uniprot = (
-            len(atom_data) == 1
-            and bool(extract_direct_uniprot_accession(file_path) or extract_direct_uniprot_accession(pdb_id))
-        )
+        has_direct_single_chain_uniprot = _direct_uniprot_accession_for_structure(structure) is not None
         for chain in structure.get("atom_data", []):
             if (
                 chain.get("embedded_uniprot_status") == "ambiguous_multi_mapping"
@@ -717,7 +753,9 @@ def _blast_fallback_needed(combined_data: List[Dict[str, Any]]) -> bool:
             if has_direct_single_chain_uniprot:
                 continue
             molecule_type = (chain.get("molecule_type") or "").strip()
-            if molecule_type not in NUCLEIC_ACID_TYPES:
+            if molecule_type in {"", "Unknown", "UNKNOWN"}:
+                molecule_type = classify_molecule_type(chain)
+            if molecule_type not in NUCLEIC_ACID_TYPES and extract_sequence_from_parsed_data(chain):
                 return True
     return False
 
@@ -775,7 +813,7 @@ def _compact_structure_summaries(structures: List[Dict[str, Any]]) -> List[Dict[
         for chain in structure.get("atom_data", []):
             chain_summary = {key: value for key, value in chain.items() if key != "residues"}
             aa_len, nt_len = count_polymer_lengths(
-                residue.get("residue_name") for residue in chain.get("residues", [])
+                chain.get("residues", [])
             )
             chain_summary["aa_len"] = aa_len
             chain_summary["nt_len"] = nt_len
@@ -800,12 +838,7 @@ def _annotation_summary(combined_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         chains = list(structure.get("atom_data", []))
         if structure.get("input_kind") == "nextgen_enriched_mmcif":
             enriched_structures += 1
-        direct_accession = None
-        if len(chains) == 1:
-            direct_accession = (
-                extract_direct_uniprot_accession(str(structure.get("file_path") or ""))
-                or extract_direct_uniprot_accession(str(structure.get("pdb_id") or ""))
-            )
+        direct_accession = _direct_uniprot_accession_for_structure(structure)
 
         for chain in chains:
             chains_total += 1
@@ -1162,6 +1195,7 @@ def _config_snapshot(network_config: Dict[str, Any]) -> Dict[str, Any]:
         "interaction_filters": config.get("interaction_filters", {}),
         "structure_model_policy": config.get("structure_model_policy", "first"),
         "workers": config.get("workers", {}),
+        "sequence_search_timeout_seconds": config.get("sequence_search_timeout_seconds"),
         "resource_limits": config.get("resource_limits", {}),
         "combined_graph_limits": config.get("combined_graph_limits", {}),
         "layout_mode": config.get("layout_mode", "python_fast"),
@@ -1313,6 +1347,19 @@ def _create_linked_identity_network(
     return skipped_outputs
 
 
+def _input_exclusion_warnings(
+    file_paths: List[str], errors_by_path: Mapping[str, Exception],
+) -> list[dict[str, str]]:
+    return [
+        {
+            "code": "INPUT_FILE_SKIPPED",
+            "message": f"{Path(path).name}: {error.code} — {INPUT_EXCLUSION_REASONS[error.code]}",
+        }
+        for path in file_paths
+        if (error := errors_by_path.get(path)) is not None and is_excludable_input_error(error)
+    ]
+
+
 def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: str | None = None) -> RunOutputPaths:
     """Run the full single-process pipeline for a folder or explicit file list."""
     network_config = config["networks"]
@@ -1322,6 +1369,10 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
     output_paths: RunOutputPaths | None = None
     web_output_reservation_attempted = False
     web_output_reserved = False
+    file_paths: List[str] = []
+    file_errors: dict[str, Exception] = {}
+    inventory: InputInventory | None = None
+    parsed_any = False
 
     try:
         _validate_output_root()
@@ -1338,9 +1389,9 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
             web_output_reservation_attempted = True
             reserve_web_output_directory(web_output_dir)
             web_output_reserved = True
-        inventory = inspect_input_files(file_paths)
+        inventory = inspect_input_files(file_paths, errors_by_path=file_errors)
         _combined_graph_limits()
-        preflight_identities = _preflight_structure_identities(file_paths, inventory)
+        preflight_identities = _preflight_structure_identities(file_paths, inventory, errors_by_path=file_errors)
         _validate_required_reference_files()
         output_paths = create_run_output_paths(config["output_path"])
         limits = _resource_limits()
@@ -1378,6 +1429,9 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
             create_processing_batches(file_paths, inventory),
             start=1,
         ):
+            batch_paths = [path for path in batch_paths if path not in file_errors]
+            if not batch_paths:
+                continue
             batch_bytes = sum(Path(path).stat().st_size for path in batch_paths)
             logger.info(
                 "Processing bounded batch %s (%s files, %s bytes)",
@@ -1403,16 +1457,33 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
                 expected_signatures=signatures_by_path,
                 expected_sha256=digests_by_path,
                 maximum_expanded_bytes=maximum_expanded_bytes,
+                errors_by_path=file_errors,
             )
             timings.parsing += time.time() - start_time
-            if not batch_data:
-                continue
-            if len(batch_data) != len(batch_paths):
+            for path in batch_paths:
+                try:
+                    signature = signatures_by_path.get(path)
+                    if signature is not None and input_file_signature(path) != signature:
+                        raise InputValidationError(
+                            "INPUT_CHANGED_DURING_PROCESSING",
+                            f"Input file changed while parsing {Path(path).name}.",
+                        )
+                except InputValidationError:
+                    file_errors.pop(path, None)
+                    raise
+                if path in file_errors and not is_excludable_input_error(file_errors[path]):
+                    raise file_errors[path]
+            expected_paths = {path for path in batch_paths if path not in file_errors}
+            if (
+                len(batch_data) != len(expected_paths)
+                or {structure.get("file_path") for structure in batch_data} != expected_paths
+            ):
                 raise InputValidationError(
                     "NO_PARSEABLE_STRUCTURES",
                     "One or more structure inputs did not produce a parsed structure.",
                 )
-            for source_path, parsed_structure in zip(batch_paths, batch_data):
+            for parsed_structure in batch_data:
+                source_path = parsed_structure["file_path"]
                 expected_identity = preflight_identities[source_path]
                 if isinstance(parsed_structure.get("structure_identity"), Mapping):
                     current_identity = StructureIdentity.from_mapping(
@@ -1429,6 +1500,15 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
                         "INPUT_CHANGED_DURING_PROCESSING",
                         f"Input file changed while parsing {Path(source_path).name}.",
                     )
+                parsed_any = True
+                if not parsed_structure.get("atom_data"):
+                    file_errors[source_path] = InputValidationError(
+                        "NO_VALID_CHAINS", "No supported chains were found."
+                    )
+
+            batch_data = [structure for structure in batch_data if structure["file_path"] not in file_errors]
+            if not batch_data:
+                continue
 
             _register_unique_chain_ids(batch_data, seen_chain_ids)
 
@@ -1464,14 +1544,14 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
             gc.collect()
 
         if not combined_data:
+            if parsed_any:
+                raise InputValidationError(
+                    "NO_VALID_CHAINS",
+                    "No input contained supported chains. See the per-file diagnostics.",
+                )
             raise InputValidationError(
                 "NO_PARSEABLE_STRUCTURES",
-                "No input structure could be parsed successfully.",
-            )
-        if not any(structure.get("atom_data") for structure in combined_data):
-            raise InputValidationError(
-                "NO_VALID_CHAINS",
-                "Parsed structures did not contain supported protein or nucleic-acid polymer chains.",
+                "No input structure could be parsed successfully. See the per-file diagnostics.",
             )
 
         skipped_outputs = _export_network_outputs(
@@ -1481,7 +1561,7 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
             output_paths,
             timings,
         )
-        warnings = [
+        warnings = _input_exclusion_warnings(file_paths, file_errors) + [
             {
                 "code": "COMBINED_GRAPH_LIMIT_EXCEEDED",
                 "message": (
@@ -1505,7 +1585,7 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
         }
         write_run_manifest(
             output_paths.manifest_file,
-            input_files=file_paths,
+            input_files=[path for path in file_paths if path not in file_errors],
             output_paths=output_paths,
             config_snapshot=_config_snapshot(network_config),
             status="success",
@@ -1537,26 +1617,34 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
             )
         logger.info("Run finished successfully in %.1f seconds", total_time)
         return output_paths
-    except Exception as exc:
-        logger.error("Run failed: %s", exc)
-        base_output_path = str(config.get("output_path") or "").strip()
-        if not isinstance(input_path_or_filelist, list) and base_output_path:
-            output_paths = write_failed_run_manifest(
-                base_output_path,
-                input_path=str(input_path_or_filelist),
-                config_snapshot=_config_snapshot(network_config),
-                error=exc,
-                started_at=started_at,
-                output_paths=output_paths,
-            )
-            if web_output_dir and (
-                web_output_reserved or not web_output_reservation_attempted
-            ):
-                collect_web_outputs(
-                    output_paths,
-                    web_output_dir,
-                    web_output_prepared=web_output_reserved,
+    except (Exception, KeyboardInterrupt) as exc:
+        failure = InputValidationError("RUN_INTERRUPTED", "Run interrupted by user.") if isinstance(exc, KeyboardInterrupt) else exc
+        logger.error("Run failed: %s", failure)
+        try:
+            base_output_path = str(config.get("output_path") or "").strip()
+            if not isinstance(input_path_or_filelist, list) and base_output_path:
+                output_paths = write_failed_run_manifest(
+                    base_output_path,
+                    input_path=str(input_path_or_filelist),
+                    config_snapshot=_config_snapshot(network_config),
+                    error=failure,
+                    started_at=started_at,
+                    output_paths=output_paths,
+                    warnings=_input_exclusion_warnings(file_paths, file_errors),
+                    resources={"input": {"files": len(file_paths)}} if file_paths else None,
                 )
+                if web_output_dir and (
+                    web_output_reserved or not web_output_reservation_attempted
+                ):
+                    collect_web_outputs(
+                        output_paths,
+                        web_output_dir,
+                        web_output_prepared=web_output_reserved,
+                    )
+        except Exception as report_error:
+            if not isinstance(exc, KeyboardInterrupt):
+                raise
+            logger.warning("Could not write interruption report: %s", report_error)
         raise
     finally:
         tree_cache.clear()

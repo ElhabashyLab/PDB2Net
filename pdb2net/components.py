@@ -70,7 +70,7 @@ def build_identity_edges(
             identity_edges.append({
                 "chain_a": chain_a,
                 "chain_b": chain_b,
-                "all_atoms_count": 1000,
+                "all_atoms_count": 0,  # An identity link has no geometric contact count.
                 "interaction_type": "identity",
             })
     return identity_edges

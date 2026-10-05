@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Iterable
 
 
@@ -32,10 +33,28 @@ def normalize_residue_name(name: object) -> str:
 
 
 def count_polymer_lengths(residue_names: Iterable[object]) -> tuple[int, int]:
-    """Count protein amino acids and nucleotides in residue names."""
+    """Count observed residue records by polymer role/type, or legacy names.
+
+    Explicit nonpolymers and other polymer types do not contribute. Without
+    usable type metadata, retain the existing name-based interpretation.
+    Atom alternatives and occupancy do not affect the number of records.
+    """
     aa_count = 0
     nt_count = 0
     for raw_name in residue_names:
+        if isinstance(raw_name, Mapping):
+            if raw_name.get("is_polymer") is False:
+                continue
+            kind = raw_name.get("polymer_type")
+            if kind in {"PeptideL", "PeptideD", "CyclicPseudoPeptide"}:
+                aa_count += 1
+                continue
+            if kind in {"Dna", "Rna", "DnaRnaHybrid"}:
+                nt_count += 1
+                continue
+            if kind not in (None, "", "Unknown"):
+                continue
+            raw_name = raw_name.get("residue_name")
         name = normalize_residue_name(raw_name)
         if name in AMINO_ACIDS:
             aa_count += 1

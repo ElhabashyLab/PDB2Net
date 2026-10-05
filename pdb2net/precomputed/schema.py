@@ -29,7 +29,7 @@ from ..structure_identity import ChainIdentity, StructureIdentity, canonical_pdb
 
 
 ARTIFACT_SCHEMA_VERSION = PRECOMPUTED_ARTIFACT_SCHEMA_VERSION
-SCIENTIFIC_PIPELINE_VERSION = "pdb2net-asu-first-standard-interactions-v3"
+SCIENTIFIC_PIPELINE_VERSION = "pdb2net-asu-first-standard-interactions-v4"
 SOURCE_SCOPE = "asymmetric_unit"
 
 MAX_COMPRESSED_ENTRY_BYTES = 64 * 1024 * 1024

@@ -1,9 +1,61 @@
 from pathlib import Path
+import json
 
 import pandas as pd
 import pytest
 
 from pdb2net import cytoscape, layout_engine
+from pdb2net.outputs import _cx2_counts
+
+
+@pytest.mark.parametrize("live_fallback", [False, True])
+def test_identity_zero_is_exported_but_zero_contact_is_not(monkeypatch, tmp_path, live_fallback):
+    monkeypatch.setitem(cytoscape.config, "open_in_cytoscape", live_fallback)
+    monkeypatch.setitem(cytoscape.config, "layout_mode", "python_fast")
+    live_edges = []
+    if live_fallback:
+        class UnavailableLive:
+            @staticmethod
+            def get_network_list():
+                return []
+
+            @staticmethod
+            def create_network_from_data_frames(**kwargs):
+                # Identity survives the common preparation for live export too.
+                live_edges.append(kwargs["edges"].copy())
+                raise RuntimeError("unavailable live instance")
+        monkeypatch.setattr(cytoscape, "_get_py4cytoscape", lambda: UnavailableLive)
+    cytoscape.create_cytoscape_network(
+        [{"chain_a": "A", "chain_b": "B", "all_atoms_count": 12, "interaction_type": "Protein-Protein"},
+         {"chain_a": "A", "chain_b": "C", "all_atoms_count": 0, "interaction_type": "identity"},
+         {"chain_a": "B", "chain_b": "C", "all_atoms_count": 0, "interaction_type": "Protein-Protein"}],
+        "Combined_Network_identity", str(tmp_path),
+        nodes_data=[{"id": n, "name": n, "uniprot_id": up, "color_group": "Protein"}
+                    for n, up in [("A", "P12345"), ("B", "Q99999"), ("C", "P12345")]],
+    )
+    path = tmp_path / "Combined_Network_identity.cx2"
+    assert _cx2_counts(path) == (3, 2)
+    aspects = {key: value for block in json.loads(path.read_text()) for key, value in block.items()}
+    labels = {n["id"]: n["v"]["name"] for n in aspects["nodes"]}
+    assert {(labels[e["s"]], labels[e["t"]], e["v"]["interaction"], e["v"]["all_atoms_count"])
+            for e in aspects["edges"]} == {("A", "B", "Protein-Protein", 12), ("A", "C", "identity", 0)}
+    if live_fallback:
+        assert len(live_edges) == 1 and len(live_edges[0]) == 2
+
+
+def test_identity_zero_preserves_original_python_fast_layout():
+    nodes = pd.DataFrame([{"id": n} for n in "ABCD"])
+    old = pd.DataFrame([
+        {"source": "A", "target": "B", "interaction": "Protein-Protein", "all_atoms_count": 12},
+        {"source": "A", "target": "C", "interaction": "reference_weight", "all_atoms_count": 1000},
+        {"source": "C", "target": "D", "interaction": "Protein-Protein", "all_atoms_count": 4},
+    ])
+    new = old.copy()
+    new.loc[1, ["interaction", "all_atoms_count"]] = ["identity", 0]
+    # The ordinary weighted path is an independent reference for the old 1000
+    # input; the former algorithm did not distinguish identity by edge type.
+    expected = layout_engine.calculate_python_fast_layout(nodes, old, "Combined_Network_layout")
+    assert layout_engine.calculate_python_fast_layout(nodes, new, "Combined_Network_layout") == expected
 
 
 def test_headless_export_does_not_import_or_require_live_cytoscape(monkeypatch, tmp_path: Path) -> None:

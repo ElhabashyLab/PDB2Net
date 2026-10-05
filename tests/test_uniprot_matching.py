@@ -1,3 +1,4 @@
+import copy
 import json
 import itertools
 import shutil
@@ -56,6 +57,86 @@ def test_alphafold_single_chain_direct_uniprot_skips_blast(monkeypatch: pytest.M
     assert chain["molecule_name"] == "Test protein"
 
 
+@pytest.mark.parametrize(
+    ("case", "expected_id", "expected_type", "needs_search"),
+    [
+        ("external_ambiguous", None, "Protein", False),
+        ("embedded_ambiguous", None, "Protein", False),
+        ("rna", None, "RNA", False),
+        ("inferred_rna", None, "RNA", False),
+        ("official_identity", None, "Protein", True),
+        ("local_content_identity", None, "Protein", True),
+        ("content_alphafold", "Q9BYF1", "Protein", False),
+        ("existing_sifts", "Q99999", "Protein", False),
+        ("legacy_official_identity", None, "Protein", True),
+        ("legacy_local_identity", None, "Protein", True),
+        ("filename_only", "P69905", "Protein", False),
+    ],
+)
+def test_direct_annotation_preserves_authoritative_identity_and_chain_evidence(
+    monkeypatch, case, expected_id, expected_type, needs_search
+):
+    from pdb2net import pipeline
+    from pdb2net.structure_identity import StructureIdentity
+
+    chain = {
+        "chain_id": "A", "unique_chain_id": "TEST:A",
+        "molecule_type": "Protein", "uniprot_id": None,
+        "residues": [{"residue_name": "ALA"}, {"residue_name": "GLY"}],
+    }
+    identity = StructureIdentity("alphafold", "AF-P69905-F1")
+    if case == "external_ambiguous":
+        chain["external_sifts_status"] = "ambiguous_external_mapping"
+    elif case == "embedded_ambiguous":
+        chain.update(embedded_uniprot_status="ambiguous_multi_mapping",
+                     annotation_source="embedded_sifts")
+    elif case in {"rna", "inferred_rna"}:
+        chain["molecule_type"] = "RNA" if case == "rna" else "Unknown"
+        chain["residues"] = [{"residue_name": "U"}]
+    elif case == "official_identity":
+        identity = StructureIdentity("pdb", "pdb_00001abc")
+    elif case == "local_content_identity":
+        identity = StructureIdentity("local", "CUSTOM")
+    elif case == "content_alphafold":
+        identity = StructureIdentity("alphafold", "AF-Q9BYF1-F1")
+    elif case == "existing_sifts":
+        chain.update(uniprot_id="Q99999", annotation_source="sifts")
+    structure = {
+        "file_path": "AF-P69905-F1-model_v6.cif",
+        "pdb_id": identity.display_id,
+        "structure_identity": identity.as_dict(),
+        "atom_data": [chain],
+    }
+    if case.startswith("legacy_"):
+        del structure["structure_identity"]
+        structure["pdb_id"] = "1ABC" if case == "legacy_official_identity" else "CUSTOM"
+    elif case == "filename_only":
+        del structure["structure_identity"]
+        del structure["pdb_id"]
+    searches = []
+
+    def no_hit(queries, **_kwargs):
+        searches.extend(queries)
+        return {key: uniprot_matcher._no_hit_outcome() for key, _seq, _label in queries}
+
+    monkeypatch.setattr(uniprot_matcher, "_run_blastp_swissprot_batch", no_hit)
+    monkeypatch.setattr(uniprot_matcher, "_cache_get", lambda _key: (False, None))
+    monkeypatch.setattr(uniprot_matcher, "_cache_put", lambda *_args: None)
+    monkeypatch.setattr(uniprot_matcher, "_lookup_direct_uniprot_name", lambda _acc: None)
+    monkeypatch.setitem(uniprot_matcher.config, "diamond", {"enabled": False})
+
+    original = copy.deepcopy(structure)
+    assert pipeline._blast_fallback_needed([structure]) is needs_search
+    assert structure == original  # Preflight must not annotate or mutate inputs.
+    parallel_blast_search([structure], max_workers=1)
+
+    assert chain["uniprot_id"] == expected_id
+    assert chain["molecule_type"] == expected_type
+    assert bool(searches) is needs_search
+    if case in {"content_alphafold", "filename_only"}:
+        assert pipeline._annotation_summary([structure])["by_source"] == {"direct_uniprot": 1}
+
+
 def test_short_blast_query_uses_more_targets_one_hsp_and_blastp_short(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -68,7 +149,8 @@ def test_short_blast_query_uses_more_targets_one_hsp_and_blastp_short(
             handle.write("")
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
-    monkeypatch.setattr(uniprot_matcher.subprocess, "run", fake_run)
+    monkeypatch.setattr(uniprot_matcher.SearchProcesses, "run",
+                        lambda self, command, *, tool: fake_run(command, capture_output=True, text=True))
     monkeypatch.setitem(uniprot_matcher.config, "blast_db_path", str(tmp_path))
     monkeypatch.setitem(uniprot_matcher.config, "blastp_executable", "blastp")
 
@@ -128,7 +210,8 @@ def test_diamond_uniref90_fallback_parses_tabular_output(tmp_path, monkeypatch: 
             )
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
-    monkeypatch.setattr(uniprot_matcher.subprocess, "run", fake_run)
+    monkeypatch.setattr(uniprot_matcher.SearchProcesses, "run",
+                        lambda self, command, *, tool: fake_run(command, capture_output=True, text=True))
     monkeypatch.setattr(uniprot_matcher, "_CACHE_ENABLED", False)
     monkeypatch.setitem(uniprot_matcher.config, "blast_db_path", str(tmp_path))
     monkeypatch.setitem(uniprot_matcher.config, "blastp_executable", "blastp")
@@ -239,7 +322,8 @@ def test_diamond_batch_uses_one_multifasta_process_and_configured_limits(
         )
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
-    monkeypatch.setattr(uniprot_matcher.subprocess, "run", fake_run)
+    monkeypatch.setattr(uniprot_matcher.SearchProcesses, "run",
+                        lambda self, command, *, tool: fake_run(command, capture_output=True, text=True))
     monkeypatch.setitem(
         uniprot_matcher.config,
         "diamond",
@@ -298,7 +382,8 @@ def test_swissprot_batch_uses_one_multifasta_process_for_same_task_group(
         )
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
-    monkeypatch.setattr(uniprot_matcher.subprocess, "run", fake_run)
+    monkeypatch.setattr(uniprot_matcher.SearchProcesses, "run",
+                        lambda self, command, *, tool: fake_run(command, capture_output=True, text=True))
     monkeypatch.setitem(uniprot_matcher.config, "blast_db_path", str(tmp_path))
     monkeypatch.setitem(uniprot_matcher.config, "blastp_executable", "blastp")
     monkeypatch.setitem(
@@ -332,7 +417,8 @@ def test_diamond_batch_chunks_at_configured_sequence_limit(
         Path(cmd[cmd.index("--out") + 1]).write_text("", encoding="utf-8")
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
-    monkeypatch.setattr(uniprot_matcher.subprocess, "run", fake_run)
+    monkeypatch.setattr(uniprot_matcher.SearchProcesses, "run",
+                        lambda self, command, *, tool: fake_run(command, capture_output=True, text=True))
     monkeypatch.setitem(
         uniprot_matcher.config,
         "diamond",
@@ -486,7 +572,8 @@ def test_batch_failures_are_distinct_from_no_hit(
             return subprocess.CompletedProcess(cmd, 2, stdout="", stderr="fatal search error")
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
-    monkeypatch.setattr(uniprot_matcher.subprocess, "run", fake_run)
+    monkeypatch.setattr(uniprot_matcher.SearchProcesses, "run",
+                        lambda self, command, *, tool: fake_run(command, capture_output=True, text=True))
     query = [("query-key", "ACDEFGHIKLMNPQRSTVWY" * 5, "test query")]
     if batch_kind == "swissprot":
         monkeypatch.setitem(uniprot_matcher.config, "blast_db_path", str(tmp_path))
@@ -518,7 +605,8 @@ def test_successful_empty_batch_output_is_a_real_no_hit(
         Path(cmd[cmd.index(output_flag) + 1]).write_text("", encoding="utf-8")
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
-    monkeypatch.setattr(uniprot_matcher.subprocess, "run", fake_run)
+    monkeypatch.setattr(uniprot_matcher.SearchProcesses, "run",
+                        lambda self, command, *, tool: fake_run(command, capture_output=True, text=True))
     query = [("query-key", "ACDEFGHIKLMNPQRSTVWY" * 5, "test query")]
     if batch_kind == "swissprot":
         monkeypatch.setitem(uniprot_matcher.config, "blast_db_path", str(tmp_path))

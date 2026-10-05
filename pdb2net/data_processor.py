@@ -11,6 +11,8 @@ Notes
 - No molecule typing or naming is inferred here; fields like `molecule_name`,
   `molecule_type`, and `sequence` are intentionally left as placeholders for
   later stages (e.g., UniProt matching).
+- Gemmi's polymer role/type and original atom metadata are retained; contact
+  selection is shared downstream without altering annotation residue data.
 - The function preserves the original data flow and returns a dict with
   `file_path`, `pdb_id`, and `atom_data` (list of chain dicts).
 """
@@ -21,11 +23,13 @@ import gemmi
 from typing import Any, Dict, List
 
 from .config_loader import config
+from .atom_metadata import atom_key
+from .input_contract import InputValidationError
 from .residue_types import AMINO_ACIDS, DNA_RESIDUES, RNA_RESIDUES, normalize_residue_name
 from .structure_identity import ChainIdentity, StructureIdentity
 
 PARSER_SEMANTICS = (
-    "validated-single-document-gemmi-merged-chains-heavy-atoms-no-hydrogen-or-deuterium-v4"
+    "validated-single-document-gemmi-merged-chains-heavy-atoms-no-hydrogen-or-deuterium-v5"
 )
 
 # Set of allowed residue names for proteins and nucleic acids.
@@ -37,7 +41,8 @@ def process_structure(structure_data: Dict[str, Any]) -> Dict[str, Any]:
     """Extract atom and residue information from a parsed structure.
 
     Iterates over all models and chains in the Gemmi structure and collects:
-    - residues with their residue name, number, and non-hydrogen atom coordinates
+    - residues with their residue name, author number/insertion code, and
+      non-hydrogen atom coordinates
     - valid chains (contain at least one residue from `ALLOWED_RESIDUES`)
 
     Parameters
@@ -78,6 +83,7 @@ def process_structure(structure_data: Dict[str, Any]) -> Dict[str, Any]:
     file_path = structure_data["file_path"]
     pdb_id = structure_data["pdb_id"]
     structure: gemmi.Structure = structure_data["structure"]
+    occupancies = structure_data.get("atom_occupancies", {})
     identity_raw = structure_data.get("structure_identity")
     if isinstance(identity_raw, dict):
         identity = StructureIdentity.from_mapping(identity_raw)
@@ -85,6 +91,10 @@ def process_structure(structure_data: Dict[str, Any]) -> Dict[str, Any]:
         identity = StructureIdentity("local", str(pdb_id))
 
     atom_data: List[Dict[str, Any]] = []
+    polymer_types = {
+        subchain: entity.polymer_type.name
+        for entity in getattr(structure, "entities", []) for subchain in entity.subchains
+    }
 
     model_policy = str(config.get("structure_model_policy", "first")).strip().lower()
     models = list(structure)
@@ -95,6 +105,12 @@ def process_structure(structure_data: Dict[str, Any]) -> Dict[str, Any]:
     for model_index, model in enumerate(models, start=1):
         for chain in model:
             chain_id = chain.name.strip()
+            if not chain_id:
+                raise InputValidationError(
+                    "MISSING_CHAIN_ID",
+                    f"A chain in selected model {model_index} has no identifier. "
+                    "Correct the chain identifiers or export the structure again.",
+                )
             chain_identity = ChainIdentity(
                 structure_key=identity.key,
                 structure_display_id=str(pdb_id),
@@ -118,6 +134,11 @@ def process_structure(structure_data: Dict[str, Any]) -> Dict[str, Any]:
                             {
                                 "atom_name": atom.name,
                                 "coordinates": list(atom.pos),
+                                "altloc": getattr(atom, "altloc", "").replace("\x00", "").strip(),
+                                "occupancy": (
+                                    occupancies.get(atom_key(model.num, chain.name, res, atom), getattr(atom, "occ", None))
+                                    if occupancies else getattr(atom, "occ", None)
+                                ),
                             }
                         )
 
@@ -125,8 +146,13 @@ def process_structure(structure_data: Dict[str, Any]) -> Dict[str, Any]:
                     residue_record = {
                         "residue_name": res_name,
                         "residue_number": res.seqid.num,
+                        "is_polymer": res.entity_type == gemmi.EntityType.Polymer,
+                        "polymer_type": polymer_types.get(getattr(res, "subchain", ""), "Unknown"),
                         "atoms": atoms,
                     }
+                    insertion_code = getattr(res.seqid, "icode", "").strip()
+                    if insertion_code:
+                        residue_record["insertion_code"] = insertion_code
                     if original_res_name != res_name:
                         residue_record["original_residue_name"] = original_res_name
                     residues.append(residue_record)

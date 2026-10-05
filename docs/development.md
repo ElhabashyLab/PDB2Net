@@ -41,61 +41,141 @@ installed in the venv:
 .venv/bin/python -m pip install --no-build-isolation --no-deps -e .
 ```
 
-## Optional real-file integration tests
+## Small real fixture in the default suite
 
-The normal test command runs the repository's small tests and explicitly skips
-`tests/integration/`. This is also the default CI behavior. Enable the separate
-32-case real-file suite with:
+The normal suite runs the checked-in, provenance-documented 8ALY NextGen excerpt
+through the real headless CLI, offline precompute, and read-only assembly. It
+asserts known author-chain mapping, UniProt/Pfam segment ranges and CX2 contents.
+Tiny synthetic FASTA/TSV lookups are created under pytest's temporary directory;
+this test needs neither an external dataset nor a BLAST database or Cytoscape.
+It runs in the existing Python 3.11/3.12 CI jobs. The excerpt has two coordinate
+residues, so it complements rather than replaces the full-structure suite below.
+
+## Frozen real-file integration tests
+
+The default suite now includes the real-file checks using the 23 full structures
+and three frozen mini-reference files in `tests/fixtures/core_reference/`:
+
+```bash
+.venv/bin/python -m pytest -q -ra
+```
+
+Run only the real cases with `.venv/bin/python -m pytest tests/integration -q -ra`.
+For an explicitly smaller selection, use `-m "not integration"`. Collection and
+non-integration tests do not require BLAST or load the real dataset. Actual real
+runs require local `blastp` and `makeblastdb`; missing tools fail clearly rather
+than silently skipping these checks. CI installs both, plus DIAMOND for the
+existing separate mini-UniRef90 check, under Python 3.11 and 3.12.
+
+The [fixture README](../tests/fixtures/core_reference/README.md) lists every
+file, its purpose, reference selection and scientific expectations. The dataset
+contains the previous 19 reviewed inputs plus pure DNA (1BNA), modified RNA
+(1EHZ), phosphorylated protein (2ERK), and ambiguous SIFTS mapping (1AO7).
+These are about 26 MB of structures and 42 KB of reference text. No external
+Datensatz22 directory, production references or runtime downloads are needed.
+Input hashes are checked against `provenance.json`; Git preserves payload bytes
+across checkouts. Older unverified source dates are explicitly identified.
+
+`config.json` in that fixture directory freezes scientific settings. Test CLI
+processes isolate local configuration and PDB2NET environment overrides. Tests
+build a small BLAST database once per session, recording reference hashes and
+tool versions. Databases, caches, configurations, stores and outputs remain in
+pytest's temporary directory. Use `--junitxml /path/to/results.xml` to retain a
+summary; CLI cases also retain command, stdout and stderr logs.
+
+Existing external path options remain available for identical copies of this
+same pinned dataset, including all four new files and the updated mini-references:
 
 ```bash
 .venv/bin/python -m pytest tests/integration --run-integration \
-  --integration-data /path/to/structure-fixtures \
-  --integration-references /path/to/reference-fixtures -q -ra
+  --integration-data /path/to/frozen/structures \
+  --integration-references /path/to/frozen/references -q -ra
 ```
 
-To run both suites together, replace `tests/integration` with `tests` in that
-command. Include the test path so pytest discovers these project-specific options.
-Explicit integration selection without `--run-integration`, missing options,
-missing/unreadable fixtures, or unavailable `blastp`/`makeblastdb` fails with a
-clear error. The tests never download structures or reference datasets.
+Both paths and `--run-integration` are required when overriding locations.
+`--run-integration` alone selects the same built-in default data. Missing files
+and mismatching hashes fail; these options do not accept arbitrary new reference
+snapshots under old scientific expectations.
 
-The structure directory must contain these fixed fixtures. Files may also be
-in its `review-ergaenzungen/` subdirectory, so the existing reviewed dataset can
-be reused directly:
+The existing real suite checks parsing, annotation, all four network views,
+CSV, model separation, batching and raw/read-only-store output. Fixed structure
+and network expectations are independently derived from source records and
+blocked Euclidean calculations in `tests/reference_oracle.py`, without Core's
+atom selectors or KD-trees. Reproduce candidates outside the accepted directory:
 
-| Group | Required files |
-| --- | --- |
-| Existing structures | `4hhb.pdb`, `9rat.pdb`, `1TUP.pdb`, `1tup.cif`, `1a34.cif`, `124d.cif`, `170d.cif`, `5rlu.pdb`, `6w41.cif`, `6m17.cif` |
-| Identity conflict fixture | `123456.cif`: the deliberately modified 9JR2 mmCIF with `data_123456` and `_entry.id 123456`, while its PDB database reference remains `9JR2` |
-| Multiple models and modified residues | `1a1t.pdb`, `1a1t.cif`, `1a8o.pdb`, `1a8o.cif` |
-| Regular and full NextGen | `8aly.cif`, `pdb_00008aly_xyz-enrich.cif.gz` |
-| AlphaFold DB | `AF-P69905-F1-model_v6.pdb`, `AF-P69905-F1-model_v6.cif` |
+```bash
+.venv/bin/python tests/reference_oracle.py --output-dir /tmp/pdb2net-reference-candidates
+```
 
-Use matching PDB/mmCIF snapshots and retain the files' provenance and checksums.
-This fixed suite uses individual structures up to 12 MB. It does not scan the
-rest of the supplied directory or run a full archive batch.
+Review differences before changing accepted expectations. Raw/store agreement
+alone is not independent scientific validation. Tests also check all 652 atom
+pairs in the small 1BNA CSV, a real competing BLAST hit, and a controlled miss.
+The F06/F07 length regressions run normally: 1EHZ has 76 nt, both 170D chains
+have 12 nt, and 6M17 chains A/C have 605 aa. A dedicated raw/precompute/assemble
+case verifies these lengths in compact entries and read-only output as well.
+`tests/test_polymer_lengths.py` checks raw/compact export consistency, modified
+and unknown polymers, excluded nonpolymers and legacy name-only calls. Length
+counting does not apply atom-occupancy or contact filters.
 
-The reference directory contains the three small, matching reference subsets:
-`pdb_seqres.txt`, `sifts.tsv`, and `swissprot.fasta` (at most 5 MB each). Reuse
-the prepared review subsets; the full reference corpus is not needed here.
-Old review `config.json`, `inventory.json`, output folders, and prebuilt BLAST
-databases are not required. The fixture builds its own small BLAST database
-with `makeblastdb`, records reference hashes/tool versions, and creates fresh
-headless configuration from the distributable defaults.
+The independent pairwise distance oracle runs in the normal test suite without
+external fixtures. It checks inclusive cutoffs, atom ordering, translation, and
+rotation. A small overlapping-model fixture also verifies that geometrically
+close atoms from alternative models never form cross-model contacts.
 
-The fixture's generated database, BLAST caches, configurations, and run outputs
-stay under pytest's temporary directory. Individual CLI cases retain `command.json`,
-`stdout.log`, and `stderr.log`; `--junitxml /path/to/results.xml` can save a test
-summary. Keep these artifacts and the external datasets out of Git. A future
-CI job for this suite also needs these fixtures provisioned separately.
+The normal suite also checks polymer-only sequence/type annotation with small,
+independently written PDB/mmCIF fixtures containing waters, ligands, MSE and an
+unknown polymer residue. Atom retention and the existing X-fraction filter are
+checked separately. The frozen real-file suite forces actual BLAST fallback
+for hydrated 1A8O in both formats by removing its direct SIFTS/FASTA lookup from
+temporary test references. It requires the known 70-position sequence and
+P12497 assignment while retaining all 644 raw heavy atoms; Q01 contact selection
+uses only eligible polymer positions from those raw records.
 
-The suite covers real parser/model handling, NextGen and AlphaFold annotation,
-free filenames, failure cases, CSV/CX2 export, batching, and raw versus read-only
-store assembly. CX2 comparisons check scientific and style semantics, allowing
-the input modes' different source-file provenance. They do not assert byte
-equality or replace an independently accepted scientific goldstandard.
+Q01 regressions cover missing versus zero occupancy in PDB/mmCIF, stable
+metadata identity, modified polymer atoms, excluded nonpolymers, all-alternative
+site unions, insertion codes and residue alternatives, minimum-distance CSV
+witnesses, inclusive thresholds, the Cα minimum and row-budget prechecks.
+`tests/test_contact_atoms.py` contains the small contact oracles;
+`tests/test_atom_metadata.py` tests source metadata independently of selection.
+The precomputed end-to-end test checks raw/store agreement with alternatives
+and water, while profile tests reject the old parser/interaction versions.
+The nine paired-format examples in `docs/examples/q01_contact_examples.py`
+also compare the implemented union rule with hand-counted alternatives.
+
+Q02 tests exercise real validated CX2 for all four network views, with manually
+specified aggregation inputs: same/different/missing UniProt IDs, DNA/RNA,
+summed weights, linked components and identity links with zero contact count.
+They preserve the independent tests of geometry and annotation rather than
+substituting for them. Layout regression compares identity links against the
+historical raw weight 1000 through the ordinary weighted layout path. Existing
+model tests remain authoritative; small PDB/mmCIF assembly-metadata cases verify
+that recognizing operators does not generate additional coordinate chains.
+
+Raw-run exclusion regressions are in `tests/test_input_exclusions.py`. They
+compare a mixed-input run with a valid-only control, check complete reports and
+counts, and exercise real CLI exits. Explicit counterexamples keep resource,
+integrity and unexpected parser/annotation failures fatal. These tests use tiny
+local fixtures and run in the standard suite without external search databases.
+Missing-chain cases cover real PDB/mmCIF parsing, complete file omission despite
+remaining named chains, offline manifest rejection and real CLI worker error
+propagation. `tests/test_data_processor.py` also checks whitespace-only names,
+the unchanged rejection before residue selection, and first/all model scope.
 
 ## Local Configuration
+
+Search lifecycle tests use finite fake executables rather than large databases.
+They check actual process exit, query cleanup, cancelled launch races, a timeout
+behind an earlier `executor.map` input, SIGTERM escalation and parent-only SIGINT.
+Configuration accepts null or positive integer search seconds; runtime limits
+must not affect store/search fingerprints. Real signal/shebang probes are POSIX
+tests; no Windows/macOS cancellation validation is implied by a Linux run.
+
+Reference-loader caches follow a one-generation-per-process contract. New
+reference generations require new paths/manifest IDs and a fresh process (or
+notebook kernel); changing config alone does not invalidate RAM lookups.
+`tests/test_reference_data.py` exercises fresh-process annotation, repeatability,
+search-cache separation and changed store profiles with tiny local references.
+This work intentionally does not change reference loading or add memory profiling.
 
 Copy the example local config and adjust paths:
 
@@ -214,6 +294,12 @@ author chain IDs. With `"all"`, they contain the same model-qualified IDs used
 by the chain networks, for example `1ABC:model2:A`. This distinguishes contacts
 from different models without changing the CSV columns.
 
+`Residue_A` and `Residue_B` retain the author residue number and any insertion
+code before the residue name: for example `10:ALA` and `10A:ALA` identify
+different residues. Negative and zero author numbers are retained. Rows without
+an insertion code keep their existing labels, and the CSV columns are unchanged.
+This preserves residue identity without changing atom selection or distances.
+
 ## Goldstandard CX2 Regression Check
 
 Use the accepted CX2 output directory as a semantic goldstandard. The check
@@ -239,3 +325,25 @@ Reports are written to `/tmp/pdb2net-goldstandard` by default. A `FAIL` status
 means graph semantics, annotations, required style semantics, or expected files
 changed. A `WARN` status is acceptable for intentional layout-only differences
 unless `--fail-on-warn` is used.
+
+Comparison inputs must be existing directories, each containing at least one
+regular `.cx2` file (nested directories are searched). Individual files, missing
+paths and directories without CX2 files are rejected with a diagnostic and a
+nonzero exit; the direct comparison CLI uses exit 2 and writes no new report.
+The Python directory API raises `ValueError` for these invalid inputs. An actual
+CX2 file containing an empty graph can still be compared. Check the reported
+number of compared files against the intended dataset as part of acceptance.
+
+The comparison checks explicit biological node attributes, including polymer
+lengths, molecule names/types, UniProt assignments, annotation source/confidence,
+embedded mapping status, `annotation_*` fields, and structure/chain provenance.
+Changed or one-sided missing values fail, even when a tooltip still contains the
+old value. Contact counts and other supported scientific edge values are also
+compared. Duplicate numeric or semantic identities and missing edge endpoints
+fail on either side rather than disappearing during graph normalization.
+
+`source_file` and `source_files` are intentionally excluded because raw-file and
+assembled networks use different file labels. Structure IDs and `source_chains`
+remain significant. Export IDs, record order, tooltip formatting and timestamps
+are not scientific differences; layout differences remain warnings. This tool
+compares the selected semantics and graph integrity, not every CX2 schema rule.

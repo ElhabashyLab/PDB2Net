@@ -1,0 +1,3 @@
+# Frozen scientific payloads: preserve their published byte checksums on checkout.
+tests/fixtures/core_reference/structures/** -text
+tests/fixtures/core_reference/references/** -text

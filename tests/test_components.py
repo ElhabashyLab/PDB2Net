@@ -22,6 +22,7 @@ def test_identity_bridges_include_every_chain_without_same_pdb_edges() -> None:
     edges = build_identity_edges(chains, chain_to_pdb)
 
     assert len(edges) == len(chain_to_pdb) - 1
+    assert all(edge["all_atoms_count"] == 0 and edge["interaction_type"] == "identity" for edge in edges)
     assert all(
         chain_to_pdb[edge["chain_a"]] != chain_to_pdb[edge["chain_b"]]
         for edge in edges

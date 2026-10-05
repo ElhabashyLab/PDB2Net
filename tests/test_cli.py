@@ -179,6 +179,24 @@ def test_run_rejects_non_object_config_sections_without_traceback(
     assert "Traceback" not in captured.err
 
 
+def test_run_rejects_string_diamond_boolean_before_creating_outputs(tmp_path, monkeypatch, capsys):
+    explicit = tmp_path / "bad-diamond.json"
+    explicit.write_text('{"diamond":{"enabled":"false"}}')
+    monkeypatch.delenv("PDB2NET_DIAMOND_ENABLED", raising=False)
+
+    result = main([
+        "run", "--input-dir", str(tmp_path / "missing"),
+        "--output-dir", str(tmp_path / "outputs"),
+        "--config", str(explicit), "--headless",
+    ])
+
+    assert result == 1
+    error = capsys.readouterr().err
+    assert "diamond.enabled must be true or false" in error
+    assert "Traceback" not in error
+    assert not (tmp_path / "outputs").exists()
+
+
 def test_legacy_module_reports_invalid_config_without_traceback(tmp_path: Path) -> None:
     environment = dict(os.environ)
     environment["PDB2NET_DIAMOND_THREADS"] = "not-an-integer"

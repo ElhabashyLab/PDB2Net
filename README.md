@@ -15,6 +15,15 @@ It uses **Gemmi** for structure parsing, **SciPy cKDTree** for distance-based in
 - Optional versioned per-PDB precompute store for fast repeated assembly
 - Machine-readable, configuration-free capability contract for deployment compatibility checks
 
+## Documentation
+
+- [Scientific contact rules](docs/contact-semantics-decision.md) and
+  [network projections](docs/network-semantics-decision.md)
+- [Architecture](docs/architecture.md) and [development checks](docs/development.md)
+- [Reference and search lifecycle](docs/runtime-reference-decisions.md)
+- [Precomputed store](docs/precomputed_store.md) and [backend contract](docs/server_backend_usage.md)
+- [Validation summary](docs/core-quality-audit.md) and [remaining work](docs/core-quality-plan.md)
+
 ## Installation
 
 PDB2Net supports Python 3.11 and 3.12. A base installation is sufficient for
@@ -292,6 +301,11 @@ cross-PDB UniProt identity bridges limited to higher-confidence annotation
 sources unless you explicitly set `assign_uniprot_id` to `high_confidence` or
 `always`.
 
+In JSON configuration, `diamond.enabled` must be the Boolean `true` or `false`;
+quoted strings such as `"false"` are rejected as configuration errors. Validation
+uses the final merged value, so valid higher-priority file or environment
+overrides retain their usual precedence.
+
 For a small format-compatible integration check, the test suite includes an
 original-style UniRef90 FASTA fixture at
 `tests/fixtures/uniref90/mini_uniref90.fasta`. If DIAMOND is installed, this
@@ -335,8 +349,10 @@ python3 -m pdb2net.main
 ```
 
 The legacy batch runner continues with later batches after a child failure or
-timeout, but exits with status 1 if any batch or eligible input file was not
-processed successfully.
+timeout. It exits with status 1 for failed/timed-out batches or files skipped by
+its size/stat checks. Known content exclusions inside an otherwise successful
+child run are reported in that run's summaries and do not change its exit code.
+Inspect `INPUT_FILE_SKIPPED` warnings when the full submitted dataset is required.
 
 - Output goes to a **timestamped** subfolder in `output_path`, e.g.:
   `/…/Networks/2025-10-20_18-32-45/`. If that name is already reserved,
@@ -378,8 +394,148 @@ Single-chain AlphaFold DB structures are also supported as raw PDB/mmCIF input.
 An AlphaFold-style filename or retained internal AlphaFold identity can provide
 the UniProt accession directly. After renaming, mmCIF may retain that identity;
 a PDB file without it may need BLAST fallback. Normal reference-data requirements
-still apply. The [optional real-file tests](docs/development.md#optional-real-file-integration-tests)
+still apply. The [default real-file tests](docs/development.md#frozen-real-file-integration-tests)
 exercise these cases alongside complete NextGen files.
+
+Direct AlphaFold assignment respects the resolved content identity, existing
+SIFTS assignments and explicit mapping ambiguity. A conflicting AlphaFold-style
+filename cannot reclassify a nucleic-acid chain or replace another content
+identity. Unresolved protein chains continue through sequence-search fallback.
+
+Fallback sequence extraction and residue-based molecule typing use observed
+polymer residues, using the roles already assigned by Gemmi. Waters and
+non-polymer ligands are excluded from these annotation steps, even when they
+share an author chain ID. Modified polymer residues such as MSE remain included
+and normalized; unknown polymer residues remain `X` and still count against the
+existing sequence-quality limit. This does not reconstruct missing residues.
+
+Displayed `aa_len`/`nt_len` count the observed residue records by their polymer
+role and type. Modified or unknown protein/DNA/RNA polymer residues count;
+nonpolymers do not, even when named like an amino acid. These lengths do not
+apply contact-occupancy filters or infer missing sequence regions. Atom
+alternatives do not multiply the count. Callers without usable polymer metadata
+retain the legacy name-based interpretation.
+
+Contact calculations use only heavy atoms of protein/DNA/RNA polymer residues,
+including the actual atoms of modified residues. Water, separate glycans, lipids,
+cofactors, ions and other ligands do not contribute. Explicit occupancy zero is
+excluded; positive or missing occupancy is retained without weighting or warnings.
+All eligible alternative positions are considered, but each logical atom-site
+pair counts only once. Detailed CSVs contain one row per such pair with the
+minimum distance (rounded only for display). An insertion code distinguishes
+residue sites; an altloc label or alternative residue name does not multiply a
+site. These are possible geometric contacts, not binding probabilities or proof
+that all contacts coexist in one conformation.
+
+The existing cutoffs remain: protein pairs need at least ten Cα site pairs at
+≤12 Å and one heavy-atom site pair at ≤5 Å; pairs involving DNA/RNA need at least
+one heavy-atom site pair at ≤5 Å. The default uses the first structure model;
+`structure_model_policy: "all"` processes models separately without cross-model
+contacts or merging. No AlphaFold confidence filter is applied.
+
+A supported chain without eligible heavy contact atoms is omitted with
+`CHAIN_WITHOUT_CONTACT_ATOMS` in the run reports. A chain with atoms and zero
+contacts remains valid. Invalid contact occupancy or ambiguous atom identity
+is a file-content error; missing occupancy alone is not an error.
+
+Raw-file runs continue past known file-content failures (including structures
+with no supported chains). Each omitted file is reported as `INPUT_FILE_SKIPPED`
+with its filename, cause and correction advice in the run summaries. The CLI
+prints exclusions explicitly. Successful output metadata lists only analyzed
+files; `resources.input.files` retains the original input count. A successful
+run with exclusions exits with code 0, so automation must also inspect warnings
+when it requires the entire submitted dataset. Combined networks contain only
+the analyzed subset. If no input is usable, the run fails and retains all file
+diagnostics without publishing results. Resource, integrity, tool and unexpected
+program failures still abort the run. This adds no separate full parsing pass.
+
+An empty or whitespace-only chain identifier in a selected model produces
+`MISSING_CHAIN_ID` and excludes the whole file, even if it also contains named
+chains. Correct the chain identifiers or export the structure again; Core does
+not invent names. With `structure_model_policy: "first"`, later models do not
+participate in this check; with `"all"`, every selected model does. Offline
+`precompute` reports the same cause and does not publish a final store manifest
+when any input fails.
+
+### Sequence-search timeout and cancellation
+
+`sequence_search_timeout_seconds` defaults to `null` (no additional Core limit).
+Set positive whole seconds in the existing config layers or through
+`PDB2NET_SEQUENCE_SEARCH_TIMEOUT_SECONDS`; the ENV value `null` disables it,
+and an unset/empty ENV variable does not override config. Zero, negative values,
+Booleans and fractional seconds are invalid. The limit applies to each BLASTP
+or DIAMOND process, including a separate budget for a BLAST format-compatibility
+retry. It is not a total-job limit and does not cover the separate makeblastdb
+helper. Time to stop/reap a process is additional; OS-level process creation
+cannot always be interrupted.
+
+On timeout, pending search chunks do not start and active direct search processes
+are stopped, given a shared grace period of at most five seconds, then killed
+if necessary and reaped before query files are removed. Search processes remain
+in the caller's process group. Arbitrary wrappers that detach their own process
+trees are outside this guarantee. A timeout fails the run; it is neither a
+negative search result nor a reason for DIAMOND fallback. Scientific cache/store
+profiles are unchanged by this runtime setting.
+
+Ctrl+C during sequence searching triggers the same cleanup. The library then
+propagates `KeyboardInterrupt`; `run` and `precompute` CLI commands return 130.
+Folder-based raw runs retain a failed summary with `RUN_INTERRUPTED` when the
+reporting path is available. No success result is published. With `null`, a
+standalone search can still run indefinitely unless interrupted; the existing
+Web job time limit remains a separate outer bound.
+
+### Reference generations and process lifetime
+
+Use one unchanged, matching set of SIFTS, PDB FASTA, UniProt FASTA and search
+databases for the lifetime of a Core process. Prepare updates in a new directory,
+assign a new `reference_manifest_id`, and start a new Core process with those
+paths. Keep the previous generation available until its running jobs finish.
+For Python-library or notebook use, restart the process/kernel when changing
+reference generations: `activate_config()` does not reload cached reference
+tables. In-place replacement during a running process is unsupported and is
+not detected by repeated file scans.
+
+The caches serve different purposes: parsed reference lookups live in RAM;
+sequence-search results use a database/policy-specific cache; precomputed entries
+belong to a fixed scientific/reference profile. The Web workflow already starts
+a new Core process per job and mounts references read-only. No automatic cache
+invalidation, reference-file hashing per job or change in memory usage is implied.
+
+### What the four network outputs mean
+
+| Output | Nodes and connections |
+| --- | --- |
+| Chain per structure | One node per retained chain, with its measured geometric contacts. Keeps contacts between copies of the same protein and contacts of typed protein chains without a UniProt assignment. |
+| Protein per structure | Merges chains with the same UniProt ID and sums contacts between different IDs. Includes DNA/RNA chains contacting assigned proteins. Omits contacts within one UniProt group, proteins without an assigned ID, and nucleic-acid-only edges. |
+| Combined chain | Keeps separate structure/chain identities and their contacts. Connects components across files through shared UniProt IDs using red dotted `identity` edges. Unlinked structures remain available in per-structure outputs. |
+| Combined protein | Summarizes those linked components into UniProt protein nodes, summing contacts between different IDs across the included chains/structures. Contains no DNA/RNA nodes or self-loops. |
+
+For example, if two chains assigned to protein P contact Q with 5 and 7 atom
+pairs, the protein edge P–Q has weight 12. A contact between those two P chains
+remains visible in the chain network. Summed weights are contact totals; they
+do not reconstruct individual chain contributions or measure binding affinity.
+The chain network is the detailed view for contacts between copies of the same
+protein and for chains without a UniProt assignment. A molecule typed as
+`Unknown` is retained as a chain node but is not assigned contact edges.
+
+Cross-file `identity` edges have `all_atoms_count: 0`: they represent a shared
+UniProt assignment and carry no geometric contact weight. Their red dotted
+style and technical layout attraction are independent of this value. When
+analyzing contact topology, filter by `interaction` to exclude identity links;
+a zero weight alone does not exclude them from unweighted graph statistics.
+
+PDB2Net analyzes supplied coordinates. It does not generate assembly/symmetry
+partners or determine whether a crystal contact is biologically relevant.
+Already expanded coordinates can be analyzed when their chains have unique
+identifiers within the selected model. `assemble` reads precomputed networks;
+it does not build a biological assembly.
+
+With `structure_model_policy: "all"`, per-structure chain networks are exported
+separately for each model; no geometric contacts cross model boundaries.
+Combined chain views preserve model-qualified chain IDs and may link them
+across files by UniProt identity. Both protein outputs are rejected for `all`.
+Model indices in outputs are sequential positions, not necessarily the source
+file's original MODEL serial numbers. There is no merging of model contact counts.
 
 ### Optional precomputed PDB store
 

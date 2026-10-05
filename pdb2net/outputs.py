@@ -315,9 +315,16 @@ def _public_diagnostics(entries: object) -> list[dict[str, Any]]:
     if not isinstance(entries, list):
         return []
     public: list[dict[str, Any]] = []
-    for entry in entries[:100]:
+    ordinary_count = 0
+    for entry in entries:
         if not isinstance(entry, Mapping):
             continue
+        # Never silently truncate the per-file report. Keep the existing cap
+        # for unrelated diagnostics; Web admission already bounds input count.
+        if entry.get("code") != "INPUT_FILE_SKIPPED":
+            ordinary_count += 1
+            if ordinary_count > 100:
+                continue
         code = str(entry.get("code") or "UNKNOWN")[:100]
         item: dict[str, Any] = {"code": code, "message": _redact_text(entry.get("message"))}
         if isinstance(entry.get("output"), str):
@@ -327,7 +334,7 @@ def _public_diagnostics(entries: object) -> list[dict[str, Any]]:
 
 
 def _public_config(value: object) -> dict[str, Any]:
-    """Expose only runtime choices a web submitter can select."""
+    """Expose public analysis choices and the effective operator search limit."""
     raw = value if isinstance(value, Mapping) else {}
     allowed = (
         "networks",
@@ -336,6 +343,7 @@ def _public_config(value: object) -> dict[str, Any]:
         "interaction_filters",
         "structure_model_policy",
         "export_detailed_interactions",
+        "sequence_search_timeout_seconds",
     )
     result: dict[str, Any] = {}
     for key in allowed:
@@ -823,6 +831,8 @@ def write_failed_run_manifest(
     error: Exception,
     started_at: str | None = None,
     output_paths: RunOutputPaths | None = None,
+    warnings: list[Mapping[str, Any]] | None = None,
+    resources: Mapping[str, Any] | None = None,
 ) -> RunOutputPaths:
     """Create a failed run folder and write a machine-readable manifest."""
     output_paths = output_paths or create_run_output_paths(base_output_path)
@@ -844,7 +854,8 @@ def write_failed_run_manifest(
         finished_at=finished_at,
         total_time=0.0,
         errors=[error_entry],
-        warnings=[],
+        warnings=warnings,
+        resources=resources,
         input_path=input_path,
     )
     write_run_summary(output_paths)

@@ -30,8 +30,9 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 from .config_loader import config
+from .contact_atoms import ContactView, contact_positions, count_contacts
 
-INTERACTION_PIPELINE_VERSION = "pdb2net-distance-classification-v1"
+INTERACTION_PIPELINE_VERSION = "pdb2net-distance-classification-v2"
 ALLOWED_INTERACTION_TYPES = frozenset(
     {
         "Protein-Protein",
@@ -92,11 +93,8 @@ def extract_coordinates(chain: Dict[str, Any], extraction_type: str) -> np.ndarr
     if key in coords_cache:
         return coords_cache[key]
 
-    atoms_iter = (atom for residue in chain["residues"] for atom in residue["atoms"])
-    if extraction_type == "ca":
-        coords = np.array([atom["coordinates"] for atom in atoms_iter if atom["atom_name"] == "CA"])
-    elif extraction_type == "all_atoms":
-        coords = np.array([atom["coordinates"] for atom in atoms_iter])
+    if extraction_type in {"ca", "all_atoms"}:
+        coords = np.array([position.coordinates for position in contact_positions(chain, extraction_type)])
     else:
         coords = np.empty((0, 3))
 
@@ -283,9 +281,9 @@ def calculate_distances_with_ckdtree(combined_data: List[Dict[str, Any]]) -> Lis
         file_path = file_data["file_path"]
         atom_data = file_data["atom_data"]
 
-        # Prepare KD-trees for both extraction types per chain
-        local_trees: Dict[Tuple[str, str], Optional[cKDTree]] = {
-            (c["unique_chain_id"], t): get_or_create_tree(c, t)
+        # Views are local to one structure; models remain separate below.
+        local_views = {
+            (c["unique_chain_id"], t): ContactView(c, t)
             for c in atom_data for t in ("ca", "all_atoms")
         }
 
@@ -315,9 +313,9 @@ def calculate_distances_with_ckdtree(combined_data: List[Dict[str, Any]]) -> Lis
             if (chain_a.get("molecule_type") in nucleic_acid_types or
                 chain_b.get("molecule_type") in nucleic_acid_types):
 
-                all_atoms_count = count_nearby_atoms(
-                    local_trees.get((chain_a["unique_chain_id"], "all_atoms")),
-                    local_trees.get((chain_b["unique_chain_id"], "all_atoms")),
+                all_atoms_count = count_contacts(
+                    local_views.get((chain_a["unique_chain_id"], "all_atoms")),
+                    local_views.get((chain_b["unique_chain_id"], "all_atoms")),
                     radius=radius_all_atoms,
                 )
                 if all_atoms_count >= _required_all_atom_contacts(interaction_type, filters):
@@ -333,15 +331,15 @@ def calculate_distances_with_ckdtree(combined_data: List[Dict[str, Any]]) -> Lis
                 continue
 
             # Protein–Protein: require a minimum number of nearby Cα atoms first
-            ca_neighbors = count_nearby_atoms(
-                local_trees.get((chain_a["unique_chain_id"], "ca")),
-                local_trees.get((chain_b["unique_chain_id"], "ca")),
+            ca_neighbors = count_contacts(
+                local_views.get((chain_a["unique_chain_id"], "ca")),
+                local_views.get((chain_b["unique_chain_id"], "ca")),
                 radius=radius_ca,
             )
             if ca_neighbors >= filters["protein_protein_min_ca_neighbors"]:
-                all_atoms_count = count_nearby_atoms(
-                    local_trees.get((chain_a["unique_chain_id"], "all_atoms")),
-                    local_trees.get((chain_b["unique_chain_id"], "all_atoms")),
+                all_atoms_count = count_contacts(
+                    local_views.get((chain_a["unique_chain_id"], "all_atoms")),
+                    local_views.get((chain_b["unique_chain_id"], "all_atoms")),
                     radius=radius_all_atoms,
                 )
                 if all_atoms_count >= filters["protein_protein_min_all_atom_contacts"]:

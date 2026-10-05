@@ -271,6 +271,9 @@ def run_command(args: argparse.Namespace) -> int:
         from .pipeline import run_pipeline
 
         output_paths = run_pipeline(config["input_folder_path"], web_output_dir=args.web_output_dir)
+    except KeyboardInterrupt:
+        print("PDB2Net run interrupted by user.", file=sys.stderr)
+        return 130
     except Exception as exc:
         print(f"PDB2Net run failed: {exc}", file=sys.stderr)
         if args.web_output_dir:
@@ -278,6 +281,19 @@ def run_command(args: argparse.Namespace) -> int:
         return 1
 
     print(f"PDB2Net run complete: {output_paths.run_output_path}")
+    summary = json.loads(Path(output_paths.summary_file).read_text(encoding="utf-8"))
+    exclusions = [entry for entry in summary.get("warnings", []) if entry.get("code") == "INPUT_FILE_SKIPPED"]
+    if exclusions:
+        print(
+            f"Completed with exclusions: {summary['counts']['structures']} of "
+            f"{summary['resources']['input']['files']} files processed.",
+            file=sys.stderr,
+        )
+        for entry in exclusions:
+            print(entry["message"], file=sys.stderr)
+    for entry in summary.get("warnings", []):
+        if entry.get("code") == "CHAIN_WITHOUT_CONTACT_ATOMS":
+            print(f"{entry['code']}: {entry['message']}", file=sys.stderr)
     print(f"Run summary: {output_paths.summary_file}")
     if args.web_output_dir:
         print(f"Web output summary: {Path(args.web_output_dir) / 'summary.json'}")
@@ -308,6 +324,9 @@ def precompute_command(args: argparse.Namespace) -> int:
         from .precomputed import precompute_directory
 
         report = precompute_directory(args.store, args.input_dir, recursive=args.recursive)
+    except KeyboardInterrupt:
+        print("PDB2Net precompute interrupted by user.", file=sys.stderr)
+        return 130
     except Exception as exc:
         print(f"PDB2Net precompute failed: {exc}", file=sys.stderr)
         return 1
@@ -319,6 +338,8 @@ def precompute_command(args: argparse.Namespace) -> int:
     )
     print(f"Profile: {report['profile_id']}")
     print(f"Store: {Path(args.store).expanduser()}")
+    for warning in report.get("warnings", []):
+        print(f"Precompute warning: {warning.get('code', 'WARNING')}: {warning.get('message', '')}", file=sys.stderr)
     for error in report.get("errors", []):
         print(
             f"Precompute error for {error.get('pdb_id', 'UNKNOWN')}: "

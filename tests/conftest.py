@@ -1,9 +1,8 @@
-"""Opt-in real-file integration tests; normal runs need no external dataset."""
+"""Frozen real-file tests use repository data and lazy, isolated tool setup."""
 
 import hashlib
 import json
 from pathlib import Path
-import re
 import shutil
 import subprocess
 
@@ -30,8 +29,13 @@ STRUCTURE_FILES = (
     "pdb_00008aly_xyz-enrich.cif.gz",
     "AF-P69905-F1-model_v6.pdb",
     "AF-P69905-F1-model_v6.cif",
+    "1bna.cif",
+    "1ehz.cif",
+    "2erk.cif",
+    "1ao7.cif",
 )
 REFERENCE_FILES = ("pdb_seqres.txt", "sifts.tsv", "swissprot.fasta")
+REFERENCE_DATASET = Path(__file__).parent / "fixtures/core_reference"
 
 
 def pytest_addoption(parser):
@@ -39,7 +43,7 @@ def pytest_addoption(parser):
     group.addoption(
         "--run-integration",
         action="store_true",
-        help="Enable real-file integration tests.",
+        help="Explicitly select the default real-file setup; required for external path overrides.",
     )
     group.addoption(
         "--integration-data", help="Directory containing the fixed structure fixtures."
@@ -50,14 +54,16 @@ def pytest_addoption(parser):
     )
 
 
-def _readable_file(path, maximum_bytes):
+def _readable_file(path, maximum_bytes, expected):
     try:
         if not path.is_file() or not 0 < path.stat().st_size <= maximum_bytes:
             raise ValueError(
                 f"expected a nonempty file of at most {maximum_bytes} bytes"
             )
         with path.open("rb") as stream:
-            stream.read(1)
+            digest = hashlib.file_digest(stream, "sha256").hexdigest()
+        if path.stat().st_size != expected["bytes"] or digest != expected["sha256"]:
+            raise ValueError("Frozen fixture checksum mismatch; use the pinned dataset bytes")
     except (OSError, ValueError) as exc:
         raise pytest.UsageError(
             f"Integration fixture unavailable: {path}: {exc}"
@@ -68,26 +74,23 @@ def _readable_file(path, maximum_bytes):
 def pytest_configure(config):
     config.addinivalue_line(
         "markers",
-        "integration: opt-in checks using external real structures and references",
+        "integration: real structures with frozen repository references and local search tools",
     )
     enabled = config.getoption("--run-integration")
     data = config.getoption("--integration-data")
     references = config.getoption("--integration-references")
-    suite = Path(__file__).resolve().parent / "integration"
-    selected_directly = any(
-        Path(str(arg).split("::", 1)[0]).resolve().is_relative_to(suite)
-        for arg in config.args
-    )
-    if not enabled:
-        if data or references or selected_directly:
-            raise pytest.UsageError(
-                "Real-file integration tests require --run-integration."
-            )
-        return
-    if not data or not references:
+    if (data or references) and not enabled:
+        raise pytest.UsageError("External fixture overrides require --run-integration.")
+    if bool(data) != bool(references):
         raise pytest.UsageError(
-            "--run-integration requires --integration-data and --integration-references."
+            "External overrides require both --integration-data and --integration-references."
         )
+
+
+@pytest.fixture(scope="session")
+def integration_settings(pytestconfig):
+    data = pytestconfig.getoption("--integration-data") or REFERENCE_DATASET / "structures"
+    references = pytestconfig.getoption("--integration-references") or REFERENCE_DATASET / "references"
     data, references = (
         Path(data).expanduser().resolve(),
         Path(references).expanduser().resolve(),
@@ -97,53 +100,33 @@ def pytest_configure(config):
             "--integration-data and --integration-references must be existing directories."
         )
     files = {}
+    provenance = json.loads((REFERENCE_DATASET / "provenance.json").read_text(encoding="utf-8"))
+    assert set(provenance["structures"]) == set(STRUCTURE_FILES)
+    assert set(provenance["references"]) == set(REFERENCE_FILES)
     for name in STRUCTURE_FILES:
         path = data / name
         if not path.exists():
             path = data / "review-ergaenzungen" / name
-        files[name] = _readable_file(path, 12_000_000)
+        files[name] = _readable_file(path, 12_000_000, provenance["structures"][name])
     for name in REFERENCE_FILES:
-        _readable_file(references / name, 5_000_000)
+        _readable_file(references / name, 5_000_000, provenance["references"][name])
+    return {"files": files, "references": references}
+
+
+@pytest.fixture(scope="session")
+def data_files(integration_settings):
+    return integration_settings["files"]
+
+
+@pytest.fixture(scope="session")
+def integration_config(integration_settings, tmp_path_factory):
+    references = integration_settings["references"]
     tools = {name: shutil.which(name) for name in ("blastp", "makeblastdb")}
     missing = [name for name, path in tools.items() if path is None]
     if missing:
-        raise pytest.UsageError(
+        pytest.fail(
             "Integration tools missing from PATH: " + ", ".join(missing)
         )
-    config._pdb2net_integration = {
-        "files": files,
-        "references": references,
-        "tools": tools,
-    }
-
-
-@pytest.hookimpl(trylast=True)
-def pytest_collection_modifyitems(config, items):
-    if not config.getoption("--run-integration"):
-        # Pytest has already evaluated -m, including parentheses and exclusions.
-        if re.search(r"\bintegration\b", config.getoption("markexpr")) and any(
-            item.get_closest_marker("integration") for item in items
-        ):
-            raise pytest.UsageError(
-                "Real-file integration tests require --run-integration."
-            )
-        skip = pytest.mark.skip(
-            reason="real-file integration tests require --run-integration and external fixtures"
-        )
-        for item in items:
-            if item.get_closest_marker("integration"):
-                item.add_marker(skip)
-
-
-@pytest.fixture(scope="session")
-def data_files(pytestconfig):
-    return pytestconfig._pdb2net_integration["files"]
-
-
-@pytest.fixture(scope="session")
-def integration_config(pytestconfig, tmp_path_factory):
-    settings = pytestconfig._pdb2net_integration
-    references, tools = settings["references"], settings["tools"]
     work = tmp_path_factory.mktemp("integration-reference")
     database = work / "blast_db"
     database.mkdir()
@@ -192,9 +175,8 @@ def integration_config(pytestconfig, tmp_path_factory):
         ),
         encoding="utf-8",
     )
-    repository = Path(__file__).resolve().parents[1]
     cfg = json.loads(
-        (repository / "pdb2net/configs/config.base.json").read_text(encoding="utf-8")
+        (REFERENCE_DATASET / "config.json").read_text(encoding="utf-8")
     )
     cfg.update(
         {
@@ -209,19 +191,6 @@ def integration_config(pytestconfig, tmp_path_factory):
             "reference_manifest_id": identity,
             "open_in_cytoscape": False,
             "workers": {"parsing": 2, "blast_threads": 1},
-        }
-    )
-    cfg["diamond"]["enabled"] = False
-    cfg["resource_limits"].update(
-        {
-            "max_input_files": 8,
-            "max_single_input_bytes": 12_000_000,
-            "max_total_input_bytes": 30_000_000,
-            "max_single_input_expanded_bytes": 12_000_000,
-            "max_total_input_expanded_bytes": 30_000_000,
-            "max_processing_batch_bytes": 12_000_000,
-            "max_detailed_interaction_rows": 200_000,
-            "max_detailed_interaction_bytes": 30_000_000,
         }
     )
     return cfg

@@ -1,0 +1,275 @@
+{
+  "dataset": "core-reference-v1",
+  "structures": {
+    "123456.cif": {
+      "bytes": 1016439,
+      "sha256": "53721a0367d3c62f09f84166f4cccb01d021615d51a1162201dc0cccb7ab91eb",
+      "source_url": null,
+      "retrieved_at": null,
+      "origin": "local deliberately edited 9JR2 identity-conflict fixture; original download/edit date unverified"
+    },
+    "124d.cif": {
+      "bytes": 83501,
+      "sha256": "bb8596f4924f1ce21b69cd12cd8bee534ccaf470346868dbd6553801daf50a8d",
+      "source_url": null,
+      "retrieved_at": null,
+      "origin": "local Datensatz22 snapshot; original download unverified"
+    },
+    "170d.cif": {
+      "bytes": 107470,
+      "sha256": "d5f62df954b21445ea3feca83c147362239f47a6907541bfc8c3e0836eafb229",
+      "source_url": null,
+      "retrieved_at": null,
+      "origin": "local Datensatz22 snapshot; original download unverified"
+    },
+    "1TUP.pdb": {
+      "bytes": 530469,
+      "sha256": "e4fe9eaa33d05b46e627444ab152f1b21ed9e983ba25b5e64ca593ac3878f634",
+      "source_url": null,
+      "retrieved_at": null,
+      "origin": "local Datensatz22 snapshot; original download unverified"
+    },
+    "1a1t.cif": {
+      "bytes": 3815378,
+      "sha256": "43450ea33db4d3eb4d415820c62e7326c0da58b0f3b576e8cb11e0d4717f4717",
+      "source_url": "https://files.rcsb.org/download/1A1T.cif",
+      "retrieved_at": "2026-09-06T11:34:34.568349+00:00",
+      "origin": "official download"
+    },
+    "1a1t.pdb": {
+      "bytes": 3110967,
+      "sha256": "da06218f6e247ff478cf2a0a7c995cda520cb882582dffd67466cca74a654df9",
+      "source_url": "https://files.rcsb.org/download/1A1T.pdb",
+      "retrieved_at": "2026-09-06T11:34:33.006713+00:00",
+      "origin": "official download"
+    },
+    "1a34.cif": {
+      "bytes": 438031,
+      "sha256": "981e7605461c59eb95870c72a20ea896c0c148e0f5861fc674b100f5c5c5e6be",
+      "source_url": null,
+      "retrieved_at": null,
+      "origin": "local Datensatz22 snapshot; original download unverified"
+    },
+    "1a8o.cif": {
+      "bytes": 115491,
+      "sha256": "25aff6acb9fc8f4afd493e72f847735101b3603eb90aa0210782e4ea776c3fb4",
+      "source_url": "https://files.rcsb.org/download/1A8O.cif",
+      "retrieved_at": "2026-09-06T11:34:35.717063+00:00",
+      "origin": "official download"
+    },
+    "1a8o.pdb": {
+      "bytes": 81972,
+      "sha256": "b0b4bf0d52c313047d5d7a7b188bf07a66a57c480db8ec4680f29461f18cbe4e",
+      "source_url": "https://files.rcsb.org/download/1A8O.pdb",
+      "retrieved_at": "2026-09-06T11:34:35.098812+00:00",
+      "origin": "official download"
+    },
+    "1ao7.cif": {
+      "bytes": 660624,
+      "sha256": "dc273affacb3aa5bda6aab4ea49ff6e89cc8c53c5190d7264375d8f7c42304b9",
+      "source_url": "https://files.rcsb.org/download/1AO7.cif",
+      "retrieved_at": "2026-10-04T15:05:00.034126+00:00",
+      "origin": "official download"
+    },
+    "1bna.cif": {
+      "bytes": 100712,
+      "sha256": "76d550f32963de46f4f3c63caacb530f91a24f333fbc4312766d240b14e8cf30",
+      "source_url": "https://files.rcsb.org/download/1BNA.cif",
+      "retrieved_at": "2026-10-04T15:04:59.980209+00:00",
+      "origin": "official download"
+    },
+    "1ehz.cif": {
+      "bytes": 254359,
+      "sha256": "3021dd2b6461f850bb66d6748d3c22a5e1bb6cc891c625c15d793f38215b28ab",
+      "source_url": "https://files.rcsb.org/download/1EHZ.cif",
+      "retrieved_at": "2026-10-04T15:04:59.992001+00:00",
+      "origin": "official download"
+    },
+    "1tup.cif": {
+      "bytes": 698225,
+      "sha256": "cbc6ebdae1444998cf55744339e1a500d8822ac0761841d1eed96f5e8b59cb37",
+      "source_url": null,
+      "retrieved_at": null,
+      "origin": "local Datensatz22 snapshot; original download unverified"
+    },
+    "2erk.cif": {
+      "bytes": 337833,
+      "sha256": "5b4ae31727c10a5cfd87b37cc7275d2766351e1669f4ba746585d768a6dadf9c",
+      "source_url": "https://files.rcsb.org/download/2ERK.cif",
+      "retrieved_at": "2026-10-04T15:05:00.046283+00:00",
+      "origin": "official download"
+    },
+    "4hhb.pdb": {
+      "bytes": 473769,
+      "sha256": "c62774ac679a220a493aab5d177ab34248ab700235dc6d941f5f3cbefde334ed",
+      "source_url": null,
+      "retrieved_at": null,
+      "origin": "local Datensatz22 snapshot; original download unverified"
+    },
+    "5rlu.pdb": {
+      "bytes": 1591002,
+      "sha256": "b44d0e003ff62a216fc10aecd8cb1baa67b6d53adcf4846618015b105650b347",
+      "source_url": null,
+      "retrieved_at": null,
+      "origin": "local Datensatz22 snapshot; original download unverified"
+    },
+    "6m17.cif": {
+      "bytes": 2893068,
+      "sha256": "a9a1f88798d8a14533559d0bbd18477da47f839a335c9a5cc43b44f69b6aeea6",
+      "source_url": null,
+      "retrieved_at": null,
+      "origin": "local Datensatz22 snapshot; original download unverified"
+    },
+    "6w41.cif": {
+      "bytes": 568286,
+      "sha256": "e4439c5cbb764e10112af2f50fe2b95f2740c5a9f3215048f82d3014791974e4",
+      "source_url": null,
+      "retrieved_at": null,
+      "origin": "local Datensatz22 snapshot; original download unverified"
+    },
+    "8aly.cif": {
+      "bytes": 7350541,
+      "sha256": "7099f31eb140eabcdea95b0b326c4c2471fc831cb3240ef624c80d0e25d6b062",
+      "source_url": "https://files.rcsb.org/download/8ALY.cif",
+      "retrieved_at": "2026-09-06T11:34:32.175029+00:00",
+      "origin": "official download"
+    },
+    "9rat.pdb": {
+      "bytes": 106434,
+      "sha256": "da8407f380c7ca31259b1ae9ad56e51ec9c4826bf36c4798f84d58958fa5efcd",
+      "source_url": null,
+      "retrieved_at": null,
+      "origin": "local Datensatz22 snapshot; original download unverified"
+    },
+    "AF-P69905-F1-model_v6.cif": {
+      "bytes": 137559,
+      "sha256": "eb7adbdd79775b0d694bacfa4b29872e05f4e56af26af880960d755c3036e230",
+      "source_url": "https://alphafold.ebi.ac.uk/files/AF-P69905-F1-model_v6.cif",
+      "retrieved_at": "2026-09-06T11:34:37.067542+00:00",
+      "origin": "official download"
+    },
+    "AF-P69905-F1-model_v6.pdb": {
+      "bytes": 92096,
+      "sha256": "d9d7ad4607164de17b65767b467d366909d74f96df5176ee368a9a515aaa1911",
+      "source_url": "https://alphafold.ebi.ac.uk/files/AF-P69905-F1-model_v6.pdb",
+      "retrieved_at": "2026-09-06T11:34:36.874109+00:00",
+      "origin": "official download"
+    },
+    "pdb_00008aly_xyz-enrich.cif.gz": {
+      "bytes": 1294445,
+      "sha256": "f0257aa5c708829b5a82c1f4147b43c36c7984572120c6571f2f20f5d762d493",
+      "source_url": "https://files-nextgen.wwpdb.org/pdb_nextgen/data/entries/divided/al/pdb_00008aly/pdb_00008aly_xyz-enrich.cif.gz",
+      "retrieved_at": "2026-09-06T11:34:30.181241+00:00",
+      "origin": "official download"
+    }
+  },
+  "references": {
+    "sifts.tsv": {
+      "bytes": 2088,
+      "sha256": "5ebb821beaff847d4e07e4189c0c6cf6157560b7e4a70fb9b12e9c69eae77f0e",
+      "source_file": "pdb_chain_uniprot.tsv",
+      "source_bytes": 32065291,
+      "source_sha256": "456728252d0f29dd17188bf476a7d89eb15cb73fc630a38c248852a3415a9e27"
+    },
+    "pdb_seqres.txt": {
+      "bytes": 20308,
+      "sha256": "7da3b08c9f655354ab741e6ad34b0ebd153056d0a00e632618f1ccb0aba35dbf",
+      "source_file": "pdb_seqres.txt",
+      "source_bytes": 354717460,
+      "source_sha256": "3b3a2668bf906b74e9a7a10bb639ca659ea68a7d299fbd1da2015bab39313fbd"
+    },
+    "swissprot.fasta": {
+      "bytes": 19563,
+      "sha256": "494aaae99c077e15147d88b4fb4102753aadcd48c5cec4bd0c54534f79807fb0",
+      "source_file": "uniprot_sprot.fasta",
+      "source_bytes": 286776098,
+      "source_sha256": "6a9a6c21d0d3f5074a0d6487b6f07e0861d915e6783167b3ff4a73f50f6c7ed4"
+    }
+  },
+  "selection": {
+    "pdb_ids": [
+      "124d",
+      "170d",
+      "1a1t",
+      "1a34",
+      "1a8o",
+      "1ao7",
+      "1bna",
+      "1ehz",
+      "1tup",
+      "2erk",
+      "4hhb",
+      "5rlu",
+      "6m17",
+      "6w41",
+      "8aly",
+      "9jr2",
+      "9rat"
+    ],
+    "requested_uniprot_ids": [
+      "A0A075B6T6",
+      "P01270",
+      "P01848",
+      "P01850",
+      "P01942",
+      "P04439",
+      "P04637",
+      "P0DTC2",
+      "P0DTD1",
+      "P12497",
+      "P14079",
+      "P17574",
+      "P54311",
+      "P61769",
+      "P61823",
+      "P63086",
+      "P63092",
+      "P63212",
+      "P68871",
+      "P69905",
+      "Q03431",
+      "Q695T7",
+      "Q75677",
+      "Q9BYF1",
+      "Q9H2K2"
+    ],
+    "included_uniprot_ids": [
+      "A0A075B6T6",
+      "P01270",
+      "P01848",
+      "P01850",
+      "P01942",
+      "P04439",
+      "P04637",
+      "P0DTC2",
+      "P0DTD1",
+      "P12497",
+      "P14079",
+      "P17574",
+      "P54311",
+      "P61769",
+      "P61823",
+      "P63086",
+      "P63092",
+      "P63212",
+      "P68871",
+      "P69905",
+      "Q03431",
+      "Q695T7",
+      "Q9BYF1",
+      "Q9H2K2"
+    ],
+    "missing_swissprot_ids": [
+      "Q75677"
+    ],
+    "pdb_fasta_records": 66,
+    "sifts_data_rows": 54,
+    "swissprot_records": 24,
+    "competitor": "P01942; mouse alpha globin competes with human P69905"
+  },
+  "reference_version_evidence": {
+    "sifts_header": "# 2025/07/27 - 16:16 | PDB: 30.25 | UniProt: 2025.03",
+    "other_reference_release_dates": "not established; exact local source bytes identified by hashes"
+  },
+  "reference_selection_method": "Retain all SIFTS rows for selected PDB IDs, whole PDB FASTA records for those IDs, and whole Swiss-Prot records for their accessions plus Q9H2K2/P69905/P01942. Preserve original row/record order and LF line endings."
+}

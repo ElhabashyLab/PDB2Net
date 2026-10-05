@@ -870,12 +870,19 @@ def test_manifest_profile_mismatch_fails_closed(
     assert error.value.code == "PRECOMPUTED_PROFILE_MISMATCH"
 
 
-def test_store_built_before_chain_part_fix_is_not_reused(monkeypatch, tmp_path) -> None:
-    previous_semantics = "validated-single-document-gemmi-heavy-atoms-no-hydrogen-or-deuterium-v3"
-    assert schema.PARSER_SEMANTICS != previous_semantics
-    with monkeypatch.context() as old_parser:
-        old_parser.setattr(schema, "PARSER_SEMANTICS", previous_semantics)
-        root, sources, _report = _build_store(old_parser, tmp_path, "1abc")
+@pytest.mark.parametrize(("field", "previous_semantics"), [
+    ("SCIENTIFIC_PIPELINE_VERSION", "pdb2net-asu-first-standard-interactions-v3"),
+    ("PARSER_SEMANTICS", "validated-single-document-gemmi-heavy-atoms-no-hydrogen-or-deuterium-v3"),
+    ("PARSER_SEMANTICS", "validated-single-document-gemmi-merged-chains-heavy-atoms-no-hydrogen-or-deuterium-v4"),
+    ("INTERACTION_PIPELINE_VERSION", "pdb2net-distance-classification-v1"),
+    ("ANNOTATION_PIPELINE_VERSION", "pdb2net-sifts-fasta-search-annotations-v3"),
+    ("ANNOTATION_PIPELINE_VERSION", "pdb2net-sifts-fasta-search-annotations-v4"),
+])
+def test_store_built_before_semantic_fix_is_not_reused(monkeypatch, tmp_path, field, previous_semantics) -> None:
+    assert getattr(schema, field) != previous_semantics
+    with monkeypatch.context() as old_semantics:
+        old_semantics.setattr(schema, field, previous_semantics)
+        root, sources, _report = _build_store(old_semantics, tmp_path, "1abc")
         old_profile_id = precomputed.profile_id()
 
     assert precomputed.profile_id() != old_profile_id

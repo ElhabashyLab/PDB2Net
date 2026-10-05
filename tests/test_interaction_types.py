@@ -30,6 +30,36 @@ def test_dense_kdtree_contact_count_does_not_change_scientific_result() -> None:
     assert distances.count_nearby_atoms(left, right, 1.0) == 1_000_000
 
 
+def test_independent_contact_count_oracle_and_rigid_transform() -> None:
+    rng = np.random.default_rng(728)
+    a, b = rng.normal(size=(23, 3)), rng.normal(size=(19, 3))
+    rotation = np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+    for radius in [0.0, 0.5, 1.0, 5.0]:
+        # The oracle enumerates pairs without using the production KD-tree.
+        expected = sum(float(np.linalg.norm(x - y)) <= radius for x in a for y in b)
+        for left, right in [
+            (a, b),
+            (a[::-1], b[::-1]),
+            (a + [5, 8, 2], b + [5, 8, 2]),
+            (a @ rotation.T, b @ rotation.T),
+        ]:
+            assert (
+                distances.count_nearby_atoms(
+                    distances.cKDTree(left), distances.cKDTree(right), radius
+                )
+                == expected
+            )
+    for coordinate, expected in [(1 - 1e-9, 1), (1.0, 1), (1 + 1e-9, 0)]:
+        assert (
+            distances.count_nearby_atoms(
+                distances.cKDTree([[0, 0, 0]]),
+                distances.cKDTree([[coordinate, 0, 0]]),
+                1.0,
+            )
+            == expected
+        )
+
+
 @pytest.mark.parametrize(
     ("residues", "expected"),
     [

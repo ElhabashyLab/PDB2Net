@@ -15,8 +15,7 @@ from pathlib import Path
 import shutil
 from typing import Any, BinaryIO, Dict, List, Sequence
 
-import numpy as np
-from scipy.spatial import cKDTree
+from .contact_atoms import ContactView, unique_contacts
 
 from .artifact_names import portable_artifact_stem
 from .input_contract import InputValidationError
@@ -215,32 +214,10 @@ def export_detailed_interactions(
     include_models = str(config.get("structure_model_policy", "first")).strip().lower() == "all"
     active_budget = budget or DetailedInteractionBudget()
 
-    residues_atoms_lookup: Dict[str, Dict[str, Any]] = {}
-    chains_by_unique_id: Dict[str, Dict[str, Any]] = {}
-    for chain in atom_data:
-        unique_id = str(chain.get("unique_chain_id") or chain["chain_id"])
-        chains_by_unique_id[unique_id] = chain
-        atoms: List[Dict[str, str]] = []
-        atom_coords: List[List[float]] = []
-
-        for residue in chain.get("residues", []):
-            res_id = residue.get("residue_name", "?")
-            res_number = residue.get("residue_number", "?")
-            for atom in residue.get("atoms", []):
-                atoms.append(
-                    {
-                        "residue": f"{res_number}:{res_id}",
-                        "atom_name": atom.get("atom_name", "?"),
-                    }
-                )
-                atom_coords.append(atom.get("coordinates"))
-
-        coords_arr = (
-            np.array(atom_coords, dtype=float)
-            if atom_coords
-            else np.empty((0, 3), dtype=float)
-        )
-        residues_atoms_lookup[unique_id] = {"atoms": atoms, "coords": coords_arr}
+    chains_by_unique_id = {
+        str(chain.get("unique_chain_id") or chain["chain_id"]): chain for chain in atom_data
+    }
+    contact_views = {key: ContactView(chain) for key, chain in chains_by_unique_id.items()}
 
     output_root = Path(run_output_path)
     output_root.mkdir(parents=True, exist_ok=True)
@@ -260,48 +237,26 @@ def export_detailed_interactions(
             chain_a_id = chain_a_raw if include_models else str(chain_a_data.get("chain_id") or "")
             chain_b_id = chain_b_raw if include_models else str(chain_b_data.get("chain_id") or "")
 
-            data_a = residues_atoms_lookup.get(
-                chain_a_raw, {"atoms": [], "coords": np.empty((0, 3))}
-            )
-            data_b = residues_atoms_lookup.get(
-                chain_b_raw, {"atoms": [], "coords": np.empty((0, 3))}
-            )
-            if data_a["coords"].size == 0 or data_b["coords"].size == 0:
-                continue
-
             uniprot_a = chain_a_data.get("uniprot_id", "UNKNOWN")
             uniprot_b = chain_b_data.get("uniprot_id", "UNKNOWN")
             interaction_type = interaction.get("interaction_type", "AA")
-            tree_a = cKDTree(data_a["coords"])
-
-            # Query one atom at a time.  Count first so a row cap fails before
-            # SciPy materializes a neighbour list that cannot be exported.
-            for idx_b, coordinate_b in enumerate(data_b["coords"]):
-                neighbour_count = int(
-                    tree_a.query_ball_point(coordinate_b, r=radius, return_length=True)
+            for atom_a, atom_b, distance in unique_contacts(
+                contact_views[chain_a_raw], contact_views[chain_b_raw], radius, budget=active_budget
+            ):
+                writer.write(
+                    (
+                        pdb_id,
+                        chain_a_id,
+                        atom_a.residue,
+                        atom_a.atom_name,
+                        chain_b_id,
+                        atom_b.residue,
+                        atom_b.atom_name,
+                        round(distance, 2),
+                        uniprot_a,
+                        uniprot_b,
+                        interaction_type,
+                    )
                 )
-                active_budget.ensure_rows_available(neighbour_count)
-                indices_a = tree_a.query_ball_point(coordinate_b, r=radius)
-                for idx_a in indices_a:
-                    atom_a = data_a["atoms"][idx_a]
-                    atom_b = data_b["atoms"][idx_b]
-                    distance = float(
-                        np.linalg.norm(data_a["coords"][idx_a] - coordinate_b)
-                    )
-                    writer.write(
-                        (
-                            pdb_id,
-                            chain_a_id,
-                            atom_a["residue"],
-                            atom_a["atom_name"],
-                            chain_b_id,
-                            atom_b["residue"],
-                            atom_b["atom_name"],
-                            round(distance, 2),
-                            uniprot_a,
-                            uniprot_b,
-                            interaction_type,
-                        )
-                    )
 
     return active_budget

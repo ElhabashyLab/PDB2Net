@@ -28,10 +28,41 @@ require explicit user approval.
 4. Annotate chains using embedded SIFTS, external SIFTS, and PDB/UniProt FASTA
    reference files in that precedence order.
 5. Run BLAST/DIAMOND fallback for unresolved protein chains.
-6. Detect interactions with SciPy `cKDTree` distance searches and optionally write detailed tables.
+6. Detect interactions with SciPy `cKDTree` distance searches and optionally write detailed tables,
+   using the same polymer/occupancy selection and unique atom-site pair rule.
 7. Compact completed structures to chain metadata and polymer lengths, releasing atom coordinates.
 8. Export per-PDB and combined chain/protein networks as CX2 from the accumulated summaries.
 9. Optionally create networks in a running Cytoscape session.
+
+Raw runs exclude explicitly recognized file-content failures during the existing
+inspection/identity/parsing stages, including parsed structures with no supported
+chains. Each exclusion becomes an `INPUT_FILE_SKIPPED` diagnostic; only usable
+structures enter annotation, contact calculation and final aggregation. There
+is no additional full parsing pass. Resource limits still count the submitted
+inputs. Unexpected, integrity, resource and operational failures abort the run;
+if no usable structures remain, the run fails with the collected diagnostics.
+The complete status/count interpretation is documented in
+[Server Backend Usage](server_backend_usage.md#file-exclusions-and-result-status).
+These raw-run rules do not change the store builder's manifest-last publication
+or read-only assembly behavior.
+
+Contact views retain all eligible alternative positions but count each pair of
+sites once; a site is identified within its structure/model/chain by author
+residue number, insertion code and atom name. Alternative residue names provide
+witness metadata, not additional sites. CSV emits the minimum-distance witness;
+ties use residue label, original residue name, atom name, altloc and coordinates
+in lexical/numeric order. Distances are compared before rounding. Without
+alternatives, counts keep the `cKDTree.count_neighbors` fast path. With
+alternatives, counting/export enumerate one partner site at a time, without a
+global atom-pair matrix or pair set. Views live only for the current structure.
+
+Raw residue records remain available for annotation and length computation.
+Gemmi entity role and polymer type select protein/DNA/RNA contact residues;
+when type metadata is absent, Gemmi's inferred polymer role is retained.
+H/D are removed upstream. Explicit zero occupancy is excluded; unknown occupancy
+is retained silently. Invalid relevant occupancy and ambiguous identities use
+typed input errors. Chains with no eligible atoms are removed before annotation;
+zero-contact chains with eligible atoms remain. Model selection is unchanged.
 
 ## Main Modules
 
@@ -44,6 +75,8 @@ require explicit user approval.
   and compact UniProt/Pfam/CATH/SCOP2 tooltip attributes.
 - `pdb2net/reference_data.py`: cached loaders for PDB FASTA, SIFTS, and UniProt reference files.
 - `pdb2net/data_processor.py`: conversion from parsed structures to chain and atom dictionaries used by later stages.
+- `pdb2net/atom_metadata.py`: sparse preservation of occupancy values that Gemmi defaults would erase.
+- `pdb2net/contact_atoms.py`: shared contact selection, alternative-site counts and minimum-distance CSV witnesses.
 - `pdb2net/unknown_molecule_uniprot.py`: SIFTS, PDB FASTA, and UniProt FASTA annotation logic for known and unknown molecules.
 - `pdb2net/uniprot_matcher.py`: BLAST database creation, BLAST lookup, diagnostics, and SQLite-backed BLAST result caching.
 - `pdb2net/distances.py`: chain interaction detection using configurable CA and all-atom distance thresholds.
@@ -58,6 +91,30 @@ require explicit user approval.
 - `pdb2net/precomputed/`: schema-3 validation and bounded I/O, the sole offline
   store builder, and the read-only assembly consumer.
 - `pdb2net/main.py`: stable public entry points for single-run and batch execution.
+
+## Network Views
+
+Network projections are described in the [README](../README.md#what-the-four-network-outputs-mean).
+Protein aggregation receives already filtered chain contacts and sums weights
+between distinct UniProt IDs. Per-structure protein views retain assigned
+protein–nucleic-acid neighbors; combined protein views contain UniProt proteins
+only. Chain views retain the underlying chains, including unassigned ones.
+Model policy and contact selection are applied before these projections.
+
+`components.build_identity_edges` supplies the existing cross-file spanning
+links with `interaction_type: "identity"` and contact count zero. The common
+export preparation retains these links even though ordinary zero-contact edges
+are omitted. `layout_engine` independently uses the historical raw strength
+1000 (transformed to 4 by `1 + log10`) for identity links. Thus changing the
+reported contact count preserves `python_fast` coordinates and visual styles.
+Optional live Cytoscape runs its own force-directed layout; live coordinate
+equality is not implied by the headless guarantee.
+
+The store contains measured within-structure chain contacts; cross-file
+identity links are constructed during output generation. The identity-link
+presentation change alone required no geometry rebuild; entries must still
+match the current complete store profile.
+Previously exported CX2 files retain the former value until regenerated.
 
 ## External Inputs
 
@@ -110,4 +167,7 @@ Automated tests should start with small fixtures and headless behavior:
 - distance calculations on small synthetic structures
 - headless CX2 export shape and required fields
 
-Full BLAST, full reference datasets, and Cytoscape UI behavior should be treated as integration checks rather than default test requirements.
+The default suite includes frozen real structures and tiny search-database
+checks. Full reference datasets, archive workloads and live Cytoscape remain
+separate acceptance scopes. See [Development](development.md) for tool
+requirements and the explicit smaller test selection.

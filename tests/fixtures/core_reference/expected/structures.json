@@ -1,0 +1,1678 @@
+{
+  "124d.cif": {
+    "chains": {
+      "A": {
+        "annotation_source": null,
+        "contact_positions": 161,
+        "contact_sites": 161,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "DNA",
+        "polymer_residues": 8,
+        "raw_heavy_atoms": 161,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "B": {
+        "annotation_source": null,
+        "contact_positions": 167,
+        "contact_sites": 167,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "RNA",
+        "polymer_residues": 8,
+        "raw_heavy_atoms": 167,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "124D",
+    "models": 1
+  },
+  "170d.cif": {
+    "chains": {
+      "A": {
+        "annotation_source": null,
+        "contact_positions": 244,
+        "contact_sites": 244,
+        "insertion_codes": [],
+        "modified_residues": [
+          [
+            "9",
+            "CAR",
+            "CAR"
+          ]
+        ],
+        "molecule_type": "DNA/RNA",
+        "polymer_residues": 12,
+        "raw_heavy_atoms": 244,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "B": {
+        "annotation_source": null,
+        "contact_positions": 244,
+        "contact_sites": 244,
+        "insertion_codes": [],
+        "modified_residues": [
+          [
+            "21",
+            "CAR",
+            "CAR"
+          ]
+        ],
+        "molecule_type": "DNA/RNA",
+        "polymer_residues": 12,
+        "raw_heavy_atoms": 244,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "170D",
+    "models": 1
+  },
+  "1TUP.pdb": {
+    "chains": {
+      "A": {
+        "annotation_source": "sifts",
+        "contact_positions": 1535,
+        "contact_sites": 1535,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 196,
+        "protein_sequence": "SSSVPSQKTYQGSYGFRLGFLHSGTAKSVTCTYSPALNKMFCQLAKTCPVQLWVDSTPPPGTRVRAMAIYKQSQHMTEVVRRCPHHERCSDSDGLAPPQHLIRVEGNLRVEYLDDRNTFRHSVVVPYEPPEVGSDCTTIHYNYMCNSSCMGGMNRRPILTIITLEDSSGNLLGRNSFEVRVCACPGRDRRTEEENL",
+        "raw_heavy_atoms": 1734,
+        "sifts_accessions": [
+          "P04637"
+        ],
+        "uniprot_id": "P04637",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "B": {
+        "annotation_source": "sifts",
+        "contact_positions": 1522,
+        "contact_sites": 1522,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 194,
+        "protein_sequence": "SVPSQKTYQGSYGFRLGFLHSGTAKSVTCTYSPALNKMFCQLAKTCPVQLWVDSTPPPGTRVRAMAIYKQSQHMTEVVRRCPHHERCSDSDGLAPPQHLIRVEGNLRVEYLDDRNTFRHSVVVPYEPPEVGSDCTTIHYNYMCNSSCMGGMNRRPILTIITLEDSSGNLLGRNSFEVRVCACPGRDRRTEEENL",
+        "raw_heavy_atoms": 1593,
+        "sifts_accessions": [
+          "P04637"
+        ],
+        "uniprot_id": "P04637",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "C": {
+        "annotation_source": "sifts",
+        "contact_positions": 1529,
+        "contact_sites": 1529,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 195,
+        "protein_sequence": "SSVPSQKTYQGSYGFRLGFLHSGTAKSVTCTYSPALNKMFCQLAKTCPVQLWVDSTPPPGTRVRAMAIYKQSQHMTEVVRRCPHHERCSDSDGLAPPQHLIRVEGNLRVEYLDDRNTFRHSVVVPYEPPEVGSDCTTIHYNYMCNSSCMGGMNRRPILTIITLEDSSGNLLGRNSFEVRVCACPGRDRRTEEENL",
+        "raw_heavy_atoms": 1610,
+        "sifts_accessions": [
+          "P04637"
+        ],
+        "uniprot_id": "P04637",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "E": {
+        "annotation_source": null,
+        "contact_positions": 420,
+        "contact_sites": 420,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "DNA",
+        "polymer_residues": 21,
+        "raw_heavy_atoms": 442,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "F": {
+        "annotation_source": null,
+        "contact_positions": 435,
+        "contact_sites": 435,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "DNA",
+        "polymer_residues": 21,
+        "raw_heavy_atoms": 449,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "1TUP",
+    "models": 1
+  },
+  "1a1t.cif": {
+    "chains": {
+      "A": {
+        "annotation_source": "sifts",
+        "contact_positions": 439,
+        "contact_sites": 439,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 55,
+        "protein_sequence": "MQKGNFRNQRKTVKCFNCGKEGHIAKNCRAPRKKGCWKCGKEGHQMKDCTERQAN",
+        "raw_heavy_atoms": 441,
+        "sifts_accessions": [
+          "Q75677"
+        ],
+        "uniprot_id": "Q75677",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "B": {
+        "annotation_source": null,
+        "contact_positions": 432,
+        "contact_sites": 432,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "RNA",
+        "polymer_residues": 20,
+        "raw_heavy_atoms": 432,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "1A1T",
+    "models": 25
+  },
+  "1a1t.pdb": {
+    "chains": {
+      "A": {
+        "annotation_source": "sifts",
+        "contact_positions": 439,
+        "contact_sites": 439,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 55,
+        "protein_sequence": "MQKGNFRNQRKTVKCFNCGKEGHIAKNCRAPRKKGCWKCGKEGHQMKDCTERQAN",
+        "raw_heavy_atoms": 441,
+        "sifts_accessions": [
+          "Q75677"
+        ],
+        "uniprot_id": "Q75677",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "B": {
+        "annotation_source": null,
+        "contact_positions": 432,
+        "contact_sites": 432,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "RNA",
+        "polymer_residues": 20,
+        "raw_heavy_atoms": 432,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "1A1T",
+    "models": 25
+  },
+  "1a34.cif": {
+    "chains": {
+      "A": {
+        "annotation_source": "sifts",
+        "contact_positions": 1155,
+        "contact_sites": 1137,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 147,
+        "protein_sequence": "TGDNSNVVTMIRAGSYPKVNPTPTWVRAIPFEVSVQSGIAFKVPVGSLFSANFRTDSFTSVTVMSVRAWTQLTPPVNEYSFVRLKPLFKTGDSTEEFEGRASNINTRASVGYRIPTNLRQNTVAADNVCEVRSNCRQVALVISCCFN",
+        "raw_heavy_atoms": 1309,
+        "sifts_accessions": [
+          "P17574"
+        ],
+        "uniprot_id": "P17574",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "B": {
+        "annotation_source": null,
+        "contact_positions": 221,
+        "contact_sites": 221,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "RNA",
+        "polymer_residues": 10,
+        "raw_heavy_atoms": 245,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "C": {
+        "annotation_source": null,
+        "contact_positions": 201,
+        "contact_sites": 201,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "RNA",
+        "polymer_residues": 10,
+        "raw_heavy_atoms": 209,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "1A34",
+    "models": 1
+  },
+  "1a8o.cif": {
+    "chains": {
+      "A": {
+        "annotation_source": "sifts",
+        "contact_positions": 553,
+        "contact_sites": 553,
+        "insertion_codes": [],
+        "modified_residues": [
+          [
+            "151",
+            "MSE",
+            "MET"
+          ],
+          [
+            "185",
+            "MSE",
+            "MET"
+          ],
+          [
+            "214",
+            "MSE",
+            "MET"
+          ],
+          [
+            "215",
+            "MSE",
+            "MET"
+          ]
+        ],
+        "molecule_type": "Protein",
+        "polymer_residues": 70,
+        "protein_sequence": "MDIRQGPKEPFRDYVDRFYKTLRAEQASQEVKNWMTETLLVQNANPDCKTILKALGPGATLEEMMTACQG",
+        "raw_heavy_atoms": 644,
+        "sifts_accessions": [
+          "P12497"
+        ],
+        "uniprot_id": "P12497",
+        "zero_occupancy_polymer_atoms": 3
+      }
+    },
+    "display_id": "1A8O",
+    "models": 1
+  },
+  "1a8o.pdb": {
+    "chains": {
+      "A": {
+        "annotation_source": "sifts",
+        "contact_positions": 553,
+        "contact_sites": 553,
+        "insertion_codes": [],
+        "modified_residues": [
+          [
+            "151",
+            "MSE",
+            "MET"
+          ],
+          [
+            "185",
+            "MSE",
+            "MET"
+          ],
+          [
+            "214",
+            "MSE",
+            "MET"
+          ],
+          [
+            "215",
+            "MSE",
+            "MET"
+          ]
+        ],
+        "molecule_type": "Protein",
+        "polymer_residues": 70,
+        "protein_sequence": "MDIRQGPKEPFRDYVDRFYKTLRAEQASQEVKNWMTETLLVQNANPDCKTILKALGPGATLEEMMTACQG",
+        "raw_heavy_atoms": 644,
+        "sifts_accessions": [
+          "P12497"
+        ],
+        "uniprot_id": "P12497",
+        "zero_occupancy_polymer_atoms": 3
+      }
+    },
+    "display_id": "1A8O",
+    "models": 1
+  },
+  "1ao7.cif": {
+    "chains": {
+      "A": {
+        "annotation_source": "sifts",
+        "contact_positions": 2115,
+        "contact_sites": 2115,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 274,
+        "protein_sequence": "GSHSMRYFFTSVSRPGRGEPRFIAVGYVDDTQFVRFDSDAASQRMEPRAPWIEQEGPEYWDGETRKVKAHSQTHRVDLGTLRGYYNQSEAGSHTVQRMYGCDVGSDWRFLRGYHQYAYDGKDYIALKEDLRSWTAADMAAQTTKHKWEAAHVAEQLRAYLEGTCVEWLRRYLENGKETLQRTDAPKTHMTHHAVSDHEATLRCWALSFYPAEITLTWQRDGEDQTQDTELVETRPAGDGTFQKWAAVVVPSGQEQRYTCHVQHEGLPKPLTLRW",
+        "raw_heavy_atoms": 2250,
+        "sifts_accessions": [
+          "P04439"
+        ],
+        "uniprot_id": "P04439",
+        "zero_occupancy_polymer_atoms": 122
+      },
+      "B": {
+        "annotation_source": "sifts",
+        "contact_positions": 823,
+        "contact_sites": 823,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 100,
+        "protein_sequence": "MIQRTPKIQVYSRHPAENGKSNFLNCYVSGFHPSDIEVDLLKNGERIEKVEHSDLSFSKDWSFYLLYCTEFTPTEKDEYACRVNHVTLSQPCIVKWDRDM",
+        "raw_heavy_atoms": 847,
+        "sifts_accessions": [
+          "P61769"
+        ],
+        "uniprot_id": "P61769",
+        "zero_occupancy_polymer_atoms": 5
+      },
+      "C": {
+        "annotation_source": "sifts",
+        "contact_positions": 77,
+        "contact_sites": 77,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 9,
+        "protein_sequence": "LLFGYPVYV",
+        "raw_heavy_atoms": 78,
+        "sifts_accessions": [
+          "P14079"
+        ],
+        "uniprot_id": "P14079",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "D": {
+        "annotation_source": "external_sifts",
+        "contact_positions": 861,
+        "contact_sites": 861,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 115,
+        "protein_sequence": "KEVEQNSGPLSVPEGAIASLNCTYSDRGSQSFFWYRQYSGKSPELIMSIYSNGDKEDGRFTAQLNKASQYVSLLIRDSQPSDSATYLCAVTTDSWGKLQFGAGTQVVVTPDIQNP",
+        "raw_heavy_atoms": 888,
+        "sifts_accessions": [
+          "A0A075B6T6",
+          "P01848"
+        ],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 25
+      },
+      "E": {
+        "annotation_source": "sifts",
+        "contact_positions": 1600,
+        "contact_sites": 1600,
+        "insertion_codes": [
+          "116A"
+        ],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 209,
+        "protein_sequence": "GVTQTPKFQVLKTGQSMTLQCAQDMNHEYMSWYRQDPGMGLRLIHYSVGAGITDQGEVPNGYNVSRSTTEDFPLRLLSAAPSQTSVYFCASRPGLAGGRPEQYFGPGTRLTVTEDLKNVFPPEVAVFLVCLATGFYPDHVELSWWVNGKEVHSGVSTDPQPLYALSSRLRVSATFWQNPRNHFRCQVQFYGLAKPVTQIVSAEAWGRAD",
+        "raw_heavy_atoms": 1648,
+        "sifts_accessions": [
+          "P01850"
+        ],
+        "uniprot_id": "P01850",
+        "zero_occupancy_polymer_atoms": 40
+      }
+    },
+    "display_id": "1AO7",
+    "models": 1
+  },
+  "1bna.cif": {
+    "chains": {
+      "A": {
+        "annotation_source": null,
+        "contact_positions": 243,
+        "contact_sites": 243,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "DNA",
+        "polymer_residues": 12,
+        "raw_heavy_atoms": 280,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "B": {
+        "annotation_source": null,
+        "contact_positions": 243,
+        "contact_sites": 243,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "DNA",
+        "polymer_residues": 12,
+        "raw_heavy_atoms": 286,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "1BNA",
+    "models": 1
+  },
+  "1ehz.cif": {
+    "chains": {
+      "A": {
+        "annotation_source": null,
+        "contact_positions": 1652,
+        "contact_sites": 1652,
+        "insertion_codes": [],
+        "modified_residues": [
+          [
+            "10",
+            "2MG",
+            "2MG"
+          ],
+          [
+            "16",
+            "H2U",
+            "H2U"
+          ],
+          [
+            "17",
+            "H2U",
+            "H2U"
+          ],
+          [
+            "26",
+            "M2G",
+            "M2G"
+          ],
+          [
+            "32",
+            "OMC",
+            "OMC"
+          ],
+          [
+            "34",
+            "OMG",
+            "OMG"
+          ],
+          [
+            "37",
+            "YYG",
+            "YYG"
+          ],
+          [
+            "39",
+            "PSU",
+            "PSU"
+          ],
+          [
+            "40",
+            "5MC",
+            "5MC"
+          ],
+          [
+            "46",
+            "7MG",
+            "7MG"
+          ],
+          [
+            "49",
+            "5MC",
+            "5MC"
+          ],
+          [
+            "54",
+            "5MU",
+            "5MU"
+          ],
+          [
+            "55",
+            "PSU",
+            "PSU"
+          ],
+          [
+            "58",
+            "1MA",
+            "1MA"
+          ]
+        ],
+        "molecule_type": "RNA",
+        "polymer_residues": 76,
+        "raw_heavy_atoms": 1821,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "1EHZ",
+    "models": 1
+  },
+  "1tup.cif": {
+    "chains": {
+      "A": {
+        "annotation_source": "sifts",
+        "contact_positions": 1535,
+        "contact_sites": 1535,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 196,
+        "protein_sequence": "SSSVPSQKTYQGSYGFRLGFLHSGTAKSVTCTYSPALNKMFCQLAKTCPVQLWVDSTPPPGTRVRAMAIYKQSQHMTEVVRRCPHHERCSDSDGLAPPQHLIRVEGNLRVEYLDDRNTFRHSVVVPYEPPEVGSDCTTIHYNYMCNSSCMGGMNRRPILTIITLEDSSGNLLGRNSFEVRVCACPGRDRRTEEENL",
+        "raw_heavy_atoms": 1734,
+        "sifts_accessions": [
+          "P04637"
+        ],
+        "uniprot_id": "P04637",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "B": {
+        "annotation_source": "sifts",
+        "contact_positions": 1522,
+        "contact_sites": 1522,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 194,
+        "protein_sequence": "SVPSQKTYQGSYGFRLGFLHSGTAKSVTCTYSPALNKMFCQLAKTCPVQLWVDSTPPPGTRVRAMAIYKQSQHMTEVVRRCPHHERCSDSDGLAPPQHLIRVEGNLRVEYLDDRNTFRHSVVVPYEPPEVGSDCTTIHYNYMCNSSCMGGMNRRPILTIITLEDSSGNLLGRNSFEVRVCACPGRDRRTEEENL",
+        "raw_heavy_atoms": 1593,
+        "sifts_accessions": [
+          "P04637"
+        ],
+        "uniprot_id": "P04637",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "C": {
+        "annotation_source": "sifts",
+        "contact_positions": 1529,
+        "contact_sites": 1529,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 195,
+        "protein_sequence": "SSVPSQKTYQGSYGFRLGFLHSGTAKSVTCTYSPALNKMFCQLAKTCPVQLWVDSTPPPGTRVRAMAIYKQSQHMTEVVRRCPHHERCSDSDGLAPPQHLIRVEGNLRVEYLDDRNTFRHSVVVPYEPPEVGSDCTTIHYNYMCNSSCMGGMNRRPILTIITLEDSSGNLLGRNSFEVRVCACPGRDRRTEEENL",
+        "raw_heavy_atoms": 1610,
+        "sifts_accessions": [
+          "P04637"
+        ],
+        "uniprot_id": "P04637",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "E": {
+        "annotation_source": null,
+        "contact_positions": 420,
+        "contact_sites": 420,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "DNA",
+        "polymer_residues": 21,
+        "raw_heavy_atoms": 442,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "F": {
+        "annotation_source": null,
+        "contact_positions": 435,
+        "contact_sites": 435,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "DNA",
+        "polymer_residues": 21,
+        "raw_heavy_atoms": 449,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "1TUP",
+    "models": 1
+  },
+  "2erk.cif": {
+    "chains": {
+      "A": {
+        "annotation_source": "sifts",
+        "contact_positions": 2887,
+        "contact_sites": 2887,
+        "insertion_codes": [],
+        "modified_residues": [
+          [
+            "183",
+            "TPO",
+            "THR"
+          ],
+          [
+            "185",
+            "PTR",
+            "TYR"
+          ]
+        ],
+        "molecule_type": "Protein",
+        "polymer_residues": 353,
+        "protein_sequence": "AAGPEMVRGQVFDVGPRYTNLSYIGEGAYGMVCSAYDNLNKVRVAIKKISPFEHQTYCQRTLREIKILLRFRHENIIGINDIIRAPTIEQMKDVYIVQDLMETDLYKLLKTQHLSNDHICYFLYQILRGLKYIHSANVLHRDLKPSNLLLNTTCDLKICDFGLARVADPDHDHTGFLTEYVATRWYRAPEIMLNSKGYTKSIDIWSVGCILAEMLSNRPIFPGKHYLDQLNHILGILGSPSQEDLNCIINLKARNYLLSLPHKNKVPWNRLFPNADSKALDLLDKMLTFNPHKRIEVEQALAHPYLEQYYDPSDEPIAEAPFKFDMELDDLPKEKLKELIFEETARFQPGYRS",
+        "raw_heavy_atoms": 2989,
+        "sifts_accessions": [
+          "P63086"
+        ],
+        "uniprot_id": "P63086",
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "2ERK",
+    "models": 1
+  },
+  "4hhb.pdb": {
+    "chains": {
+      "A": {
+        "annotation_source": "sifts",
+        "contact_positions": 1069,
+        "contact_sites": 1069,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 141,
+        "protein_sequence": "VLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSHGSAQVKGHGKKVADALTNAVAHVDDMPNALSALSDLHAHKLRVDPVNFKLLSHCLLVTLAAHLPAEFTPAVHASLDKFLASVSTVLTSKYR",
+        "raw_heavy_atoms": 1168,
+        "sifts_accessions": [
+          "P69905"
+        ],
+        "uniprot_id": "P69905",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "B": {
+        "annotation_source": "sifts",
+        "contact_positions": 1123,
+        "contact_sites": 1123,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 146,
+        "protein_sequence": "VHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWTQRFFESFGDLSTPDAVMGNPKVKAHGKKVLGAFSDGLAHLDNLKGTFATLSELHCDKLHVDPENFRLLGNVLVCVLAHHFGKEFTPPVQAAYQKVVAGVANALAHKYH",
+        "raw_heavy_atoms": 1224,
+        "sifts_accessions": [
+          "P68871"
+        ],
+        "uniprot_id": "P68871",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "C": {
+        "annotation_source": "sifts",
+        "contact_positions": 1069,
+        "contact_sites": 1069,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 141,
+        "protein_sequence": "VLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSHGSAQVKGHGKKVADALTNAVAHVDDMPNALSALSDLHAHKLRVDPVNFKLLSHCLLVTLAAHLPAEFTPAVHASLDKFLASVSTVLTSKYR",
+        "raw_heavy_atoms": 1171,
+        "sifts_accessions": [
+          "P69905"
+        ],
+        "uniprot_id": "P69905",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "D": {
+        "annotation_source": "sifts",
+        "contact_positions": 1123,
+        "contact_sites": 1123,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 146,
+        "protein_sequence": "VHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWTQRFFESFGDLSTPDAVMGNPKVKAHGKKVLGAFSDGLAHLDNLKGTFATLSELHCDKLHVDPENFRLLGNVLVCVLAHHFGKEFTPPVQAAYQKVVAGVANALAHKYH",
+        "raw_heavy_atoms": 1216,
+        "sifts_accessions": [
+          "P68871"
+        ],
+        "uniprot_id": "P68871",
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "4HHB",
+    "models": 1
+  },
+  "5rlu.pdb": {
+    "chains": {
+      "A": {
+        "annotation_source": "sifts",
+        "contact_positions": 4417,
+        "contact_sites": 4417,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 572,
+        "protein_sequence": "AVGACVLCNSQTSLRCGACIRRPFLCCKCCYDHVISTSHKLVLSVNPYVCNAPGCDVTDVTQLYLGGMSYYCKSHKPPISFPLCANGQVFGLYKVTDFNAIATCDWTNAGDYILANTCTERLKLFAAETLKATEETFKLSYGIATVREVLSDRELHLSWEVGKPRPPLNRNYVFTGYQIGEYTFEKDAVVYRGTTTYKLNVGDYFVLTSHTVMPLSAPTLVPQEHYVRITGLYPTLNISDEFSSNVANYQKVGMQKYSTLQGPPGTGKSHFAIGLALYYPSARIVYTACSHAAVDALCEKALKYLPIDKCSRIIPARARVECFDKFKVNSTLEQYVFCTVNALPETTADIVVFDEISMATNYDLSVVNARLRAKHYVYIGDPAQLPAPRTLLTKGTLEPEYFNSVCRLMKTIGPDMFLGTCRRCPAEIVDTVSALVYDNKLKAHKDKSAQCFKMFYKGVITHDVSSAINRPQIGVVREFLTRNPAWRKAVFISPYNSQNAVASKILGLPTQTVDSSQGSEYDYVIFTQTTETAHSCNVNRFNVAITRAKVGILCIMSDRDLYDKLQFTSLEI",
+        "raw_heavy_atoms": 4642,
+        "sifts_accessions": [
+          "P0DTD1"
+        ],
+        "uniprot_id": "P0DTD1",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "B": {
+        "annotation_source": "sifts",
+        "contact_positions": 4508,
+        "contact_sites": 4500,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 585,
+        "protein_sequence": "VGACVLCNSQTSLRCGACIRRPFLCCKCCYDHVISTSHKLVLSVNPYVCNAPGCDVTDVTQLYLGGMSYYCKSHKPPISFPLCANGQVFGLYKNTCVGSDNVTDFNAIATCDWTNAGDYILANTCTERLKLFAAETLKATEETFKLSYGIATVREVLSDRELHLSWEVGKPRPPLNRNYVFTGYRVTKNSKVQIGEYTFEKGAVVYRGTTTYKLNVGDYFVLTSHTVMPLSAPTLVPQEHYVRITGLYPTLNISDEFSSNVANYQKVGMQKYSTLQGPPGTGKSHFAIGLALYYPSARIVYTACSHAAVDALCEKALKYLPIDKCSRIIPAVECFDKFKVNSTLEQYVFCTVNALPETTADIVVFDEISMATNYDLSVVNARLRAKHYVYIGDPAQLPAPRTLLTKGTLEPEYFNSVCRLMKTIGPDMFLGTCRRCPAEIVDTVSALVYDNKLKAHKDKSAQCFKMFYKGVITHDVSSAINRPQIGVVREFLTRNPAWRKAVFISPYNSQNAVASKILGLPTQTVDSSQGSEYDYVIFTQTTETAHSCNVNRFNVAITRAKVGILCIMSDRDLYDKLQFTSLEIP",
+        "raw_heavy_atoms": 4781,
+        "sifts_accessions": [
+          "P0DTD1"
+        ],
+        "uniprot_id": "P0DTD1",
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "5RLU",
+    "models": 1
+  },
+  "6m17.cif": {
+    "chains": {
+      "A": {
+        "annotation_source": "sifts",
+        "contact_positions": 4799,
+        "contact_sites": 4799,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 605,
+        "protein_sequence": "VLPNPGLDARIPSLAELETIEQEEASSRPKWDNKAQYMLTCLGFCVGLGNVWRFPYLCQSHGGGAFMIPFLILLVLEGIPLLYLEFAIGQRLRRGSLGVWSSIHPALKGLGLASMLTSFMVGLYYNTIISWIMWYLFNSFQEPLPWSDCPLNENQTGYVDECARSSPVDYFWYRETLNISTSISDSGSIQWWMLLCLACAWSVLYMCTIRGIETTGKAVYITSTLPYVVLTIFLIRGLTLKGATNGIVFLFTPNVTELAQPDTWLDAGAQVFFSFSLAFGGLISFSSYNSVHNNCEKDSVIVSIINGFTSVYVAIVVYSVIGFRATQRYDDCFSTNILTLINGFDLPEGNVTQENFVDMQQRCNASDPAAYAQLVFQTCDINAFLSEAVEGTGLAFIVFTEAITKMPLSPLWSVLFFIMLFCLGLSSMFGNMEGVVVPLQDLRVIPPKWPKEVLTGLICLGTFLIGFIFTLNSGQYWLSLLDSYAGSIPLLIIAFCEMFSVVYVYGVDRFNKDIEFMIGHKPNIFWQVTWRVVSPLLMLIIFLFFFVVEVSQELTYSIWDPGYEEFPKSQKISYPNWVYVVVVIVAGVPSLTIPGYAIYKLIRNH",
+        "raw_heavy_atoms": 4864,
+        "sifts_accessions": [
+          "Q695T7"
+        ],
+        "uniprot_id": "Q695T7",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "B": {
+        "annotation_source": "sifts",
+        "contact_positions": 6089,
+        "contact_sites": 6089,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 748,
+        "protein_sequence": "IEEQAKTFLDKFNHEAEDLFYQSSLASWNYNTNITEENVQNMNNAGDKWSAFLKEQSTLAQMYPLQEIQNLTVKLQLQALQQNGSSVLSEDKSKRLNTILNTMSTIYSTGKVCNPDNPQECLLLEPGLNEIMANSLDYNERLWAWESWRSEVGKQLRPLYEEYVVLKNEMARANHYEDYGDYWRGDYEVNGVDGYDYSRGQLIEDVEHTFEEIKPLYEHLHAYVRAKLMNAYPSYISPIGCLPAHLLGDMWGRFWTNLYSLTVPFGQKPNIDVTDAMVDQAWDAQRIFKEAEKFFVSVGLPNMTQGFWENSMLTDPGNVQKAVCHPTAWDLGKGDFRILMCTKVTMDDFLTAHHEMGHIQYDMAYAAQPFLLRNGANEGFHEAVGEIMSLSAATPKHLKSIGLLSPDFQEDNETEINFLLKQALTIVGTLPFTYMLEKWRWMVFKGEIPKDQWMKKWWEMKREIVGVVEPVPHDETYCDPASLFHVSNDYSFIRYYTRTLYQFQFQEALCQAAKHEGPLHKCDISNSTEAGQKLFNMLRLGKSEPWTLALENVVGAKNMNVRPLLNYFEPLFTWLKDQNKNSFVGWSTDWSPYADQSIKVRISLKSALGDKAYEWNDNEMYLFRSSVAYAMRQYFLKVKNQMILFGEEDVRVANLKPRISFNFFVTAPKNVSDIIPRTEVEKAIRMSRSRINDAFRLNDNSLEFLGIQPTLGPPNQPPVSIWLIVFGVVMGVIVVGIVILIFTGIRDR",
+        "raw_heavy_atoms": 6108,
+        "sifts_accessions": [
+          "Q9BYF1"
+        ],
+        "uniprot_id": "Q9BYF1",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "C": {
+        "annotation_source": "sifts",
+        "contact_positions": 4799,
+        "contact_sites": 4799,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 605,
+        "protein_sequence": "VLPNPGLDARIPSLAELETIEQEEASSRPKWDNKAQYMLTCLGFCVGLGNVWRFPYLCQSHGGGAFMIPFLILLVLEGIPLLYLEFAIGQRLRRGSLGVWSSIHPALKGLGLASMLTSFMVGLYYNTIISWIMWYLFNSFQEPLPWSDCPLNENQTGYVDECARSSPVDYFWYRETLNISTSISDSGSIQWWMLLCLACAWSVLYMCTIRGIETTGKAVYITSTLPYVVLTIFLIRGLTLKGATNGIVFLFTPNVTELAQPDTWLDAGAQVFFSFSLAFGGLISFSSYNSVHNNCEKDSVIVSIINGFTSVYVAIVVYSVIGFRATQRYDDCFSTNILTLINGFDLPEGNVTQENFVDMQQRCNASDPAAYAQLVFQTCDINAFLSEAVEGTGLAFIVFTEAITKMPLSPLWSVLFFIMLFCLGLSSMFGNMEGVVVPLQDLRVIPPKWPKEVLTGLICLGTFLIGFIFTLNSGQYWLSLLDSYAGSIPLLIIAFCEMFSVVYVYGVDRFNKDIEFMIGHKPNIFWQVTWRVVSPLLMLIIFLFFFVVEVSQELTYSIWDPGYEEFPKSQKISYPNWVYVVVVIVAGVPSLTIPGYAIYKLIRNH",
+        "raw_heavy_atoms": 4864,
+        "sifts_accessions": [
+          "Q695T7"
+        ],
+        "uniprot_id": "Q695T7",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "D": {
+        "annotation_source": "sifts",
+        "contact_positions": 6089,
+        "contact_sites": 6089,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 748,
+        "protein_sequence": "IEEQAKTFLDKFNHEAEDLFYQSSLASWNYNTNITEENVQNMNNAGDKWSAFLKEQSTLAQMYPLQEIQNLTVKLQLQALQQNGSSVLSEDKSKRLNTILNTMSTIYSTGKVCNPDNPQECLLLEPGLNEIMANSLDYNERLWAWESWRSEVGKQLRPLYEEYVVLKNEMARANHYEDYGDYWRGDYEVNGVDGYDYSRGQLIEDVEHTFEEIKPLYEHLHAYVRAKLMNAYPSYISPIGCLPAHLLGDMWGRFWTNLYSLTVPFGQKPNIDVTDAMVDQAWDAQRIFKEAEKFFVSVGLPNMTQGFWENSMLTDPGNVQKAVCHPTAWDLGKGDFRILMCTKVTMDDFLTAHHEMGHIQYDMAYAAQPFLLRNGANEGFHEAVGEIMSLSAATPKHLKSIGLLSPDFQEDNETEINFLLKQALTIVGTLPFTYMLEKWRWMVFKGEIPKDQWMKKWWEMKREIVGVVEPVPHDETYCDPASLFHVSNDYSFIRYYTRTLYQFQFQEALCQAAKHEGPLHKCDISNSTEAGQKLFNMLRLGKSEPWTLALENVVGAKNMNVRPLLNYFEPLFTWLKDQNKNSFVGWSTDWSPYADQSIKVRISLKSALGDKAYEWNDNEMYLFRSSVAYAMRQYFLKVKNQMILFGEEDVRVANLKPRISFNFFVTAPKNVSDIIPRTEVEKAIRMSRSRINDAFRLNDNSLEFLGIQPTLGPPNQPPVSIWLIVFGVVMGVIVVGIVILIFTGIRDR",
+        "raw_heavy_atoms": 6108,
+        "sifts_accessions": [
+          "Q9BYF1"
+        ],
+        "uniprot_id": "Q9BYF1",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "E": {
+        "annotation_source": "sifts",
+        "contact_positions": 1462,
+        "contact_sites": 1462,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 183,
+        "protein_sequence": "CPFGEVFNATRFASVYAWNRKRISNCVADYSVLYNSASFSTFKCYGVSPTKLNDLCFTNVYADSFVIRGDEVRQIAPGQTGKIADYNYKLPDDFTGCVIAWNSNNLDSKVGGNYNYLYRLFRKSNLKPFERDISTEIYQAGSTPCNGVEGFNCYFPLQSYGFQPTNGVGYQPYRVVVLSFELL",
+        "raw_heavy_atoms": 1462,
+        "sifts_accessions": [
+          "P0DTC2"
+        ],
+        "uniprot_id": "P0DTC2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "F": {
+        "annotation_source": "sifts",
+        "contact_positions": 1462,
+        "contact_sites": 1462,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 183,
+        "protein_sequence": "CPFGEVFNATRFASVYAWNRKRISNCVADYSVLYNSASFSTFKCYGVSPTKLNDLCFTNVYADSFVIRGDEVRQIAPGQTGKIADYNYKLPDDFTGCVIAWNSNNLDSKVGGNYNYLYRLFRKSNLKPFERDISTEIYQAGSTPCNGVEGFNCYFPLQSYGFQPTNGVGYQPYRVVVLSFELL",
+        "raw_heavy_atoms": 1462,
+        "sifts_accessions": [
+          "P0DTC2"
+        ],
+        "uniprot_id": "P0DTC2",
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "6M17",
+    "models": 1
+  },
+  "6w41.cif": {
+    "chains": {
+      "C": {
+        "annotation_source": "sifts",
+        "contact_positions": 1543,
+        "contact_sites": 1543,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 195,
+        "protein_sequence": "TNLCPFGEVFNATRFASVYAWNRKRISNCVADYSVLYNSASFSTFKCYGVSPTKLNDLCFTNVYADSFVIRGDEVRQIAPGQTGKIADYNYKLPDDFTGCVIAWNSNNLDSKVGGNYNYLYRLFRKSNLKPFERDISTEIYQAGSTPCNGVEGFNCYFPLQSYGFQPTNGVGYQPYRVVVLSFELLHAPATVCGP",
+        "raw_heavy_atoms": 1557,
+        "sifts_accessions": [
+          "P0DTC2"
+        ],
+        "uniprot_id": "P0DTC2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "H": {
+        "annotation_source": null,
+        "contact_positions": 1647,
+        "contact_sites": 1647,
+        "insertion_codes": [
+          "52A",
+          "82A",
+          "82B",
+          "82C",
+          "100A",
+          "100B"
+        ],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 222,
+        "protein_sequence": "QMQLVQSGTEVKKPGESLKISCKGSGYGFITYWIGWVRQMPGKGLEWMGIIYPGDSETRYSPSFQGQVTISADKSINTAYLQWSSLKASDTAIYYCAGGSGISTPMDVWGQGTTVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKKVEPKSC",
+        "raw_heavy_atoms": 1647,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "L": {
+        "annotation_source": null,
+        "contact_positions": 1716,
+        "contact_sites": 1716,
+        "insertion_codes": [
+          "27A",
+          "27B",
+          "27C",
+          "27D",
+          "27E",
+          "27F"
+        ],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 221,
+        "protein_sequence": "DIQLTQSPDSLAVSLGERATINCKSSQSVLYSSINKNYLAWYQQKPGQPPKLLIYWASTRESGVPDRFSGSGSGTDFTLTISSLQAEDVAVYYCQQYYSTPYTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGECS",
+        "raw_heavy_atoms": 1732,
+        "sifts_accessions": [],
+        "uniprot_id": null,
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "6W41",
+    "models": 1
+  },
+  "8aly.cif": {
+    "chains": {
+      "A": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "B": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "C": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "D": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "E": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "F": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "G": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "H": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "I": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "J": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "K": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "L": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "M": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "N": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "O": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "P": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "Q": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "R": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "S": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "T": {
+        "annotation_source": "sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "8ALY",
+    "models": 1
+  },
+  "9rat.pdb": {
+    "chains": {
+      "A": {
+        "annotation_source": "sifts",
+        "contact_positions": 951,
+        "contact_sites": 951,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 124,
+        "protein_sequence": "KETAAAKFERQHMDSSTSAASSSNYCNQMMKSRNLTKDRCKPVNTFVHESLADVQAVCSQKNVACKNGQTNCYQSYSTMSITDCRETGSSKYPNCAYKTTQANKHIIVACEGNPYVPVHFDASV",
+        "raw_heavy_atoms": 951,
+        "sifts_accessions": [
+          "P61823"
+        ],
+        "uniprot_id": "P61823",
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "9RAT",
+    "models": 1
+  },
+  "AF-P69905-F1-model_v6.cif": {
+    "chains": {
+      "A": {
+        "annotation_source": "direct_uniprot",
+        "contact_positions": 1077,
+        "contact_sites": 1077,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 142,
+        "protein_sequence": "MVLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSHGSAQVKGHGKKVADALTNAVAHVDDMPNALSALSDLHAHKLRVDPVNFKLLSHCLLVTLAAHLPAEFTPAVHASLDKFLASVSTVLTSKYR",
+        "raw_heavy_atoms": 1077,
+        "sifts_accessions": [
+          "P69905"
+        ],
+        "uniprot_id": "P69905",
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "AF-P69905-F1",
+    "models": 1
+  },
+  "AF-P69905-F1-model_v6.pdb": {
+    "chains": {
+      "A": {
+        "annotation_source": "direct_uniprot",
+        "contact_positions": 1077,
+        "contact_sites": 1077,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 142,
+        "protein_sequence": "MVLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSHGSAQVKGHGKKVADALTNAVAHVDDMPNALSALSDLHAHKLRVDPVNFKLLSHCLLVTLAAHLPAEFTPAVHASLDKFLASVSTVLTSKYR",
+        "raw_heavy_atoms": 1077,
+        "sifts_accessions": [
+          "P69905"
+        ],
+        "uniprot_id": "P69905",
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "AF-P69905-F1",
+    "models": 1
+  },
+  "pdb_00008aly_xyz-enrich.cif.gz": {
+    "chains": {
+      "A": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "B": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "C": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "D": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "E": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "F": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "G": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "H": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "I": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "J": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "K": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "L": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "M": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "N": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "O": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "P": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "Q": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "R": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "S": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      },
+      "T": {
+        "annotation_source": "embedded_sifts",
+        "contact_positions": 2064,
+        "contact_sites": 2056,
+        "insertion_codes": [],
+        "modified_residues": [],
+        "molecule_type": "Protein",
+        "polymer_residues": 259,
+        "protein_sequence": "DFSITQFVRNLGLEHLMDIFEREQITLDVLVEMGHKELKEIGINAYGHRHKLIKGVERLISGQQGLNPYLTGSGTILIDLSPDDKEFQSVEEEMQSTVRGGIFNRYNILKIQKVCNKKLWERYTHRRKEVSEENHNHANERMLFHWSPFVNAIIHKGFDERHAYIGGMFGAGIYFAENSSKSNQYVYCPVHKDRSCYICHRQLLFCRVTLGKSFLQFSAMKMAHSPPGHHSVTGRPLAEYVIYRGEQAYPEYLITYQIM",
+        "raw_heavy_atoms": 2065,
+        "sifts_accessions": [
+          "Q9H2K2"
+        ],
+        "uniprot_id": "Q9H2K2",
+        "zero_occupancy_polymer_atoms": 0
+      }
+    },
+    "display_id": "8ALY",
+    "models": 1
+  }
+}

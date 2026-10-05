@@ -1,0 +1,4771 @@
+{
+  "124d.cif": [
+    {
+      "accepted": true,
+      "all_atoms_count": 485,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "B"
+      ],
+      "interaction": "DNA-RNA"
+    }
+  ],
+  "170d.cif": [
+    {
+      "accepted": true,
+      "all_atoms_count": 616,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "B"
+      ],
+      "interaction": "DNA/RNA-DNA/RNA"
+    }
+  ],
+  "1TUP.pdb": [
+    {
+      "accepted": true,
+      "all_atoms_count": 443,
+      "ca_neighbors": 239,
+      "chains": [
+        "A",
+        "B"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "C"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 37,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "E"
+      ],
+      "interaction": "Protein-DNA"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 2,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "F"
+      ],
+      "interaction": "Protein-DNA"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 111,
+      "ca_neighbors": 132,
+      "chains": [
+        "B",
+        "C"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 163,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "E"
+      ],
+      "interaction": "Protein-DNA"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 131,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "F"
+      ],
+      "interaction": "Protein-DNA"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 61,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "E"
+      ],
+      "interaction": "Protein-DNA"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 25,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "F"
+      ],
+      "interaction": "Protein-DNA"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 1068,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "F"
+      ],
+      "interaction": "DNA-DNA"
+    }
+  ],
+  "1a1t.cif": [
+    {
+      "accepted": true,
+      "all_atoms_count": 825,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "B"
+      ],
+      "interaction": "Protein-RNA"
+    }
+  ],
+  "1a1t.cif#all": {
+    "1": [
+      {
+        "accepted": true,
+        "all_atoms_count": 825,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "10": [
+      {
+        "accepted": true,
+        "all_atoms_count": 778,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "11": [
+      {
+        "accepted": true,
+        "all_atoms_count": 872,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "12": [
+      {
+        "accepted": true,
+        "all_atoms_count": 759,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "13": [
+      {
+        "accepted": true,
+        "all_atoms_count": 787,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "14": [
+      {
+        "accepted": true,
+        "all_atoms_count": 861,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "15": [
+      {
+        "accepted": true,
+        "all_atoms_count": 797,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "16": [
+      {
+        "accepted": true,
+        "all_atoms_count": 756,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "17": [
+      {
+        "accepted": true,
+        "all_atoms_count": 842,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "18": [
+      {
+        "accepted": true,
+        "all_atoms_count": 821,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "19": [
+      {
+        "accepted": true,
+        "all_atoms_count": 829,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "2": [
+      {
+        "accepted": true,
+        "all_atoms_count": 756,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "20": [
+      {
+        "accepted": true,
+        "all_atoms_count": 861,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "21": [
+      {
+        "accepted": true,
+        "all_atoms_count": 762,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "22": [
+      {
+        "accepted": true,
+        "all_atoms_count": 793,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "23": [
+      {
+        "accepted": true,
+        "all_atoms_count": 830,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "24": [
+      {
+        "accepted": true,
+        "all_atoms_count": 793,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "25": [
+      {
+        "accepted": true,
+        "all_atoms_count": 836,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "3": [
+      {
+        "accepted": true,
+        "all_atoms_count": 721,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "4": [
+      {
+        "accepted": true,
+        "all_atoms_count": 795,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "5": [
+      {
+        "accepted": true,
+        "all_atoms_count": 844,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "6": [
+      {
+        "accepted": true,
+        "all_atoms_count": 786,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "7": [
+      {
+        "accepted": true,
+        "all_atoms_count": 776,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "8": [
+      {
+        "accepted": true,
+        "all_atoms_count": 808,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ],
+    "9": [
+      {
+        "accepted": true,
+        "all_atoms_count": 809,
+        "ca_neighbors": 0,
+        "chains": [
+          "A",
+          "B"
+        ],
+        "interaction": "Protein-RNA"
+      }
+    ]
+  },
+  "1a1t.pdb": [
+    {
+      "accepted": true,
+      "all_atoms_count": 825,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "B"
+      ],
+      "interaction": "Protein-RNA"
+    }
+  ],
+  "1a34.cif": [
+    {
+      "accepted": true,
+      "all_atoms_count": 51,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "B"
+      ],
+      "interaction": "Protein-RNA"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 109,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "C"
+      ],
+      "interaction": "Protein-RNA"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 437,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "C"
+      ],
+      "interaction": "RNA-RNA"
+    }
+  ],
+  "1a8o.cif": [],
+  "1a8o.pdb": [],
+  "1ao7.cif": [
+    {
+      "accepted": true,
+      "all_atoms_count": 736,
+      "ca_neighbors": 379,
+      "chains": [
+        "A",
+        "B"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 586,
+      "ca_neighbors": 242,
+      "chains": [
+        "A",
+        "C"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 231,
+      "ca_neighbors": 162,
+      "chains": [
+        "A",
+        "D"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 105,
+      "ca_neighbors": 80,
+      "chains": [
+        "A",
+        "E"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "C"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "D"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "E"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 109,
+      "ca_neighbors": 46,
+      "chains": [
+        "C",
+        "D"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 119,
+      "ca_neighbors": 44,
+      "chains": [
+        "C",
+        "E"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 404,
+      "ca_neighbors": 292,
+      "chains": [
+        "D",
+        "E"
+      ],
+      "interaction": "Protein-Protein"
+    }
+  ],
+  "1bna.cif": [
+    {
+      "accepted": true,
+      "all_atoms_count": 652,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "B"
+      ],
+      "interaction": "DNA-DNA"
+    }
+  ],
+  "1ehz.cif": [],
+  "1tup.cif": [
+    {
+      "accepted": true,
+      "all_atoms_count": 443,
+      "ca_neighbors": 239,
+      "chains": [
+        "A",
+        "B"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "C"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 37,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "E"
+      ],
+      "interaction": "Protein-DNA"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 2,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "F"
+      ],
+      "interaction": "Protein-DNA"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 111,
+      "ca_neighbors": 132,
+      "chains": [
+        "B",
+        "C"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 163,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "E"
+      ],
+      "interaction": "Protein-DNA"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 131,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "F"
+      ],
+      "interaction": "Protein-DNA"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 61,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "E"
+      ],
+      "interaction": "Protein-DNA"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 25,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "F"
+      ],
+      "interaction": "Protein-DNA"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 1068,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "F"
+      ],
+      "interaction": "DNA-DNA"
+    }
+  ],
+  "2erk.cif": [],
+  "4hhb.pdb": [
+    {
+      "accepted": true,
+      "all_atoms_count": 496,
+      "ca_neighbors": 315,
+      "chains": [
+        "A",
+        "B"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 115,
+      "ca_neighbors": 57,
+      "chains": [
+        "A",
+        "C"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 346,
+      "ca_neighbors": 188,
+      "chains": [
+        "A",
+        "D"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 353,
+      "ca_neighbors": 195,
+      "chains": [
+        "B",
+        "C"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "D"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 504,
+      "ca_neighbors": 322,
+      "chains": [
+        "C",
+        "D"
+      ],
+      "interaction": "Protein-Protein"
+    }
+  ],
+  "5rlu.pdb": [
+    {
+      "accepted": true,
+      "all_atoms_count": 110,
+      "ca_neighbors": 158,
+      "chains": [
+        "A",
+        "B"
+      ],
+      "interaction": "Protein-Protein"
+    }
+  ],
+  "6m17.cif": [
+    {
+      "accepted": true,
+      "all_atoms_count": 569,
+      "ca_neighbors": 351,
+      "chains": [
+        "A",
+        "B"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "C"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "D"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "E"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "F"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "C"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 689,
+      "ca_neighbors": 343,
+      "chains": [
+        "B",
+        "D"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 422,
+      "ca_neighbors": 236,
+      "chains": [
+        "B",
+        "E"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "F"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 569,
+      "ca_neighbors": 351,
+      "chains": [
+        "C",
+        "D"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "E"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "F"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "E"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 422,
+      "ca_neighbors": 236,
+      "chains": [
+        "D",
+        "F"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "F"
+      ],
+      "interaction": "Protein-Protein"
+    }
+  ],
+  "6w41.cif": [
+    {
+      "accepted": true,
+      "all_atoms_count": 305,
+      "ca_neighbors": 241,
+      "chains": [
+        "C",
+        "H"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 140,
+      "ca_neighbors": 116,
+      "chains": [
+        "C",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 982,
+      "ca_neighbors": 683,
+      "chains": [
+        "H",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    }
+  ],
+  "8aly.cif": [
+    {
+      "accepted": true,
+      "all_atoms_count": 445,
+      "ca_neighbors": 339,
+      "chains": [
+        "A",
+        "B"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "A",
+        "C"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "D"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "E"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "F"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "G"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "H"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "I"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 128,
+      "ca_neighbors": 35,
+      "chains": [
+        "A",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 18,
+      "ca_neighbors": 18,
+      "chains": [
+        "A",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 440,
+      "ca_neighbors": 345,
+      "chains": [
+        "B",
+        "C"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "B",
+        "D"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "E"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "F"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "G"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "H"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "I"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 115,
+      "ca_neighbors": 35,
+      "chains": [
+        "B",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 18,
+      "ca_neighbors": 19,
+      "chains": [
+        "B",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 348,
+      "ca_neighbors": 214,
+      "chains": [
+        "B",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 443,
+      "ca_neighbors": 340,
+      "chains": [
+        "C",
+        "D"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "C",
+        "E"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "F"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "G"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "H"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "I"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 119,
+      "ca_neighbors": 35,
+      "chains": [
+        "C",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 18,
+      "ca_neighbors": 18,
+      "chains": [
+        "C",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 331,
+      "ca_neighbors": 213,
+      "chains": [
+        "C",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 438,
+      "ca_neighbors": 230,
+      "chains": [
+        "C",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 448,
+      "ca_neighbors": 341,
+      "chains": [
+        "D",
+        "E"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "D",
+        "F"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "G"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "H"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "I"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 119,
+      "ca_neighbors": 36,
+      "chains": [
+        "D",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 17,
+      "ca_neighbors": 18,
+      "chains": [
+        "D",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 349,
+      "ca_neighbors": 214,
+      "chains": [
+        "D",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 426,
+      "ca_neighbors": 227,
+      "chains": [
+        "D",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 432,
+      "ca_neighbors": 341,
+      "chains": [
+        "E",
+        "F"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "E",
+        "G"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "H"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "I"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 121,
+      "ca_neighbors": 37,
+      "chains": [
+        "E",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 17,
+      "ca_neighbors": 19,
+      "chains": [
+        "E",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 346,
+      "ca_neighbors": 216,
+      "chains": [
+        "E",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 431,
+      "ca_neighbors": 230,
+      "chains": [
+        "E",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 446,
+      "ca_neighbors": 344,
+      "chains": [
+        "F",
+        "G"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 3,
+      "chains": [
+        "F",
+        "H"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "F",
+        "I"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "F",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "F",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "F",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 120,
+      "ca_neighbors": 35,
+      "chains": [
+        "F",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 18,
+      "ca_neighbors": 18,
+      "chains": [
+        "F",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "F",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 353,
+      "ca_neighbors": 216,
+      "chains": [
+        "F",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 418,
+      "ca_neighbors": 230,
+      "chains": [
+        "F",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "F",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "F",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "F",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 445,
+      "ca_neighbors": 346,
+      "chains": [
+        "G",
+        "H"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "G",
+        "I"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "G",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "G",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 122,
+      "ca_neighbors": 35,
+      "chains": [
+        "G",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 18,
+      "ca_neighbors": 18,
+      "chains": [
+        "G",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "G",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 372,
+      "ca_neighbors": 217,
+      "chains": [
+        "G",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 429,
+      "ca_neighbors": 231,
+      "chains": [
+        "G",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "G",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "G",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "G",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "G",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 464,
+      "ca_neighbors": 348,
+      "chains": [
+        "H",
+        "I"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "H",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 127,
+      "ca_neighbors": 35,
+      "chains": [
+        "H",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 18,
+      "ca_neighbors": 19,
+      "chains": [
+        "H",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "H",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 352,
+      "ca_neighbors": 216,
+      "chains": [
+        "H",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 421,
+      "ca_neighbors": 227,
+      "chains": [
+        "H",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "H",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "H",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "H",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "H",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "H",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 456,
+      "ca_neighbors": 343,
+      "chains": [
+        "I",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 18,
+      "ca_neighbors": 18,
+      "chains": [
+        "I",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "I",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 330,
+      "ca_neighbors": 214,
+      "chains": [
+        "I",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 428,
+      "ca_neighbors": 225,
+      "chains": [
+        "I",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "I",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "I",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "I",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "I",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "I",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "I",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "J",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 342,
+      "ca_neighbors": 213,
+      "chains": [
+        "J",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 441,
+      "ca_neighbors": 226,
+      "chains": [
+        "J",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "J",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "J",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "J",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "J",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "J",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "J",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "J",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 455,
+      "ca_neighbors": 341,
+      "chains": [
+        "K",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 3,
+      "chains": [
+        "K",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "K",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "K",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "K",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "K",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "K",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "K",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "K",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 446,
+      "ca_neighbors": 344,
+      "chains": [
+        "L",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "L",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "L",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "L",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "L",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "L",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "L",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "L",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 443,
+      "ca_neighbors": 342,
+      "chains": [
+        "M",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "M",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "M",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "M",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "M",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "M",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "M",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 446,
+      "ca_neighbors": 340,
+      "chains": [
+        "N",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "N",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "N",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "N",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "N",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "N",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 437,
+      "ca_neighbors": 339,
+      "chains": [
+        "O",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "O",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "O",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "O",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "O",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 442,
+      "ca_neighbors": 345,
+      "chains": [
+        "P",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 3,
+      "chains": [
+        "P",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "P",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "P",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 444,
+      "ca_neighbors": 344,
+      "chains": [
+        "Q",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "Q",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "Q",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 450,
+      "ca_neighbors": 345,
+      "chains": [
+        "R",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "R",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 457,
+      "ca_neighbors": 341,
+      "chains": [
+        "S",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    }
+  ],
+  "9rat.pdb": [],
+  "AF-P69905-F1-model_v6.cif": [],
+  "AF-P69905-F1-model_v6.pdb": [],
+  "pdb_00008aly_xyz-enrich.cif.gz": [
+    {
+      "accepted": true,
+      "all_atoms_count": 445,
+      "ca_neighbors": 339,
+      "chains": [
+        "A",
+        "B"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "A",
+        "C"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "D"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "E"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "F"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "G"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "H"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "I"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 128,
+      "ca_neighbors": 35,
+      "chains": [
+        "A",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 18,
+      "ca_neighbors": 18,
+      "chains": [
+        "A",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "A",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 440,
+      "ca_neighbors": 345,
+      "chains": [
+        "B",
+        "C"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "B",
+        "D"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "E"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "F"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "G"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "H"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "I"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 115,
+      "ca_neighbors": 35,
+      "chains": [
+        "B",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 18,
+      "ca_neighbors": 19,
+      "chains": [
+        "B",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "B",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 348,
+      "ca_neighbors": 214,
+      "chains": [
+        "B",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 443,
+      "ca_neighbors": 340,
+      "chains": [
+        "C",
+        "D"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "C",
+        "E"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "F"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "G"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "H"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "I"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 119,
+      "ca_neighbors": 35,
+      "chains": [
+        "C",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 18,
+      "ca_neighbors": 18,
+      "chains": [
+        "C",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "C",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 331,
+      "ca_neighbors": 213,
+      "chains": [
+        "C",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 438,
+      "ca_neighbors": 230,
+      "chains": [
+        "C",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 448,
+      "ca_neighbors": 341,
+      "chains": [
+        "D",
+        "E"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "D",
+        "F"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "G"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "H"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "I"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 119,
+      "ca_neighbors": 36,
+      "chains": [
+        "D",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 17,
+      "ca_neighbors": 18,
+      "chains": [
+        "D",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 349,
+      "ca_neighbors": 214,
+      "chains": [
+        "D",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 426,
+      "ca_neighbors": 227,
+      "chains": [
+        "D",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "D",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 432,
+      "ca_neighbors": 341,
+      "chains": [
+        "E",
+        "F"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "E",
+        "G"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "H"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "I"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 121,
+      "ca_neighbors": 37,
+      "chains": [
+        "E",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 17,
+      "ca_neighbors": 19,
+      "chains": [
+        "E",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 346,
+      "ca_neighbors": 216,
+      "chains": [
+        "E",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 431,
+      "ca_neighbors": 230,
+      "chains": [
+        "E",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "E",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 446,
+      "ca_neighbors": 344,
+      "chains": [
+        "F",
+        "G"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 3,
+      "chains": [
+        "F",
+        "H"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "F",
+        "I"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "F",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "F",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "F",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 120,
+      "ca_neighbors": 35,
+      "chains": [
+        "F",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 18,
+      "ca_neighbors": 18,
+      "chains": [
+        "F",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "F",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 353,
+      "ca_neighbors": 216,
+      "chains": [
+        "F",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 418,
+      "ca_neighbors": 230,
+      "chains": [
+        "F",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "F",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "F",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "F",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 445,
+      "ca_neighbors": 346,
+      "chains": [
+        "G",
+        "H"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "G",
+        "I"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "G",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "G",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 122,
+      "ca_neighbors": 35,
+      "chains": [
+        "G",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 18,
+      "ca_neighbors": 18,
+      "chains": [
+        "G",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "G",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 372,
+      "ca_neighbors": 217,
+      "chains": [
+        "G",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 429,
+      "ca_neighbors": 231,
+      "chains": [
+        "G",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "G",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "G",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "G",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "G",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 464,
+      "ca_neighbors": 348,
+      "chains": [
+        "H",
+        "I"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "H",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 127,
+      "ca_neighbors": 35,
+      "chains": [
+        "H",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 18,
+      "ca_neighbors": 19,
+      "chains": [
+        "H",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "H",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 352,
+      "ca_neighbors": 216,
+      "chains": [
+        "H",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 421,
+      "ca_neighbors": 227,
+      "chains": [
+        "H",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "H",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "H",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "H",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "H",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "H",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 456,
+      "ca_neighbors": 343,
+      "chains": [
+        "I",
+        "J"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 18,
+      "ca_neighbors": 18,
+      "chains": [
+        "I",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "I",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 330,
+      "ca_neighbors": 214,
+      "chains": [
+        "I",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 428,
+      "ca_neighbors": 225,
+      "chains": [
+        "I",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "I",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "I",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "I",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "I",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "I",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "I",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "J",
+        "K"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 342,
+      "ca_neighbors": 213,
+      "chains": [
+        "J",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 441,
+      "ca_neighbors": 226,
+      "chains": [
+        "J",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "J",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "J",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "J",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "J",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "J",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "J",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "J",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 455,
+      "ca_neighbors": 341,
+      "chains": [
+        "K",
+        "L"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 3,
+      "chains": [
+        "K",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "K",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "K",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "K",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "K",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "K",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "K",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "K",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 446,
+      "ca_neighbors": 344,
+      "chains": [
+        "L",
+        "M"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "L",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "L",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "L",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "L",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "L",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "L",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "L",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 443,
+      "ca_neighbors": 342,
+      "chains": [
+        "M",
+        "N"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "M",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "M",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "M",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "M",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "M",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "M",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 446,
+      "ca_neighbors": 340,
+      "chains": [
+        "N",
+        "O"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "N",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "N",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "N",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "N",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "N",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 437,
+      "ca_neighbors": 339,
+      "chains": [
+        "O",
+        "P"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "O",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "O",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "O",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "O",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 442,
+      "ca_neighbors": 345,
+      "chains": [
+        "P",
+        "Q"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 3,
+      "chains": [
+        "P",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "P",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "P",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 444,
+      "ca_neighbors": 344,
+      "chains": [
+        "Q",
+        "R"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "Q",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 0,
+      "chains": [
+        "Q",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 450,
+      "ca_neighbors": 345,
+      "chains": [
+        "R",
+        "S"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": false,
+      "all_atoms_count": 0,
+      "ca_neighbors": 4,
+      "chains": [
+        "R",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    },
+    {
+      "accepted": true,
+      "all_atoms_count": 457,
+      "ca_neighbors": 341,
+      "chains": [
+        "S",
+        "T"
+      ],
+      "interaction": "Protein-Protein"
+    }
+  ]
+}

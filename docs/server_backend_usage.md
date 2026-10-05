@@ -1,16 +1,15 @@
 # Server Backend Usage
 
-PDB2Net is called by the separate `pdb2net-webserver` adapter without coupling
-Core to PHP, MariaDB, Apache, or a specific queue implementation. The Web layer
-owns HTTP validation, UUID unlisted-link access, database rows, scheduling,
-mail, and downloads. It does not add a login/session authentication layer. Core
-receives filesystem paths and validated configuration and writes outputs.
+External applications call PDB2Net through its installed CLI and documented
+output contracts. Core receives filesystem paths and validated configuration;
+the caller owns HTTP validation, access policy, scheduling, notifications and
+deployment. No particular web framework, database or adapter repository is
+required by Core.
 
-The current Web product has exactly two input modes: uploads use `pdb2net run`,
-and PDB IDs use read-only `pdb2net assemble` against a completely offline-built
-schema-3 store. Required email and UUID-only result access belong to Web, not
-Core. Directory/server-folder input, runtime PDB download, and lazy store
-population are not supported product modes.
+Use `pdb2net run` for supplied structure files and `pdb2net assemble` for PDB
+IDs in an offline-built schema-3 store. Assembly never downloads structures or
+populates missing entries. Whether an application exposes either command, and
+how it accepts user input, is the application's responsibility.
 
 ## Recommended Worker Command
 
@@ -23,8 +22,7 @@ pdb2net run \
 ```
 
 For production worker images, install PDB2Net as a Python package and use the
-`pdb2net` console script. Do not rely on mounting `../PDB2Net` into the worker
-and running from the source tree.
+`pdb2net` console script without requiring a source checkout.
 
 The module form is useful for local development or transitional deployments
 where the console script is not installed:
@@ -86,9 +84,9 @@ that file is for machine-specific paths and may contain local reference data
 locations. Server deployments should provide reference data paths through
 environment variables or a per-job `--config` file.
 
-The current Web adapter gives every real job a writable job-local temporary
-BLAST cache. It does not make the read-only reference mount writable and does
-not add a persistent cache service or mount.
+An adapter can give each job a writable temporary BLAST cache while keeping
+reference data read-only. Cache placement is caller configuration; Core does
+not require a shared persistent cache service.
 
 Before switching a worker image to `PDB2NET_COMMAND=pdb2net`, verify the
 installed package from outside the source tree:
@@ -166,15 +164,14 @@ only compact chain metadata and interaction summaries remain for final network
 exports. It is a scheduling bound, not a guaranteed process-RSS ceiling, because
 parsed in-memory expansion depends on structure complexity.
 
-The current Web Compose definition runs one Worker service. Do not scale Worker
-concurrency or change the public resource limits based on an assumed hardware
-profile. Any scaling decision requires target-host measurements and explicit
-user approval.
+Worker concurrency and admission limits are deployment decisions for the caller.
+Choose them from measured memory, storage and execution costs on the target
+system; Core's processing-batch limit alone does not establish a safe job count.
 
 ## PDB-ID Store Mode
 
 The `precompute`/`assemble` path is optional for standalone Core users and
-required for the Web product's `pdb_ids` mode. It is documented in
+provides offline-store access for applications that accept PDB IDs. It is documented in
 [`precomputed_store.md`](precomputed_store.md). Schema 3 stores compact geometry,
 standard-profile edges, and chain annotations, not coordinates or detailed
 atom-pair CSVs. It therefore rejects detailed interaction export and enforces
@@ -240,6 +237,70 @@ detect the structure they are reading. The `config` object mirrors the relevant
 runtime settings from the internal `run_summary.json`, which lets a web UI show
 the exact defaults or advanced settings used for a job.
 
+The four network projections and their model restrictions are described in the
+[README](../README.md#what-the-four-network-outputs-mean). Cross-file `identity`
+links carry zero geometric contact count; they still contribute to the number
+of exported edges in artifact metadata. Summary schema and count fields are
+unchanged. Interpret contact analyses using the edge type, not merely a positive
+or zero weight.
+
+### File exclusions and result status
+
+Search timeouts are operational errors, not excludable input-file problems.
+The optional `sequence_search_timeout_seconds` is recorded in the existing
+runtime config snapshot; it does not change contract versions or the scientific
+store profile. A search timeout uses the existing failed-run/diagnostic path.
+An interrupted folder-based run reports `RUN_INTERRUPTED`; the CLI exits 130
+for user interruption. No successful subset is released for these failures.
+
+Raw-file runs may successfully produce results for a subset of the submitted
+files. An explicitly recognized content failure produces one warning with code
+`INPUT_FILE_SKIPPED`; its message contains the filename, original cause code,
+explanation and correction advice. The messages use public file labels, not
+server paths. No additional full structure-parsing pass is performed.
+
+`MISSING_CHAIN_ID` identifies an empty or whitespace-only chain identifier in
+a selected model. The entire file is omitted, including its named chains; the
+message asks the user to correct the identifiers or export the structure again.
+The existing model selection applies (`first` ignores later models). This cause
+uses the ordinary `INPUT_FILE_SKIPPED` warning and needs no adapter-specific
+classification or additional UI. An offline `precompute` failure with this
+code still prevents final manifest publication.
+
+Q01 uses the same fields for `INVALID_ATOM_OCCUPANCY` and
+`AMBIGUOUS_ATOM_IDENTITY` file exclusions. If other chains remain usable,
+`CHAIN_WITHOUT_CONTACT_ATOMS` describes the omitted chain and model in an
+ordinary warning; the file still counts as analyzed. Display that warning with
+the existing warning list, without counting it as an omitted file. Explicit
+zero occupancy and excluded ligands do not individually produce warnings;
+missing occupancy is accepted silently. Contact and CSV semantics are described
+in the [README](../README.md). CSV columns and public contracts are unchanged.
+
+| Outcome | CLI / Core summary | Adapter interpretation |
+| --- | --- | --- |
+| All inputs analyzed | Exit 0, `success` | Completed; display any other warnings. |
+| Usable subset analyzed | Exit 0, `success`, `INPUT_FILE_SKIPPED` warnings | Completed with exclusions; show the counts and complete file report prominently. |
+| No usable inputs or global failure | Nonzero exit, `failed` | No results released; show diagnostics when available. |
+
+On a successful raw run, `input_files`, `identities`, `structure_inputs` and
+`counts.structures` describe only analyzed files. `resources.input.files` is the
+original submitted count; analyzed files plus exclusion warnings must equal
+that count. Combined networks describe only the analyzed subset. A zero exit
+code alone does not establish dataset completeness.
+
+Failed summaries retain any file-exclusion warnings already collected, alongside
+the global error, with no downloadable networks or interaction tables. After
+a global interruption, the file report need not cover inputs not yet processed.
+Adapters must validate a failed summary before retaining it, remove partial
+result artifacts, and distinguish a diagnostic-report download from a successful
+result download. Display warnings as escaped text; do not parse their message
+strings as structured fields or rebuild Core's error classification in Web.
+
+The Core output schema and CLI contract versions remain unchanged. The Web
+adapter must nevertheless support exclusion feedback before this raw-run
+behavior is enabled; a version handshake alone does not verify that UI behavior.
+These rules do not enable partial `assemble` results or partial store publication.
+
 ## Web UI Settings Model
 
 The recommended webserver model is:
@@ -250,10 +311,11 @@ The recommended webserver model is:
 - write validated values into a per-job JSON config
 - pass that config with `--config <job>/pdb2net_config.json`
 
-For upload jobs, expose the embedded NextGen tooltip fields as a validated
-allowlist: UniProt on by default, with Pfam, CATH, and SCOP2 opt-in. Hide that
-selector for server PDB-ID jobs because the Core-only archive is intentionally
-not an enriched NextGen mirror. Other useful advanced settings are
+Expose embedded tooltip fields through a validated allowlist. Their usefulness
+depends on annotations in the supplied structures or selected store generation;
+Core does not prescribe a particular archive or application selector. The
+default is UniProt, with Pfam, CATH and SCOP2 available as additional fields.
+Other useful advanced settings are
 distance/contact thresholds, selected network types, detailed interaction
 export, and the optional DIAMOND/UniRef90 fallback.
 Do not pass arbitrary user-provided shell strings to PDB2Net. Keep reference
@@ -266,5 +328,7 @@ data paths, DIAMOND database paths, and executable paths server-controlled.
 - Do not require Cytoscape for automated jobs.
 - Treat non-zero process exit as a failed job, then inspect
   `outputs/summary.json` or the internal `run_summary.json` when present.
+- For exit 0, inspect warnings as well as status; expose excluded inputs instead
+  of presenting the analyzed subset as a complete submitted dataset.
 - Keep large reference datasets, BLAST databases, and DIAMOND databases outside
   git.

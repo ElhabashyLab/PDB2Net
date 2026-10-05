@@ -312,6 +312,7 @@ def precompute_sources(store: Path | str, paths: Sequence[Path]) -> dict[str, An
         "failed": 0,
         "entries": [],
         "errors": [],
+        "warnings": [],
     }
 
     raw_paths = [Path(path).expanduser() for path in paths]
@@ -477,6 +478,13 @@ def precompute_sources(store: Path | str, paths: Sequence[Path]) -> dict[str, An
                     maximum_expanded_bytes=maximum_expanded_bytes,
                     errors_by_path=parse_errors,
                 )
+                for structure in batch_data:
+                    report["warnings"].extend(structure.get("input_warnings", []))
+                    if not structure.get("atom_data"):
+                        parse_errors[structure["file_path"]] = InputValidationError(
+                            "NO_VALID_CHAINS", "No supported chains have usable heavy contact atoms."
+                        )
+                batch_data = [structure for structure in batch_data if structure.get("atom_data")]
                 for path, exc in sorted(
                     parse_errors.items(),
                     key=lambda item: identities_by_path[item[0]].canonical_id,
@@ -491,6 +499,8 @@ def precompute_sources(store: Path | str, paths: Sequence[Path]) -> dict[str, An
                             "message": str(exc)[:500],
                         }
                     )
+                if not batch_data:
+                    continue
                 process_molecule_info(batch_data, pdb_fasta_headers=pdb_fasta_headers)
                 pipeline._run_blast_annotation(batch_data)
                 batch_edges = calculate_distances_with_ckdtree(batch_data)

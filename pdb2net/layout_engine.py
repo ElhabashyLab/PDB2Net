@@ -66,7 +66,9 @@ def calculate_python_fast_layout(
             target = str(edge["target"])
             if source == target:
                 continue
-            weight = float(edge.get("all_atoms_count", 1.0))
+            # Preserve the established identity-link attraction independently
+            # of the exported geometric contact count (zero for identity).
+            weight = 1000.0 if edge.get("interaction") == "identity" else float(edge.get("all_atoms_count", 1.0))
             weight = 1.0 + math.log10(max(1.0, weight))
             graph.add_edge(source, target, weight=weight)
 

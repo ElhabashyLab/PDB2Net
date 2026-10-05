@@ -32,6 +32,7 @@
   },
   "combined_graph_limits": { "max_nodes": null, "max_edges": null },
   "reference_manifest_id": "",
+  "sequence_search_timeout_seconds": null,
   "layout_mode": "python_fast",
   "blast": {
     "max_target_seqs_default": 50,

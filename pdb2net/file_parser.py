@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Mapping, Optional
 
 import gemmi
 
+from .atom_metadata import occupancy_overrides
 from .config_loader import config
 from .input_contract import InputValidationError
 from .network_annotations import extract_embedded_annotations
@@ -502,7 +503,7 @@ def resolve_structure_identity(
         if extension in {".cif", ".mmcif"}:
             try:
                 document = gemmi.cif.read_string(text)
-            except Exception:
+            except (RuntimeError, ValueError):
                 document = None
             if document is not None and len(document) != 1:
                 raise InputValidationError(
@@ -646,27 +647,32 @@ def parse_structure_input(
                     f"mmCIF input must contain exactly one data block: {Path(file_path).name}",
                 )
             block = document[0]
-            embedded = extract_embedded_annotations(block)
             structure = gemmi.make_structure_from_block(block)
             input_format = "mmcif"
         else:
             structure = gemmi.read_pdb_string(text)
             input_format = "pdb"
-        # Match read_structure(): one author chain per model, retaining all parts.
-        structure.merge_chain_parts()
     except InputValidationError:
         raise
-    except Exception as exc:
+    except (RuntimeError, ValueError) as exc:
         code = "INVALID_MMCIF_INPUT" if extension in {".cif", ".mmcif"} else "INVALID_PDB_INPUT"
         raise InputValidationError(code, f"Cannot parse structure input: {Path(file_path).name}") from exc
 
+    # Only Gemmi syntax/content failures above are file-local. Errors in our
+    # annotation/extraction code or memory allocation must abort the run.
+    if block is not None:
+        embedded = extract_embedded_annotations(block)
+    # Match read_structure(): one author chain per model, retaining all parts.
+    structure.merge_chain_parts()
     identity, warnings, claims = resolve_structure_identity(file_path, text=text, block=block)
     structure.setup_entities()
+    occupancies = occupancy_overrides(structure, text=text, block=block, file_path=file_path)
     after = input_file_signature(file_path)
     if after != before or (expected_signature is not None and after != expected_signature):
         _raise_changed(file_path)
     return {
         "structure": structure,
+        "atom_occupancies": occupancies,
         "structure_identity": identity.as_dict(),
         "identity_warnings": warnings,
         "identity_claims": claims,

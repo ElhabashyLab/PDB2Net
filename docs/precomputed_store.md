@@ -16,6 +16,12 @@ missing ID fails with `PRECOMPUTED_ENTRY_MISSING`.
 
 ## Fixed profile
 
+Scientific pipeline v4 records polymer-role/type-based lengths (F06/F07).
+Modified nucleotides now contribute to `nt_len`, while nonpolymer amino acids
+no longer inflate `aa_len`. Schema 3, parser v5, interaction v2 and annotation v5
+are unchanged; sequence-search caches are unaffected. Existing v3-profile
+entries are incompatible because they may contain incorrect stored lengths.
+
 One store contains exactly one complete profile. The profile fingerprint covers:
 
 - artifact schema 3 and the current scientific, parser, interaction, and
@@ -37,6 +43,40 @@ residue interaction export is unavailable during assembly.
 The parser fingerprint includes merging noncontiguous author-chain parts within
 each model. Entries from a different parser fingerprint are incompatible and
 are not reused, including during retries of unpublished builds.
+
+Parser fingerprint v5 and interaction fingerprint v2 additionally record Q01:
+protein/DNA/RNA polymer heavy atoms only, explicit zero occupancy excluded,
+unknown occupancy retained, and one contact per atom-site pair across all
+eligible alternatives. Stores built with parser v4 or interaction v1 are rejected
+and require an offline rebuild in a new directory. Schema 3 and annotation v5
+remain unchanged. This contact change does not invalidate sequence-search caches.
+Raw altloc/occupancy metadata is not added to compact entries.
+
+Q02 changes only the reported count of cross-file identity links to zero while
+preserving their layout attraction. Those links are generated at export and
+are absent from stored geometry. Existing Q01-compatible entries can therefore
+be assembled with the corrected exporter without rebuilding the store. Existing
+CX2 exports need regeneration to receive the corrected identity count.
+
+Offline build reports and CLI stderr include input warnings such as
+`CHAIN_WITHOUT_CONTACT_ATOMS`. Keep the build log with the store's scientific
+provenance; these source diagnostics are not stored in compact entries and are
+not recreated during `assemble`. A source with no usable contact chains fails
+its entry and prevents publication. A valid chain without contacts is allowed.
+
+The annotation fingerprint also distinguishes the correction that prevents
+AlphaFold-style filenames from overriding resolved structure identity,
+nucleic-acid type or explicit SIFTS ambiguity. Stores using the earlier
+annotation fingerprint are rejected and must be rebuilt offline in a new
+directory; the schema remains 3. Direct AlphaFold assignments are not stored in
+the sequence-search cache, so this correction does not invalidate BLAST hits.
+
+Annotation fingerprint v5 additionally records polymer-only fallback sequences
+and residue-based molecule typing. Earlier profiles, including v4, must likewise
+be rebuilt offline. Residue-role metadata is internal to raw processing and is
+not added to the compact store schema. The sequence-search policy is unchanged:
+a corrected query gets a different existing sequence cache key; an identical
+query against the same database/policy may still reuse its cached result.
 
 ## Layout and publication
 

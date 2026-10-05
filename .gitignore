@@ -47,3 +47,6 @@ uniref*.fasta
 uniref*.fasta.gz
 
 pdb2net/configs/config.local.json
+
+# Local work notes and backups; never part of the published source tree.
+/.local-notes/

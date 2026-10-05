@@ -213,7 +213,7 @@ def create_cytoscape_network(
     unique_nodes = set()
     edges = []
     for entry in results:
-        if entry.get("all_atoms_count", 0) > 0:
+        if entry.get("interaction_type") == "identity" or entry.get("all_atoms_count", 0) > 0:
             a, b = entry["chain_a"], entry["chain_b"]
             unique_nodes.add(a)
             unique_nodes.add(b)
@@ -431,7 +431,7 @@ def generate_nodes_from_atom_data(atom_data, pdb_id=None):
         if "aa_len" in chain or "nt_len" in chain:
             return int(chain.get("aa_len", 0)), int(chain.get("nt_len", 0))
         return count_polymer_lengths(
-            (res.get("residue_name") for res in chain.get("residues") or [])
+            chain.get("residues") or []
         )
 
     nodes = []

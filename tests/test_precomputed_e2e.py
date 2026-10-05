@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gzip
+import hashlib
 import json
 from pathlib import Path
 
@@ -14,18 +15,22 @@ from pdb2net.config_loader import config
 from pdb2net.input_contract import InputValidationError
 
 
-def _mini_pdb_text() -> str:
+def _mini_pdb_text(alternatives=False) -> str:
     lines = ["HEADER    MINI PRECOMPUTED TEST                 01-JAN-00   1ABC\n"]
     serial = 1
     for chain, y in (("A", 0.0), ("B", 1.0)):
         for residue in range(1, 11):
             x = (residue - 1) * 3.8
-            lines.append(
-                f"ATOM  {serial:5d}  CA  ALA {chain}{residue:4d}    "
-                f"{x:8.3f}{y:8.3f}{0.0:8.3f}  1.00 20.00           C  \n"
-            )
-            serial += 1
+            for alt, offset, occupancy in ([("A", 0., .8), ("B", .2, .2)] if alternatives else [(" ", 0., 1.)]):
+                lines.append(
+                    f"ATOM  {serial:5d}  CA {alt}ALA {chain}{residue:4d}    "
+                    f"{x + offset:8.3f}{y:8.3f}{0.0:8.3f}{occupancy:6.2f} 20.00           C  \n"
+                )
+                serial += 1
         lines.append("TER\n")
+        if alternatives:
+            lines.append(f"HETATM{serial:5d}  O   HOH {chain}{101:4d}    {0.:8.3f}{y:8.3f}{0.:8.3f}  1.00 20.00           O  \n")
+            serial += 1
     lines.append("END\n")
     return "".join(lines)
 
@@ -62,19 +67,20 @@ def _network_view(path: Path) -> tuple[list[dict], list[dict]]:
     return normalized_nodes, normalized_edges
 
 
+@pytest.mark.parametrize("alternatives", [False, True])
 def test_real_gemmi_to_store_to_headless_cx2_matches_raw_pipeline(
-    tmp_path: Path, monkeypatch
+    tmp_path: Path, monkeypatch, alternatives
 ) -> None:
     references = tmp_path / "references"
     references.mkdir()
     pdb_fasta = references / "pdb_seqres.txt"
     pdb_fasta.write_text(
-        ">1abc_A mol:protein length:10 Chain Alpha\nAAAAAAAAAA\n"
-        ">1abc_B mol:protein length:10 Chain Beta\nGGGGGGGGGG\n",
+        "".join(f">{pdb}_A mol:protein length:10 Chain Alpha\nAAAAAAAAAA\n"
+                f">{pdb}_B mol:protein length:10 Chain Beta\nGGGGGGGGGG\n" for pdb in ("1abc", "2xyz")),
         encoding="utf-8",
     )
     sifts = references / "pdb_chain_uniprot.tsv"
-    sifts.write_text("1abc\tA\tP12345\n1abc\tB\tQ99999\n", encoding="utf-8")
+    sifts.write_text("".join(f"{pdb}\tA\tP12345\n{pdb}\tB\tQ99999\n" for pdb in ("1abc", "2xyz")), encoding="utf-8")
     uniprot = references / "uniprot_sprot.fasta"
     uniprot.write_text(
         ">sp|P12345|PROTA Protein Alpha\nAAAAAAAAAA\n"
@@ -82,11 +88,14 @@ def test_real_gemmi_to_store_to_headless_cx2_matches_raw_pipeline(
         encoding="utf-8",
     )
 
-    archive = tmp_path / "archive" / "divided" / "pdb" / "ab"
-    archive.mkdir(parents=True)
-    source = archive / "pdb1abc.ent.gz"
-    with gzip.open(source, "wt", encoding="utf-8") as handle:
-        handle.write(_mini_pdb_text())
+    sources = []
+    for pdb in ("1abc", "2xyz"):
+        archive = tmp_path / "archive" / "divided" / "pdb" / pdb[1:3]
+        archive.mkdir(parents=True)
+        source = archive / f"pdb{pdb}.ent.gz"
+        with gzip.open(source, "wt", encoding="utf-8") as handle:
+            handle.write(_mini_pdb_text(alternatives).replace("1ABC", pdb.upper()))
+        sources.append(source)
 
     monkeypatch.setitem(config, "pdb_fasta_path", str(pdb_fasta))
     monkeypatch.setitem(config, "sifts_tsv_path", str(sifts))
@@ -102,7 +111,7 @@ def test_real_gemmi_to_store_to_headless_cx2_matches_raw_pipeline(
         {
             "chain_per_pdb": True,
             "protein_per_pdb": False,
-            "combined_chain_network": False,
+            "combined_chain_network": True,
             "combined_protein_network": False,
         },
     )
@@ -141,11 +150,11 @@ def test_real_gemmi_to_store_to_headless_cx2_matches_raw_pipeline(
 
     raw_output = tmp_path / "raw-output"
     monkeypatch.setitem(config, "output_path", str(raw_output))
-    raw_run = pipeline.run_pipeline([str(source)])
+    raw_run = pipeline.run_pipeline([str(source) for source in sources])
 
     cache_root = tmp_path / "precomputed"
     report = store.precompute_directory(cache_root, tmp_path / "archive", recursive=True)
-    assert report["written"] == 1
+    assert report["written"] == 2
     assert report["failed"] == 0
 
     cached = store.load_entry(cache_root, "1abc")
@@ -153,16 +162,28 @@ def test_real_gemmi_to_store_to_headless_cx2_matches_raw_pipeline(
     cached_structure, cached_interactions, _references = materialize_entry(cached)
     assert all("residues" not in chain for chain in cached_structure["atom_data"])
     assert cached_interactions[0]["ca_neighbors"] >= 10
+    # Ten corresponding sites and eighteen adjacent sites are <= 5 A.
+    assert cached_interactions[0]["all_atoms_count"] == 28
 
     assembled_output = tmp_path / "assembled-output"
     monkeypatch.setitem(config, "output_path", str(assembled_output))
-    assembled_run = store.run_assemble_pipeline(cache_root, ["1ABC"])
+    before = {p.relative_to(cache_root): hashlib.sha256(p.read_bytes()).hexdigest()
+              for p in cache_root.rglob("*") if p.is_file()}
+    assembled_run = store.run_assemble_pipeline(cache_root, ["1ABC", "2XYZ"])
+    assert before == {p.relative_to(cache_root): hashlib.sha256(p.read_bytes()).hexdigest()
+                      for p in cache_root.rglob("*") if p.is_file()}
 
     raw_network = Path(raw_run.chain_dir) / "Chain_Interaction_Network_1ABC.cx2"
     assembled_network = Path(assembled_run.chain_dir) / "Chain_Interaction_Network_1ABC.cx2"
     assert raw_network.is_file()
     assert assembled_network.is_file()
     assert _network_view(raw_network) == _network_view(assembled_network)
+    raw_combined, = Path(raw_run.combined_dir).glob("*.cx2")
+    assembled_combined, = Path(assembled_run.combined_dir).glob("*.cx2")
+    assert _network_view(raw_combined) == _network_view(assembled_combined)
+    _, edges = _network_view(assembled_combined)
+    assert sorted(e["all_atoms_count"] for e in edges if e["interaction"] == "identity") == [0, 0]
+    assert sorted(e["all_atoms_count"] for e in edges if e["interaction"] != "identity") == [28, 28]
 
     with pytest.raises(InputValidationError) as error:
         store.precompute_directory(cache_root, tmp_path / "archive", recursive=True)

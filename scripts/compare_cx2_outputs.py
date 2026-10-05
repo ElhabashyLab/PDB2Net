@@ -25,14 +25,27 @@ ANNOTATION_FIELDS = [
     "node_color",
 ]
 
+# Compare biological identity and annotation provenance, not file-system labels.
+# source_file/source_files differ legitimately between raw and assembled runs.
+SCIENTIFIC_NODE_FIELDS = frozenset(ANNOTATION_FIELDS) | {
+    "molecule_name", "aa_len", "nt_len", "node_kind", "pdb_count",
+    "pdb_id", "pdb_ids", "chain_id", "source_chains", "model_index",
+    "matched_database", "matched_id", "representative_accession",
+    "embedded_annotation_source", "embedded_uniprot_status",
+    "embedded_uniprot_accessions",
+}
+
 EDGE_VALUE_FIELDS = [
     "interaction",
     "interaction_type",
     "weight",
     "all_atoms_count",
     "ca_count",
+    "ca_neighbors",
     "nn_count",
     "count",
+    "model_index",
+    "structure_key",
 ]
 
 STYLE_DEFAULT_PROPERTIES = {
@@ -357,6 +370,7 @@ def _apply_layout_aspects(
 def extract_canonical_network(cx2_data: Any) -> dict[str, Any]:
     """Extract a canonical semantic representation from CX2 JSON data."""
     aspects = _as_aspect_map(cx2_data)
+    validation_errors: list[str] = []
 
     node_attrs_by_raw_id: dict[str, dict[str, Any]] = {}
     edge_attrs_by_raw_id: dict[str, dict[str, Any]] = {}
@@ -369,9 +383,15 @@ def extract_canonical_network(cx2_data: Any) -> dict[str, Any]:
 
     for record in aspects.get("nodes", []):
         if not isinstance(record, dict):
+            validation_errors.append("Node record must be an object")
             continue
-        raw_id = str(record.get("id", record.get("@id", "")))
-        if not raw_id:
+        identifier = record.get("id", record.get("@id"))
+        if identifier is None or str(identifier) == "":
+            validation_errors.append("Node record has no ID")
+            continue
+        raw_id = str(identifier)
+        if raw_id in raw_to_stable:
+            validation_errors.append(f"Duplicate node ID: {raw_id!r}")
             continue
         attrs = _attrs_from_record(record)
         attrs.update(node_attrs_by_raw_id.get(raw_id, {}))
@@ -388,6 +408,9 @@ def extract_canonical_network(cx2_data: Any) -> dict[str, Any]:
         tooltip = _stringify(attrs.get("tooltip"))
         stable_id = _node_stable_id(raw_id, attrs)
         raw_to_stable[raw_id] = stable_id
+        if stable_id in nodes:
+            validation_errors.append(f"Duplicate semantic node ID: {stable_id!r}")
+            continue
         nodes[stable_id] = {
             "id": stable_id,
             "raw_id": raw_id,
@@ -416,10 +439,16 @@ def extract_canonical_network(cx2_data: Any) -> dict[str, Any]:
     }
 
     edges: dict[str, dict[str, Any]] = {}
+    edge_ids: set[str] = set()
     for record in aspects.get("edges", []):
         if not isinstance(record, dict):
+            validation_errors.append("Edge record must be an object")
             continue
         raw_id = str(record.get("id", record.get("@id", "")))
+        if raw_id:
+            if raw_id in edge_ids:
+                validation_errors.append(f"Duplicate edge ID: {raw_id!r}")
+            edge_ids.add(raw_id)
         attrs = _attrs_from_record(record)
         if raw_id:
             attrs.update(edge_attrs_by_raw_id.get(raw_id, {}))
@@ -427,12 +456,19 @@ def extract_canonical_network(cx2_data: Any) -> dict[str, Any]:
         source_raw = record.get("s", record.get("source"))
         target_raw = record.get("t", record.get("target"))
         if source_raw is None or target_raw is None:
+            validation_errors.append(f"Edge {raw_id!r} has a missing endpoint")
             continue
-        source = raw_to_stable.get(str(source_raw), str(source_raw))
-        target = raw_to_stable.get(str(target_raw), str(target_raw))
+        if str(source_raw) not in raw_to_stable or str(target_raw) not in raw_to_stable:
+            validation_errors.append(f"Edge {raw_id!r} references an unknown node")
+            continue
+        source = raw_to_stable[str(source_raw)]
+        target = raw_to_stable[str(target_raw)]
         interaction = _edge_interaction(attrs)
         a, b = sorted([source, target])
         key = f"{a} -- {b} [{interaction}]"
+        if key in edges:
+            validation_errors.append(f"Duplicate semantic edge: {key!r}")
+            continue
         edges[key] = {
             "key": key,
             "source": a,
@@ -458,6 +494,7 @@ def extract_canonical_network(cx2_data: Any) -> dict[str, Any]:
         "positions": dict(sorted(positions.items())),
         "styles": _extract_visual_properties(aspects),
         "style_semantics": _extract_style_semantics(aspects),
+        "validation_errors": validation_errors,
     }
 
 
@@ -533,8 +570,6 @@ def compute_layout_metrics(canonical_network: dict[str, Any], overlap_threshold:
 def _field_status(actual_value: Any, expected_value: Any) -> str:
     if actual_value == expected_value:
         return "PASS"
-    if actual_value is None or expected_value is None:
-        return "WARN"
     return "FAIL"
 
 
@@ -611,6 +646,11 @@ def compare_networks(actual: dict[str, Any], expected: dict[str, Any]) -> dict[s
         "style_differences": [],
         "layout_warnings": [],
     }
+    for label, network in (("Actual", actual), ("Expected", expected)):
+        result["failures"].extend(
+            f"{label} graph is invalid: {error}"
+            for error in network.get("validation_errors", [])
+        )
 
     actual_nodes = set(actual["nodes"])
     expected_nodes = set(expected["nodes"])
@@ -624,15 +664,27 @@ def compare_networks(actual: dict[str, Any], expected: dict[str, Any]) -> dict[s
     for node_id in sorted(actual_nodes & expected_nodes):
         actual_node = actual["nodes"][node_id]
         expected_node = expected["nodes"][node_id]
-        for field in ANNOTATION_FIELDS:
-            status = _field_status(actual_node.get(field), expected_node.get(field))
+        actual_attrs = actual_node.get("attributes", {})
+        expected_attrs = expected_node.get("attributes", {})
+        fields = set(ANNOTATION_FIELDS) | {
+            field for field in actual_attrs.keys() | expected_attrs.keys()
+            if field in SCIENTIFIC_NODE_FIELDS or field.startswith("annotation_")
+        }
+        for field in sorted(fields):
+            # Inspect explicit attributes before tooltip fallbacks so a deleted
+            # annotation cannot be hidden by matching human-readable text.
+            if field in actual_attrs or field in expected_attrs:
+                actual_value, expected_value = actual_attrs.get(field), expected_attrs.get(field)
+            else:
+                actual_value, expected_value = actual_node.get(field), expected_node.get(field)
+            status = _field_status(actual_value, expected_value)
             if status == "PASS":
                 continue
             diff = {
                 "node": node_id,
                 "field": field,
-                "actual": actual_node.get(field),
-                "expected": expected_node.get(field),
+                "actual": actual_value,
+                "expected": expected_value,
                 "status": status,
             }
             result["node_differences"].append(diff)
@@ -719,7 +771,12 @@ def compare_networks(actual: dict[str, Any], expected: dict[str, Any]) -> dict[s
 
 
 def _find_cx2_files(root: Path) -> dict[Path, Path]:
-    return {path.relative_to(root): path for path in sorted(root.rglob("*.cx2"))}
+    if not root.is_dir():
+        raise ValueError(f"CX2 comparison requires an existing directory: {root}")
+    files = {path.relative_to(root): path for path in sorted(root.rglob("*.cx2")) if path.is_file()}
+    if not files:
+        raise ValueError(f"No CX2 files found in comparison directory: {root}")
+    return files
 
 
 def _match_directory_files(actual_root: Path, expected_root: Path) -> dict[str, Any]:
@@ -985,7 +1042,10 @@ def main() -> int:
             write_json_report(report, args.json_out)
         return 0
 
-    report = compare_directories(args.actual, args.expected, args.overlap_threshold)
+    try:
+        report = compare_directories(args.actual, args.expected, args.overlap_threshold)
+    except (ValueError, OSError) as exc:
+        parser.error(str(exc))
     report["mode"] = "compare"
     write_markdown_report(report, args.out)
     if args.json_out:

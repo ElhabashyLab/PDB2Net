@@ -7,6 +7,14 @@ as current compatibility requirements.
 
 ## v0.2.0-rc5 - Unreleased
 
+- Include 23 frozen real structures and authentic mini-references in the
+  default test suite, with independent scientific expectations and strict
+  input hashes.
+- Correct F06/F07 lengths using existing residue polymer roles and types:
+  include modified nucleotides and exclude nonpolymer amino acids. Keep legacy
+  name-based calls, contact rules, sequence annotation and public schemas;
+  scientific store profile v4 distinguishes corrected lengths. The three
+  real-file length regressions now pass normally.
 - Replace the unreleased capability schema 2 semantic snapshot with the small,
   configuration-free capability schema 3 document.
 - Publish CLI contract 2 and web-output contract 2.0.
@@ -24,6 +32,41 @@ as current compatibility requirements.
 - Reuse one bounded source inventory during offline precompute and isolate
   invalid sources so completed entries remain available for unpublished-store
   retries while global input limits and manifest-last publication stay strict.
+- Preserve authoritative structure identities, annotation ambiguity, and
+  nucleic-acid types when considering direct AlphaFold accession assignment.
+- Derive fallback sequences and residue-based molecule types from observed
+  polymer residues; retain modified residues.
+  Annotation fingerprint v5 rejects older precomputed annotations.
+- Preserve residue insertion codes in the existing detailed CSV labels, and
+  reject non-Boolean `diamond.enabled` values before invoking search tools.
+- Strengthen scientific CX2 comparison and standard-suite coverage of distance
+  boundaries, model separation, and the checked-in real NextGen fixture.
+- Continue raw runs past explicitly recognized per-file content failures,
+  recording every exclusion and retaining correct subset counts. Failed runs
+  retain file diagnostics without publishing results; global/integrity failures
+  remain fatal. No additional full parsing pass or public contract version change.
+- Restrict contacts to protein/DNA/RNA polymer heavy atoms, including modified
+  residues; omit explicit zero occupancy and retain unknown occupancy silently.
+  Count each atom-site pair once across eligible alternatives and export its
+  minimum distance once in CSV. Thresholds and model separation are unchanged.
+  Diagnose chains without contact atoms and invalid contact metadata through
+  existing reports. Parser fingerprint v5 / interaction fingerprint v2 require
+  offline store rebuilds; public schemas and annotation/search policy are unchanged.
+- Report cross-file identity links with zero geometric contact count while
+  preserving their topology, style and `python_fast` layout strength. Clarify
+  the four network projections, aggregation limits and supplied-coordinate scope;
+  preserve model separation and the existing restrictions on all-model outputs.
+- Reject invalid or empty CX2 comparison roots so the regression tool cannot
+  report PASS without comparing files. Preserve valid empty-graph comparisons.
+- Document immutable reference generations per process and test fresh-process
+  annotation and search-cache separation without changing reference loading.
+- Add an optional per-process sequence-search timeout (disabled by default),
+  coordinated cancellation and cleanup for native BLASTP/DIAMOND processes,
+  and CLI exit 130 with failed raw-run reporting on user interruption.
+- Report empty chain identifiers in selected models as `MISSING_CHAIN_ID`
+  file exclusions, allowing valid files in a mixed raw run to finish. Keep
+  whole-file rejection, model selection and strict offline store publication;
+  do not invent chain names or change scientific/store fingerprints.
 
 ## v0.2.0-rc4 - 2026-08-26
 

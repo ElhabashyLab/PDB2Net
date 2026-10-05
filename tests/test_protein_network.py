@@ -1,5 +1,11 @@
 from pdb2net import protein_network
 from pdb2net.protein_network import create_protein_network
+from pdb2net import pipeline
+from pdb2net.config_loader import config
+from pdb2net.outputs import _cx2_counts
+from pdb2net.structure_identity import identity_from_official_id
+
+import json
 
 import pytest
 
@@ -22,6 +28,75 @@ def _dna_chain(chain_id: str) -> dict:
         "uniprot_id": None,
         "residues": [{"residue_name": "DA"}, {"residue_name": "DT"}],
     }
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_four_export_views_preserve_their_declared_scientific_scope(tmp_path, monkeypatch, reverse):
+    """Hand-counted aggregation after annotation, through actual validated CX2."""
+    monkeypatch.setitem(config, "open_in_cytoscape", False)
+    monkeypatch.setitem(config, "layout_mode", "python_fast")
+    monkeypatch.setitem(config, "structure_model_policy", "first")
+    rna = {**_dna_chain("E"), "molecule_type": "RNA"}
+    structures = []
+    for pdb_id, chains in [
+        ("1ABC", [_protein_chain("A", "P12345"), _protein_chain("B", "P12345"),
+                  _protein_chain("C", "Q99999"), _dna_chain("D"), rna, _protein_chain("U", None)]),
+        ("2XYZ", [_protein_chain("A", "P12345"), _protein_chain("B", "Q99999")]),
+        ("3ABC", [_protein_chain("A", "O12345")]),
+    ]:
+        for c in chains:
+            c["unique_chain_id"] = f"{pdb_id}:{c['chain_id']}"
+        structures.append({"pdb_id": pdb_id, "file_path": f"{pdb_id}.pdb", "atom_data": chains,
+                           "structure_identity": identity_from_official_id(pdb_id).as_dict()})
+    edges = [{"chain_a": a, "chain_b": b, "all_atoms_count": count, "interaction_type": kind}
+             for a, b, count, kind in [
+                 ("1ABC:A", "1ABC:B", 20, "Protein-Protein"),
+                 ("1ABC:A", "1ABC:C", 5, "Protein-Protein"),
+                 ("1ABC:B", "1ABC:C", 7, "Protein-Protein"),
+                 ("1ABC:B", "1ABC:D", 4, "Protein-DNA"),
+                 ("1ABC:B", "1ABC:U", 2, "Protein-Protein"),
+                 ("1ABC:D", "1ABC:E", 3, "DNA-RNA"),
+                 ("2XYZ:A", "2XYZ:B", 9, "Protein-Protein"),
+             ]]
+    if reverse:
+        structures.reverse()
+        edges.reverse()
+    pipeline._export_chain_networks(structures, edges, str(tmp_path / "chain"))
+    pipeline._create_linked_identity_network(edges, structures, str(tmp_path / "linked"))
+    create_protein_network(edges, structures, str(tmp_path / "protein"),
+                           {"protein_per_pdb": True, "combined_protein_network": True})
+    exported = {}
+    for path in tmp_path.rglob("*.cx2"):
+        _cx2_counts(path)
+        aspects = {key: value for block in json.loads(path.read_text()) for key, value in block.items()}
+        names = {n["id"]: n["v"]["name"].split("\n")[0] for n in aspects["nodes"]}
+        pairs = {(*sorted((names[e["s"]], names[e["t"]])), e["v"]["interaction"]): e["v"]["all_atoms_count"]
+                 for e in aspects["edges"]}
+        exported[path.stem] = set(names.values()), pairs
+    chain_nodes, chain_edges = exported["Chain_Interaction_Network_1ABC"]
+    assert chain_nodes == {f"1ABC:{c}" for c in "ABCDEU"}
+    assert len(chain_edges) == 6
+    assert chain_edges["1ABC:A", "1ABC:B", "Protein-Protein"] == 20
+    assert chain_edges["1ABC:B", "1ABC:U", "Protein-Protein"] == 2
+    assert chain_edges["1ABC:D", "1ABC:E", "DNA-RNA"] == 3
+    assert exported["Protein_Network_1ABC"] == (
+        {"P12345", "Q99999", "1ABC:D"},
+        {("P12345", "Q99999", "interacts_with"): 12, ("1ABC:D", "P12345", "interacts_with"): 4},
+    )
+    assert exported["Combined_Protein_Network_P12345_Q99999"] == (
+        {"P12345", "Q99999"}, {("P12345", "Q99999", "interacts_with"): 21},
+    )
+    linked_nodes, linked_edges = exported["Combined_Network_P12345_Q99999"]
+    assert linked_nodes == chain_nodes | {"2XYZ:A", "2XYZ:B"}
+    assert {key: value for key, value in linked_edges.items() if key[2] != "identity"} == (
+        chain_edges | {("2XYZ:A", "2XYZ:B", "Protein-Protein"): 9}
+    )
+    assert {key: value for key, value in linked_edges.items() if key[2] == "identity"} == {
+        ("1ABC:A", "2XYZ:A", "identity"): 0,
+        ("1ABC:B", "2XYZ:A", "identity"): 0,
+        ("1ABC:C", "2XYZ:B", "identity"): 0,
+    }
+    assert exported["Chain_Interaction_Network_3ABC"] == ({"3ABC:A"}, {})
 
 
 @pytest.mark.parametrize("reverse", [False, True])

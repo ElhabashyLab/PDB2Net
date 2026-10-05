@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 import os
 import platform
 from pathlib import Path
@@ -31,6 +32,23 @@ SERVER_ENVIRONMENT = {
 
 class ConfigError(ValueError):
     """Raised when a requested configuration cannot be loaded or normalized."""
+
+
+def validate_sequence_search_timeout(value: Any) -> int | None:
+    """A runtime bound, deliberately absent from scientific/search profiles."""
+    if value is None:
+        return None
+    if type(value) is int and value > 0:
+        try:
+            if math.isfinite(value):
+                return value
+        except OverflowError:
+            pass
+    raise ConfigError("sequence_search_timeout_seconds must be null or positive whole seconds.")
+
+
+def _search_timeout_from_env(value: str) -> int | None:
+    return None if value.strip().lower() == "null" else int(value)
 
 
 def _verbose_enabled() -> bool:
@@ -163,6 +181,7 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
         "PDB2NET_DIAMOND_ENABLED": ("diamond.enabled", _bool_from_env),
         "PDB2NET_STRUCTURE_MODEL_POLICY": ("structure_model_policy", str),
         "PDB2NET_REFERENCE_MANIFEST_ID": ("reference_manifest_id", str),
+        "PDB2NET_SEQUENCE_SEARCH_TIMEOUT_SECONDS": ("sequence_search_timeout_seconds", _search_timeout_from_env),
         "PDB2NET_USE_EMBEDDED_SIFTS": ("network_annotations.use_embedded_sifts", _bool_from_env),
         "PDB2NET_ANNOTATION_TOOLTIP_FIELDS": (
             "network_annotations.tooltip_fields",
@@ -319,6 +338,9 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
     combined_limits.setdefault("max_nodes", None)
     combined_limits.setdefault("max_edges", None)
     cfg.setdefault("reference_manifest_id", "")
+    cfg["sequence_search_timeout_seconds"] = validate_sequence_search_timeout(
+        cfg.get("sequence_search_timeout_seconds")
+    )
     cfg.setdefault("layout_mode", "python_fast")
     layout_mode = str(cfg["layout_mode"]).strip().lower()
     if layout_mode != "python_fast":
@@ -327,6 +349,8 @@ def _postprocess(cfg: Dict[str, Any], os_key: str) -> None:
     cfg.setdefault("structure_model_policy", "first")
     diamond = _section(cfg, "diamond")
     diamond.setdefault("enabled", False)
+    if not isinstance(diamond["enabled"], bool):
+        raise ConfigError("diamond.enabled must be true or false.")
     diamond.setdefault("executable", "diamond")
     diamond.setdefault("uniref90_db_path", "")
     diamond.setdefault("temp_dir", "")

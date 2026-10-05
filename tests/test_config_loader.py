@@ -9,6 +9,28 @@ import pytest
 from pdb2net import config_loader
 
 
+@pytest.mark.parametrize("value", [0, -1, True, False, 1.5, "30", float("inf"), [], {}])
+def test_search_timeout_rejects_invalid_json_values(tmp_path, monkeypatch, value):
+    monkeypatch.delenv("PDB2NET_SEQUENCE_SEARCH_TIMEOUT_SECONDS", raising=False)
+    explicit = tmp_path / "timeout.json"
+    explicit.write_text(json.dumps({"sequence_search_timeout_seconds": value}))
+    with pytest.raises(config_loader.ConfigError, match="sequence_search_timeout_seconds"):
+        config_loader.load_config(explicit_file=explicit)
+
+
+@pytest.mark.parametrize(("value", "env", "expected"), [
+    (None, None, None), (1, None, 1), (3600, "", 3600),
+    ("invalid", "5", 5), (30, "null", None),
+])
+def test_search_timeout_layers_and_disabled_default(tmp_path, monkeypatch, value, env, expected):
+    monkeypatch.delenv("PDB2NET_SEQUENCE_SEARCH_TIMEOUT_SECONDS", raising=False)
+    if env is not None:
+        monkeypatch.setenv("PDB2NET_SEQUENCE_SEARCH_TIMEOUT_SECONDS", env)
+    explicit = tmp_path / "timeout.json"
+    explicit.write_text(json.dumps({"sequence_search_timeout_seconds": value}))
+    assert config_loader.load_config(explicit_file=explicit)["sequence_search_timeout_seconds"] == expected
+
+
 def _spawned_config_values() -> tuple[str, bool]:
     from pdb2net.config_loader import config
 
@@ -59,6 +81,32 @@ def test_diamond_batch_defaults_are_safe_and_bounded(tmp_path: Path, monkeypatch
     assert diamond["max_target_seqs"] == 50
     assert diamond["batch_max_sequences"] == 5000
     assert diamond["batch_max_fasta_bytes"] == 50 * 1024 * 1024
+
+
+@pytest.mark.parametrize("value", ["false", "true", 0, 1, None, [], {}])
+def test_diamond_enabled_rejects_non_boolean_json(tmp_path, monkeypatch, value):
+    explicit = tmp_path / "diamond.json"
+    explicit.write_text(json.dumps({"diamond": {"enabled": value}}))
+    monkeypatch.delenv("PDB2NET_DIAMOND_ENABLED", raising=False)
+
+    with pytest.raises(config_loader.ConfigError, match=r"diamond\.enabled must be true or false"):
+        config_loader.load_config(explicit_file=explicit)
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_diamond_boolean_validation_preserves_config_precedence(tmp_path, monkeypatch, enabled):
+    lower = tmp_path / "configs"
+    lower.mkdir()
+    (lower / "config.base.json").write_text('{"diamond":{"enabled":"invalid"}}')
+    explicit = tmp_path / "diamond.json"
+    explicit.write_text(json.dumps({"diamond": {"enabled": enabled}}))
+    monkeypatch.setenv("PDB2NET_CONFIG_DIR", str(lower))
+    monkeypatch.delenv("PDB2NET_DIAMOND_ENABLED", raising=False)
+
+    assert config_loader.load_config(explicit_file=explicit)["diamond"]["enabled"] is enabled
+    explicit.write_text('{"diamond":{"enabled":"invalid"}}')
+    monkeypatch.setenv("PDB2NET_DIAMOND_ENABLED", str(enabled).lower())
+    assert config_loader.load_config(explicit_file=explicit)["diamond"]["enabled"] is enabled
 
 
 def test_detailed_interaction_limits_default_to_unbounded_for_standalone_use(

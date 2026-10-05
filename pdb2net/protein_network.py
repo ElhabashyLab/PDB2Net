@@ -69,7 +69,7 @@ def create_protein_network(
         if "aa_len" in chain or "nt_len" in chain:
             return int(chain.get("aa_len", 0)), int(chain.get("nt_len", 0))
         return count_polymer_lengths(
-            (res.get("residue_name") for res in chain.get("residues") or [])
+            chain.get("residues") or []
         )
 
     # --- Collect chain/protein metadata ---

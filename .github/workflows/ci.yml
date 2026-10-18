@@ -37,7 +37,7 @@ jobs:
         run: |
           python -m pip wheel --no-build-isolation --no-deps --wheel-dir /tmp/pdb2net-dist .
           python -m venv /tmp/pdb2net-package-check
-          /tmp/pdb2net-package-check/bin/python -m pip install --no-deps /tmp/pdb2net-dist/*.whl
+          /tmp/pdb2net-package-check/bin/python -m pip install /tmp/pdb2net-dist/*.whl
           cd /tmp
           /tmp/pdb2net-package-check/bin/python -c 'import pdb2net, pathlib; root = pathlib.Path(pdb2net.__file__).parent; assert (root / "configs/config.base.json").is_file(); assert (root / "configs/config.linux.json").is_file(); assert not (root / "configs/config.local.json").exists()'
           /tmp/pdb2net-package-check/bin/pdb2net --version
@@ -48,3 +48,6 @@ jobs:
           /tmp/pdb2net-package-check/bin/pdb2net capabilities --help
           /tmp/pdb2net-package-check/bin/pdb2net capabilities --json > /tmp/pdb2net-capabilities.json
           python -c 'import json; value=json.load(open("/tmp/pdb2net-capabilities.json", encoding="utf-8")); assert value["capabilities_schema_version"] == "3"; assert value["output_contract_version"] == "2.0"; assert value["precomputed_artifact_schema_version"] == "3"; assert "run" in value["commands"]'
+          /tmp/pdb2net-package-check/bin/python -I "$GITHUB_WORKSPACE/scripts/check_installed_pipeline.py" \
+            --fixtures "$GITHUB_WORKSPACE/tests/fixtures/core_reference" \
+            --work-dir /tmp/pdb2net-installed-pipeline

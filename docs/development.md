@@ -60,6 +60,27 @@ and three frozen mini-reference files in `tests/fixtures/core_reference/`:
 .venv/bin/python -m pytest -q -ra
 ```
 
+CI also installs the built wheel and its runtime dependencies into a separate
+environment without the Cytoscape extra. From outside the checkout,
+`scripts/check_installed_pipeline.py` exercises the installed console command
+through `run`, `precompute`, and `assemble` using frozen 4HHB/1BNA inputs.
+Both paths are checked against fixed chain identities, annotations, polymer
+lengths, contact counts and protein aggregation. Raw CSV row counts are also
+checked. Sources and reference copies are removed before assembly; store
+permissions and file hashes enforce the read-only check.
+
+To repeat with an already installed wheel (use a new work directory):
+
+```bash
+cd /tmp
+/path/to/package-venv/bin/python -I /path/to/PDB2Net/scripts/check_installed_pipeline.py \
+  --fixtures /path/to/PDB2Net/tests/fixtures/core_reference \
+  --work-dir /tmp/pdb2net-installed-pipeline
+```
+
+The checker rejects source-tree imports and environments containing
+`py4cytoscape`. This check needs no BLAST database or reference download.
+
 Run only the real cases with `.venv/bin/python -m pytest tests/integration -q -ra`.
 For an explicitly smaller selection, use `-m "not integration"`. Collection and
 non-integration tests do not require BLAST or load the real dataset. Actual real

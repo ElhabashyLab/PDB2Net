@@ -106,7 +106,7 @@ def test_molecule_type_ignores_nonpolymer_residues_including_subtype(polymer, no
     assert chain == original
 
 
-def test_unknown_polymer_residues_remain_x_and_preserve_search_quality_filter(monkeypatch):
+def test_unknown_polymer_residues_remain_x_and_preserve_search_quality_filter(monkeypatch, tmp_path):
     chain = {
         "chain_id": "A", "unique_chain_id": "LOCAL:A", "molecule_type": "Unknown",
         "uniprot_id": None,
@@ -119,15 +119,17 @@ def test_unknown_polymer_residues_remain_x_and_preserve_search_quality_filter(mo
     assert uniprot_matcher.extract_sequence_from_parsed_data(chain) == "AX"
     monkeypatch.setitem(uniprot_matcher.config, "blast", {"max_x_fraction": 0.2})
     monkeypatch.setitem(uniprot_matcher.config, "diamond", {"enabled": False})
+    monkeypatch.setitem(uniprot_matcher.config, "blastp_executable", str(tmp_path / "missing-blastp"))
+    monkeypatch.setitem(uniprot_matcher.config, "blast_db_path", str(tmp_path / "missing-db"))
 
     def no_queries(queries, **_kwargs):
         assert queries == [], "A genuine 50% X polymer sequence must still be excluded"
         return {}
 
     monkeypatch.setattr(uniprot_matcher, "_run_blastp_swissprot_batch", no_queries)
-    uniprot_matcher.parallel_blast_search([{
+    pipeline._run_blast_annotation([{
         "pdb_id": "LOCAL", "file_path": "local.pdb", "atom_data": [chain],
-    }], max_workers=1)
+    }])
     assert chain["molecule_type"] == "Protein"
     assert chain["uniprot_id"] is None
 

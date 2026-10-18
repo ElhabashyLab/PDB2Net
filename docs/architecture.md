@@ -59,6 +59,10 @@ global atom-pair matrix or pair set. Views live only for the current structure.
 Raw residue records remain available for annotation and length computation.
 Gemmi entity role and polymer type select protein/DNA/RNA contact residues;
 when type metadata is absent, Gemmi's inferred polymer role is retained.
+Supported polymer chains also survive initial extraction when all residue names
+are modified. Unambiguous supported polymer types fill only otherwise unknown
+residue-name classifications; reference annotations and determinate name-based
+types retain their precedence.
 H/D are removed upstream. Explicit zero occupancy is excluded; unknown occupancy
 is retained silently. Invalid relevant occupancy and ambiguous identities use
 typed input errors. Chains with no eligible atoms are removed before annotation;

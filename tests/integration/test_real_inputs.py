@@ -147,11 +147,23 @@ def assert_combined_exports(case, filenames, expected):
         if len({nodes[n][0] for n in component}) > 1:
             components.append(component)
     actual = network_set(case)
-    chain_graphs = [exported_weights(v, decorated=True) for k, v in actual.items() if k.startswith("Combined_Network_")]
+    chain_graphs = []
+    actual_identity = set()
+    for name, graph in actual.items():
+        if not name.startswith("Combined_Network_"):
+            continue
+        exported_nodes, weights = exported_weights(graph, decorated=True)
+        bridges = {tuple(sorted((a.split("\n", 1)[0], b.split("\n", 1)[0])))
+                   for a, b, value in graph[1] if json.loads(value)["interaction"] == "identity"}
+        assert all(weights[pair] == 0 for pair in bridges)
+        assert not actual_identity.intersection(bridges)
+        actual_identity.update(bridges)
+        chain_graphs.append((exported_nodes, {p: w for p, w in weights.items() if p not in bridges}))
     protein_graphs = [exported_weights(v, decorated=True) for k, v in actual.items() if k.startswith("Combined_Protein_Network_")]
     assert len(chain_graphs) == len(protein_graphs) == len(components)
     for component in components:
-        contact_edges = {pair: count for pair, count in edges.items() if set(pair) <= component}
+        contact_edges = {pair: count for pair, count in edges.items()
+                         if set(pair) <= component and pair not in identity}
         assert (component, contact_edges) in chain_graphs
         proteins = {nodes[n][1] for n in component if nodes[n][1]}
         totals = Counter()
@@ -160,10 +172,22 @@ def assert_combined_exports(case, filenames, expected):
             if x and y and x != y:
                 totals[tuple(sorted([x, y]))] += count
         assert (proteins, dict(totals)) in protein_graphs
-    actual_identity = {tuple(sorted([a.split("\n", 1)[0], b.split("\n", 1)[0]]))
-                       for name, (_nodes, rows) in actual.items() if name.startswith("Combined_Network_")
-                       for a, b, value in rows if json.loads(value)["interaction"] == "identity"}
-    assert actual_identity == identity
+    # Complete cross-file pairs above define connectivity independently. The
+    # export must instead contain a spanning tree for each shared accession.
+    assert actual_identity <= identity
+    for accession in {up for _filename, up in nodes.values() if up}:
+        group = {node for node, (_filename, up) in nodes.items() if up == accession}
+        if len({nodes[node][0] for node in group}) < 2:
+            continue
+        bridges = {pair for pair in actual_identity if set(pair) <= group}
+        assert len(bridges) == len(group) - 1
+        reached = {min(group)}
+        while True:
+            expanded = reached | {node for pair in bridges if reached.intersection(pair) for node in pair}
+            if expanded == reached:
+                break
+            reached = expanded
+        assert reached == group
 
 
 @pytest.fixture(autouse=True)

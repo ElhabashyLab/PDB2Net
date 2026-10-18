@@ -821,7 +821,7 @@ def test_cache_signature_tracks_every_blast_component_and_reference_manifest(
 
     assert component_changed != baseline
     assert uniprot_matcher._db_signature() != component_changed
-    assert uniprot_matcher._search_policy_payload()["swissprot"]["selection_policy"]["version"] == 2
+    assert uniprot_matcher._search_policy_payload()["swissprot"]["selection_policy"]["version"] == 3
 
 
 def _swissprot_row(accession: str, *, pident: float = 100.0, bitscore: float = 250.0) -> str:

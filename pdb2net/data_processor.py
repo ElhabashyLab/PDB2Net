@@ -2,9 +2,9 @@
 
 This module extracts per-chain residue and atom information from a Gemmi
 Structure object produced earlier in the pipeline. It keeps only non-hydrogen
-atoms (excludes H and D) and flags chains as valid if they contain at least one
-residue from a curated allow-list covering standard protein amino acids and
-canonical nucleic-acid residues.
+atoms (excludes H and D) and retains supported protein/DNA/RNA polymers,
+including chains without any canonical residue names. The historical residue
+allow-list remains available for chains without usable polymer metadata.
 
 Notes
 -----
@@ -25,11 +25,11 @@ from typing import Any, Dict, List
 from .config_loader import config
 from .atom_metadata import atom_key
 from .input_contract import InputValidationError
-from .residue_types import AMINO_ACIDS, DNA_RESIDUES, RNA_RESIDUES, normalize_residue_name
+from .residue_types import AMINO_ACIDS, DNA_RESIDUES, POLYMER_MOLECULE_TYPES, RNA_RESIDUES, normalize_residue_name
 from .structure_identity import ChainIdentity, StructureIdentity
 
 PARSER_SEMANTICS = (
-    "validated-single-document-gemmi-merged-chains-heavy-atoms-no-hydrogen-or-deuterium-v5"
+    "validated-single-document-gemmi-merged-chains-heavy-atoms-no-hydrogen-or-deuterium-v6"
 )
 
 # Set of allowed residue names for proteins and nucleic acids.
@@ -43,7 +43,7 @@ def process_structure(structure_data: Dict[str, Any]) -> Dict[str, Any]:
     Iterates over all models and chains in the Gemmi structure and collects:
     - residues with their residue name, author number/insertion code, and
       non-hydrogen atom coordinates
-    - valid chains (contain at least one residue from `ALLOWED_RESIDUES`)
+    - supported polymer chains, or chains with a recognized residue name
 
     Parameters
     ----------
@@ -156,11 +156,13 @@ def process_structure(structure_data: Dict[str, Any]) -> Dict[str, Any]:
                     if original_res_name != res_name:
                         residue_record["original_residue_name"] = original_res_name
                     residues.append(residue_record)
-                    # Mark chain as valid if it contains at least one allowed residue.
-                    if res_name in ALLOWED_RESIDUES:
+                    if res_name in ALLOWED_RESIDUES or (
+                        residue_record["is_polymer"]
+                        and residue_record["polymer_type"] in POLYMER_MOLECULE_TYPES
+                    ):
                         is_valid_chain = True
 
-            # Emit chain only if it passed the allow-list criterion.
+            # Contact selection subsequently excludes unsupported/empty chains.
             if is_valid_chain:
                 atom_data.append(
                     {

@@ -12,7 +12,7 @@ from .input_contract import InputValidationError
 from .reference_data import is_uniprot_accession
 
 ANNOTATION_DATABASES = ("uniprot", "pfam", "cath", "scop2")
-ANNOTATION_PIPELINE_VERSION = "pdb2net-sifts-fasta-search-annotations-v5"
+ANNOTATION_PIPELINE_VERSION = "pdb2net-sifts-fasta-search-annotations-v6"
 NETWORK_ANNOTATION_RULES = {
     "use_embedded_sifts": {"type": "boolean", "default": True},
     "tooltip_fields": {

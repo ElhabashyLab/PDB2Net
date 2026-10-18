@@ -7,6 +7,18 @@ as current compatibility requirements.
 
 ## v0.2.0-rc5 - Unreleased
 
+- Retain fully modified supported polymer chains and use unambiguous polymer
+  types when residue-name inference is unknown (F08). Preserve determinate
+  name-based types and reference precedence; parser/annotation fingerprints v6
+  distinguish corrected stores.
+- Correct BLAST alignment-span coverage when `qcovs` is unavailable (F09);
+  Swiss-Prot selection policy v3 separates prior search-cache and store results.
+  Apply the same X-fraction eligibility in preflight and actual search (F10).
+- Correct the independent combined-network test oracle to accept identity
+  spanning trees, and add negative search-threshold and compatibility cases.
+- Run installed-wheel `run`, `precompute` and read-only `assemble` in CI,
+  outside the checkout with runtime dependencies and without Cytoscape, checking
+  fixed real-fixture contacts, annotations, lengths and protein aggregation.
 - Include 23 frozen real structures and authentic mini-references in the
   default test suite, with independent scientific expectations and strict
   input hashes.

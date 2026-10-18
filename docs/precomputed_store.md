@@ -16,11 +16,19 @@ missing ID fails with `PRECOMPUTED_ENTRY_MISSING`.
 
 ## Fixed profile
 
-Scientific pipeline v4 records polymer-role/type-based lengths (F06/F07).
-Modified nucleotides now contribute to `nt_len`, while nonpolymer amino acids
-no longer inflate `aa_len`. Schema 3, parser v5, interaction v2 and annotation v5
-are unchanged; sequence-search caches are unaffected. Existing v3-profile
-entries are incompatible because they may contain incorrect stored lengths.
+The current profile uses scientific pipeline v4, parser v6, interaction v2,
+annotation v6 and Swiss-Prot selection policy v3; the public schema remains 3.
+Scientific pipeline v4 records polymer-role/type-based lengths (F06/F07):
+modified nucleotides contribute to `nt_len`, while nonpolymer amino acids no
+longer inflate `aa_len`.
+
+Parser/annotation v6 additionally retain fully modified supported polymers and
+use consistent polymer types when residue names leave a chain unknown (F08).
+Swiss-Prot policy v3 corrects alignment-span coverage when `qcovs` is unavailable
+(F09). The existing profile check rejects older stores; build a new store
+offline if one is needed. The search-policy signature also separates older
+positive and negative cache rows, without deleting them. F10 only aligns
+readiness checks with the existing query-quality rule.
 
 One store contains exactly one complete profile. The profile fingerprint covers:
 
@@ -44,18 +52,20 @@ The parser fingerprint includes merging noncontiguous author-chain parts within
 each model. Entries from a different parser fingerprint are incompatible and
 are not reused, including during retries of unpublished builds.
 
-Parser fingerprint v5 and interaction fingerprint v2 additionally record Q01:
+Parser fingerprint v5 introduced Q01 together with interaction fingerprint v2:
 protein/DNA/RNA polymer heavy atoms only, explicit zero occupancy excluded,
 unknown occupancy retained, and one contact per atom-site pair across all
 eligible alternatives. Stores built with parser v4 or interaction v1 are rejected
-and require an offline rebuild in a new directory. Schema 3 and annotation v5
-remain unchanged. This contact change does not invalidate sequence-search caches.
+and require an offline rebuild in a new directory. Q01 itself kept schema 3 and
+annotation v5 unchanged and did not invalidate sequence-search caches; the
+current F08/F09 profile changes described above additionally apply.
 Raw altloc/occupancy metadata is not added to compact entries.
 
 Q02 changes only the reported count of cross-file identity links to zero while
 preserving their layout attraction. Those links are generated at export and
-are absent from stored geometry. Existing Q01-compatible entries can therefore
-be assembled with the corrected exporter without rebuilding the store. Existing
+are absent from stored geometry. Q02 alone did not require rebuilding
+Q01-compatible entries. Entries must still match the current complete profile
+described above. Existing
 CX2 exports need regeneration to receive the corrected identity count.
 
 Offline build reports and CLI stderr include input warnings such as

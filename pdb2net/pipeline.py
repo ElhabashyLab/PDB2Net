@@ -63,9 +63,9 @@ from .residue_types import NUCLEIC_ACID_TYPES, count_polymer_lengths
 from .structure_identity import StructureIdentity, identity_from_official_id
 from .uniprot_matcher import (
     _direct_uniprot_accession_for_structure,
+    _prepare_blast_sequence,
     classify_molecule_type,
     diamond_uniref90_enabled,
-    extract_sequence_from_parsed_data,
     get_diamond_executable,
     get_diamond_uniref90_db_path,
     parallel_blast_search,
@@ -755,8 +755,10 @@ def _blast_fallback_needed(combined_data: List[Dict[str, Any]]) -> bool:
             molecule_type = (chain.get("molecule_type") or "").strip()
             if molecule_type in {"", "Unknown", "UNKNOWN"}:
                 molecule_type = classify_molecule_type(chain)
-            if molecule_type not in NUCLEIC_ACID_TYPES and extract_sequence_from_parsed_data(chain):
-                return True
+            if molecule_type not in NUCLEIC_ACID_TYPES:
+                _sequence, passes_quality = _prepare_blast_sequence(chain)
+                if passes_quality:
+                    return True
     return False
 
 

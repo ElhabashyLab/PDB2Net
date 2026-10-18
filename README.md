@@ -408,6 +408,12 @@ non-polymer ligands are excluded from these annotation steps, even when they
 share an author chain ID. Modified polymer residues such as MSE remain included
 and normalized; unknown polymer residues remain `X` and still count against the
 existing sequence-quality limit. This does not reconstruct missing residues.
+Supported polymer chains are retained even when every residue is modified.
+If residue names cannot determine a molecule type, consistent supported polymer
+types provide a fallback; existing determinate name-based types and reference
+annotations keep their precedence. Conflicting or incomplete polymer types do
+not resolve an otherwise unknown type. Queries rejected by the X-fraction limit
+do not require BLAST executables or databases merely to complete a raw run.
 
 Displayed `aa_len`/`nt_len` count the observed residue records by their polymer
 role and type. Modified or unknown protein/DNA/RNA polymer residues count;

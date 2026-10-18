@@ -63,6 +63,7 @@ from .residue_types import (
     DNA_RESIDUES,
     MODIFIED_RESIDUES_3TO3,
     NUCLEIC_ACID_TYPES,
+    POLYMER_MOLECULE_TYPES,
     RNA_RESIDUES,
     normalize_residue_name,
 )
@@ -214,7 +215,7 @@ def _search_policy_payload() -> Dict[str, Any]:
                 "long": _blast_search_parameters(200)[:4],
             },
             "selection_policy": {
-                "version": 2,
+                "version": 3,
                 "dynamic_margin_fraction": 0.05,
                 "dynamic_margin_floor": 4.0,
                 "dynamic_margin_cap": 10.0,
@@ -714,6 +715,15 @@ def extract_sequence_from_parsed_data(chain_data: Dict[str, Any]) -> str:
     return "".join(seq_chars)
 
 
+def _prepare_blast_sequence(chain_data: Dict[str, Any]) -> Tuple[str, bool]:
+    """Share normalized sequence eligibility between preflight and search."""
+    sequence = extract_sequence_from_parsed_data(chain_data).replace("O", "X")
+    if not sequence:
+        return sequence, False
+    max_x_fraction = float(_blast_config().get("max_x_fraction", 0.20))
+    return sequence, not (sequence.count("X") / len(sequence) > max_x_fraction)
+
+
 def _extract_dbtag_and_accession(sseqid: str) -> Tuple[str, str]:
     """Extract db tag + accession from BLAST sseqid.
 
@@ -829,9 +839,9 @@ def _select_blastp_swissprot_hit(
             try:
                 qcov = float(cols[7]) / 100.0
             except (TypeError, ValueError):
-                qcov = max(0.0, min(1.0, abs(qend - qstart) + 1) / float(qlen))
+                qcov = max(0.0, min(1.0, (abs(qend - qstart) + 1) / float(qlen)))
         else:
-            qcov = max(0.0, min(1.0, abs(qend - qstart) + 1) / float(qlen))
+            qcov = max(0.0, min(1.0, (abs(qend - qstart) + 1) / float(qlen)))
 
         seen_any = True
         reviewed = 1 if dbtag == "sp" else 0
@@ -1405,7 +1415,8 @@ def run_blast_search(query_sequence: str, label: str = "", debug: bool = False) 
 def classify_molecule_type(chain_data: Dict[str, Any], label: str = "", debug: bool = False) -> str:
     """Infer molecule type based on polymer residue composition.
 
-    Reads residue key 'residue_name' with fallback to 'resname'.
+    Reads residue key 'residue_name' with fallback to 'resname'. When names
+    cannot determine a type, use consistent supported polymer-type metadata.
     """
     residues = _polymer_residues(chain_data)
     if not residues:
@@ -1447,6 +1458,12 @@ def classify_molecule_type(chain_data: Dict[str, Any], label: str = "", debug: b
             return "RNA"
         return "Nucleic Acid"
 
+    types = {POLYMER_MOLECULE_TYPES.get(res.get("polymer_type")) for res in residues}
+    if None not in types:
+        if len(types) == 1:
+            return next(iter(types))
+        if types <= {"DNA", "RNA", "DNA/RNA"}:
+            return "DNA/RNA"
     return "Unknown"
 
 
@@ -1456,7 +1473,6 @@ def parallel_blast_search(parsed_data: List[Dict[str, Any]], max_workers: int = 
 
     _diag_reset()
 
-    max_x_fraction = float(_blast_config().get("max_x_fraction", 0.20))
     na_types = NUCLEIC_ACID_TYPES
 
     # Dedupe by sequence: seq_key -> { "qlen": int, "seq": str, "targets": [(chain_dict, label), ...] }
@@ -1550,20 +1566,19 @@ def parallel_blast_search(parsed_data: List[Dict[str, Any]], max_workers: int = 
                     print(f"[BLASTSEL][{label}] SKIP: molecule_type={mt}")
                 continue
 
-            sequence = extract_sequence_from_parsed_data(chain)
+            sequence, passes_quality = _prepare_blast_sequence(chain)
             if not sequence:
                 _diag_inc("pre_skip_empty_sequence")
                 if debug:
                     print(f"[BLASTSEL][{label}] SKIP: empty sequence (residues={len(chain.get('residues', []))})")
                 continue
 
-            sequence = sequence.replace("O", "X")
             x_fraction = (sequence.count("X") / len(sequence)) if sequence else 1.0
 
             if debug:
                 print(f"[BLASTSEL][{label}] candidate mol_type={mt or 'Unknown'} qlen={len(sequence)} Xfrac={x_fraction:.3f}")
 
-            if x_fraction > max_x_fraction:
+            if not passes_quality:
                 _diag_inc("pre_skip_xfrac")
                 mt1 = (chain.get("molecule_type") or "").strip()
                 if mt1 in ("", "Unknown") or chain.get("molecule_type") is None:
@@ -1571,7 +1586,7 @@ def parallel_blast_search(parsed_data: List[Dict[str, Any]], max_workers: int = 
 
                 if debug:
                     print(
-                        f"[BLASTSEL][{label}] SKIP_X: Xfrac={x_fraction:.3f} > {max_x_fraction:.2f} "
+                        f"[BLASTSEL][{label}] SKIP_X: Xfrac={x_fraction:.3f} exceeds configured maximum "
                         f"(molecule_type={chain.get('molecule_type')})"
                     )
                 continue

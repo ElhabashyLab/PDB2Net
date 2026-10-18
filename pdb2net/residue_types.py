@@ -15,6 +15,10 @@ AMINO_ACIDS = {
 DNA_RESIDUES = {"DA", "DT", "DG", "DC", "DI"}
 RNA_RESIDUES = {"A", "U", "G", "C", "I"}
 NUCLEIC_ACID_TYPES = {"Nucleic Acid", "DNA", "RNA", "DNA/RNA"}
+POLYMER_MOLECULE_TYPES = {
+    "PeptideL": "Protein", "PeptideD": "Protein", "CyclicPseudoPeptide": "Protein",
+    "Dna": "DNA", "Rna": "RNA", "DnaRnaHybrid": "DNA/RNA",
+}
 
 MODIFIED_RESIDUES_3TO3 = {
     "MSE": "MET",

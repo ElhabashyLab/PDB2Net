@@ -874,9 +874,11 @@ def test_manifest_profile_mismatch_fails_closed(
     ("SCIENTIFIC_PIPELINE_VERSION", "pdb2net-asu-first-standard-interactions-v3"),
     ("PARSER_SEMANTICS", "validated-single-document-gemmi-heavy-atoms-no-hydrogen-or-deuterium-v3"),
     ("PARSER_SEMANTICS", "validated-single-document-gemmi-merged-chains-heavy-atoms-no-hydrogen-or-deuterium-v4"),
+    ("PARSER_SEMANTICS", "validated-single-document-gemmi-merged-chains-heavy-atoms-no-hydrogen-or-deuterium-v5"),
     ("INTERACTION_PIPELINE_VERSION", "pdb2net-distance-classification-v1"),
     ("ANNOTATION_PIPELINE_VERSION", "pdb2net-sifts-fasta-search-annotations-v3"),
     ("ANNOTATION_PIPELINE_VERSION", "pdb2net-sifts-fasta-search-annotations-v4"),
+    ("ANNOTATION_PIPELINE_VERSION", "pdb2net-sifts-fasta-search-annotations-v5"),
 ])
 def test_store_built_before_semantic_fix_is_not_reused(monkeypatch, tmp_path, field, previous_semantics) -> None:
     assert getattr(schema, field) != previous_semantics

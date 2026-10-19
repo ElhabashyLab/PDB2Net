@@ -235,6 +235,8 @@ def process_single_file(
     ) + contact_warnings
     processed["input_format"] = parsed["input_format"]
     processed["input_kind"] = parsed["input_kind"]
+    processed["source_sha256"] = parsed.get("source_sha256")
+    processed["source_expanded_bytes"] = parsed.get("source_expanded_bytes")
     processed["embedded_annotation_counts"] = embedded_annotation_counts(processed["atom_data"])
     return processed
 
@@ -814,8 +816,10 @@ def _compact_structure_summaries(structures: List[Dict[str, Any]]) -> List[Dict[
         chain_summaries: List[Dict[str, Any]] = []
         for chain in structure.get("atom_data", []):
             chain_summary = {key: value for key, value in chain.items() if key != "residues"}
-            aa_len, nt_len = count_polymer_lengths(
-                chain.get("residues", [])
+            aa_len, nt_len = (
+                count_polymer_lengths(chain["residues"])
+                if "residues" in chain
+                else (chain.get("aa_len", 0), chain.get("nt_len", 0))
             )
             chain_summary["aa_len"] = aa_len
             chain_summary["nt_len"] = nt_len
@@ -887,7 +891,7 @@ def _annotation_summary(combined_data: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def _structure_input_summary(combined_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Return stable per-structure identity and input metadata for contract 2.0."""
+    """Return stable per-structure identity and input metadata for contract 3.0."""
     summaries: List[Dict[str, Any]] = []
     for structure in combined_data:
         identity = structure.get("structure_identity", {})

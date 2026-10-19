@@ -23,5 +23,5 @@ positions 4–299 mapped to UniProt 867–1162, and Pfam PF00644 at 99–270 plu
 PF07647 at 8–71. This excerpt does not represent the full structure geometry.
 
 `tests/test_nextgen_cli.py` checks those facts through the real headless CLI,
-offline precompute and read-only assembly in the default test suite. Its tiny
+preparation and coordinate-free analysis in the default test suite. Its tiny
 FASTA/TSV lookups are synthetic test support, not biological reference snapshots.

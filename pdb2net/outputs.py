@@ -151,6 +151,7 @@ def write_run_manifest(
     skipped_outputs: list[Mapping[str, Any]] | None = None,
     identities: list[Mapping[str, Any]] | None = None,
     structure_inputs: list[Mapping[str, Any]] | None = None,
+    prepared_inputs: Mapping[str, Any] | None = None,
 ) -> None:
     """Write an additive per-run manifest for webserver/job tracking."""
     generated = dict(generated_outputs or collect_generated_outputs(output_paths))
@@ -170,6 +171,7 @@ def write_run_manifest(
         "input_path": input_path,
         "identities": [dict(entry) for entry in (identities or [])],
         "structure_inputs": [dict(entry) for entry in (structure_inputs or [])],
+        "prepared_inputs": dict(prepared_inputs) if prepared_inputs is not None else None,
         "outputs": {
             "run_output_path": output_paths.run_output_path,
             "combined_dir": output_paths.combined_dir,
@@ -358,17 +360,6 @@ def _public_config(value: object) -> dict[str, Any]:
 def _public_references(value: object) -> dict[str, Any]:
     raw = value if isinstance(value, Mapping) else {}
     result: dict[str, Any] = {"manifest_id": raw.get("manifest_id")}
-    precomputed = raw.get("precomputed_store")
-    if isinstance(precomputed, Mapping):
-        result["precomputed_store"] = {
-            key: precomputed[key]
-            for key in (
-                "artifact_schema_version",
-                "profile_id",
-                "source_scope",
-            )
-            if key in precomputed
-        }
     return result
 
 
@@ -780,7 +771,12 @@ def collect_web_outputs(
         copied_networks = [entry["path"] for entry in network_artifacts]
         copied_interactions = [entry["path"] for entry in interaction_artifacts]
         internal_counts = internal_summary.get("counts") if isinstance(internal_summary.get("counts"), Mapping) else {}
+        from .structure_facts import validate_prepared_provenance
+        provenance = validate_prepared_provenance(internal_summary.get("prepared_inputs")) if success else None
+        if provenance is not None and [entry["pdb_id"] for entry in provenance["entries"]] != [identity["canonical_id"] for identity in identities]:
+            raise InputValidationError("INVALID_WEB_OUTPUT_CONTRACT", "Prepared provenance does not match exported inputs.")
         summary = {
+            "prepared_inputs": provenance,
             "output_contract_version": internal_summary.get("output_contract_version", OUTPUT_CONTRACT_VERSION),
             "pdb2net_version": internal_summary.get("pdb2net_version", __version__),
             "status": status,

@@ -34,12 +34,12 @@ def test_capabilities_json_reports_stable_server_contracts(capsys) -> None:
 
     document = json.loads(capsys.readouterr().out)
     assert document == {
-        "capabilities_schema_version": "3",
+        "capabilities_schema_version": "4",
         "pdb2net_version": __version__,
-        "cli_contract_version": "2",
-        "output_contract_version": "2.0",
-        "precomputed_artifact_schema_version": "3",
-        "commands": ["run", "precompute", "assemble", "capabilities"],
+        "cli_contract_version": "3",
+        "output_contract_version": "3.0",
+        "structure_facts_schema_version": "1",
+        "commands": ["run", "capabilities"],
         "input_formats": [
             ".pdb",
             ".cif",
@@ -60,7 +60,7 @@ def test_capabilities_json_reports_stable_server_contracts(capsys) -> None:
             "detailed_interactions",
             "embedded_sifts",
             "diamond_uniref90",
-            "precomputed_store",
+            "prepared_structure_analysis",
         ],
     }
 
@@ -78,7 +78,7 @@ def test_capabilities_are_configuration_free(tmp_path: Path) -> None:
     )
 
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout)["capabilities_schema_version"] == "3"
+    assert json.loads(result.stdout)["capabilities_schema_version"] == "4"
 
 
 def test_run_help_includes_backend_output_option(capsys) -> None:

@@ -521,3 +521,101 @@ __all__ = [
     "extract_embedded_annotations",
     "network_annotation_config",
 ]
+
+
+MAX_EMBEDDED_SEGMENTS_PER_CHAIN = 100_000
+
+EMBEDDED_SEGMENT_FIELDS = {
+    "database",
+    "source_database",
+    "accession",
+    "domain_name",
+    "chain_id",
+    "label_asym_id",
+    "entity_id",
+    "segment_id",
+    "instance_id",
+    "pdb_start",
+    "pdb_end",
+    "database_start",
+    "database_end",
+    "best_mapping",
+    "identity",
+}
+def validate_embedded_annotations(
+    chain: Mapping[str, Any], chain_id: str, *, error_code: str = "INVALID_STRUCTURE_FACTS"
+) -> None:
+    embedded = chain.get("embedded_annotations", {})
+    if not embedded:
+        return
+    if not isinstance(embedded, dict) or any(
+        key not in {"uniprot", "pfam", "cath", "scop2"} for key in embedded
+    ):
+        raise InputValidationError(
+            error_code, "Embedded annotations are invalid."
+        )
+    for database, segments in embedded.items():
+        if not isinstance(segments, list) or len(segments) > MAX_EMBEDDED_SEGMENTS_PER_CHAIN:
+            raise InputValidationError(
+                error_code, "Embedded annotation segments are invalid."
+            )
+        for segment in segments:
+            if not isinstance(segment, dict) or not set(segment).issubset(
+                EMBEDDED_SEGMENT_FIELDS
+            ):
+                raise InputValidationError(
+                    error_code, "Embedded annotation segment is invalid."
+                )
+            for value in segment.values():
+                if (
+                    not isinstance(value, (str, int, float, bool))
+                    or isinstance(value, str)
+                    and len(value) > 2_000
+                    or isinstance(value, float)
+                    and not math.isfinite(value)
+                ):
+                    raise InputValidationError(
+                        error_code, "Embedded annotation value is invalid."
+                    )
+            if (
+                segment.get("database") != database
+                or segment.get("chain_id") != chain_id
+                or not isinstance(segment.get("accession"), str)
+            ):
+                raise InputValidationError(
+                    error_code, "Embedded annotation chain is invalid."
+                )
+            pdb_start, pdb_end = segment.get("pdb_start"), segment.get("pdb_end")
+            if (
+                isinstance(pdb_start, bool)
+                or not isinstance(pdb_start, int)
+                or isinstance(pdb_end, bool)
+                or not isinstance(pdb_end, int)
+                or pdb_start < 1
+                or pdb_end < pdb_start
+            ):
+                raise InputValidationError(
+                    error_code, "Embedded annotation range is invalid."
+                )
+            if database == "uniprot":
+                database_start = segment.get("database_start")
+                database_end = segment.get("database_end")
+                identity_value = segment.get("identity")
+                if (
+                    not is_uniprot_accession(segment.get("accession"))
+                    or not isinstance(segment.get("best_mapping"), bool)
+                    or isinstance(identity_value, bool)
+                    or not isinstance(identity_value, (int, float))
+                    or not math.isfinite(float(identity_value))
+                    or not 0 <= float(identity_value) <= 1
+                    or isinstance(database_start, bool)
+                    or not isinstance(database_start, int)
+                    or isinstance(database_end, bool)
+                    or not isinstance(database_end, int)
+                    or database_start < 1
+                    or database_end < database_start
+                ):
+                    raise InputValidationError(
+                        error_code,
+                        "Embedded UniProt segment is invalid.",
+                    )

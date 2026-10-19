@@ -13,9 +13,9 @@ finish with their original generation. Notebook users must restart the kernel
 when switching generations. This is a usage contract, not a per-access content
 hash check or an automatic invalidation mechanism.
 
-RAM reference mappings, SQLite sequence-search results and precomputed entries
+RAM reference mappings, SQLite sequence-search results and prepared structure facts
 are separate layers. Search signatures distinguish relevant database/policy
-changes; store profiles distinguish scientific rules and reference generations.
+changes; geometry profiles distinguish structure rules independently of reference generations.
 Deleting a search cache does not refresh a process's reference mappings.
 
 ## Optional search timeout
@@ -32,8 +32,7 @@ hardware configuration and query batch.
 
 A timeout is an operational failure, not a biological non-hit. It must not
 create a negative cache entry or trigger DIAMOND as a consequence of a BLAST
-failure. Raw processing fails; offline precompute must not publish an incomplete
-store. Already completed valid cache results may remain.
+failure. Raw processing fails; prepared analysis also fails without publishing successful results. Already completed valid cache results may remain.
 
 ## Cancellation and boundaries
 
@@ -48,7 +47,7 @@ guarantee covers direct native BLASTP/DIAMOND programs and their threads, not
 arbitrary wrappers that detach new sessions or independent process trees.
 An external adapter owns its own job supervision and cleanup policy.
 
-Timeout configuration does not alter the scientific search/store profile.
+Timeout configuration does not alter the scientific search/geometry profile.
 Changing it alone requires neither a store rebuild nor a search-cache purge.
 Scientific policy changes are handled separately by the existing fingerprints.
 

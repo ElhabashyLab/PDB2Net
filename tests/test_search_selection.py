@@ -8,7 +8,7 @@ import pytest
 
 from pdb2net import config_loader, pipeline, uniprot_matcher as matcher
 from pdb2net.input_contract import InputValidationError
-from pdb2net.precomputed.schema import profile_id, scientific_profile, validate_manifest, manifest_document
+from pdb2net.structure_facts import profile_id
 
 
 def row(*, length=100, coverage=1.0, pident=100.0, evalue=1e-80, bitscore=250.0, qcovs=True):
@@ -117,7 +117,7 @@ def test_preflight_and_search_agree_at_the_configured_x_limit(tmp_path, monkeypa
     assert [sequence for _key, sequence, _label in queries] == (["A" * known + "X" * (5 - known)] if eligible else [])
 
 
-def test_old_coverage_policy_cannot_reuse_negative_cache_or_store(tmp_path, monkeypatch):
+def test_search_policy_invalidates_negative_cache_without_invalidating_geometry(tmp_path, monkeypatch):
     original_config = copy.deepcopy(config_loader.get_config())
     cfg = copy.deepcopy(original_config)
     cfg.update(blast_cache_path=str(tmp_path / "cache.sqlite3"), blast_db_path=str(tmp_path),
@@ -135,8 +135,7 @@ def test_old_coverage_policy_cannot_reuse_negative_cache_or_store(tmp_path, monk
     try:
         monkeypatch.setattr(matcher, "_search_policy_payload", old_policy)
         config_loader.activate_config(cfg)
-        old_profile = scientific_profile()
-        old_manifest = manifest_document(old_profile, 1)
+        old_profile = profile_id()
         key = matcher._seq_cache_key("A" * 40)
         matcher._cache_put(key, None)
         assert matcher._cache_get(key) == (True, None)
@@ -144,9 +143,7 @@ def test_old_coverage_policy_cannot_reuse_negative_cache_or_store(tmp_path, monk
         monkeypatch.setattr(matcher, "_search_policy_payload", policy)
         config_loader.activate_config(cfg)
         assert matcher._cache_get(key) == (False, None)
-        assert profile_id() != profile_id(old_profile)
-        with pytest.raises(InputValidationError, match="PRECOMPUTED_PROFILE_MISMATCH"):
-            validate_manifest(old_manifest, expected_profile=scientific_profile())
+        assert profile_id() == old_profile
     finally:
         if matcher._CACHE_CONN is not None:
             matcher._CACHE_CONN.close()

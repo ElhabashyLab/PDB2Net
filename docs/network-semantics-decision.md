@@ -10,7 +10,8 @@ Raw runs analyze the supplied coordinates. Recognizing biological-assembly
 operators does not create additional coordinate copies, select an assembly or
 remove crystal contacts. A prepared assembly can be used when its intended
 chains have usable, unique identifiers. The fixed offline store uses asymmetric
-units; `assemble` builds networks from store entries, not biological assemblies.
+units; prepared-input analysis builds networks from those coordinates without
+generating biological assemblies.
 
 `first` is the default model policy. `all` calculates within-model contacts only,
 qualifies chain identities by model and produces separate per-model chain

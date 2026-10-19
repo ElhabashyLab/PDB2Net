@@ -1,13 +1,13 @@
 """Exercise an installed wheel outside the checkout using frozen scientific facts.
 
 Run with the isolated environment's Python and -I. Only the standard library
-is used by this checker; the installed console command loads runtime packages.
+bootstraps this checker; both the installed console command and Python API
+exercise runtime packages.
 """
 
 import argparse
 from collections import Counter
 import csv
-import hashlib
 import importlib.util
 import json
 import os
@@ -82,6 +82,7 @@ def main():
     import pdb2net
     package = Path(pdb2net.__file__).resolve().parent
     assert package.is_relative_to(Path(sys.prefix).resolve()) and not package.is_relative_to(checkout)
+    assert importlib.util.find_spec("pdb2net.precomputed") is None
     assert importlib.util.find_spec("py4cytoscape") is None, "Check the base package without the Cytoscape extra"
     for name in ("base", "linux", "darwin", "windows"):
         assert (package / f"configs/config.{name}.json").is_file()
@@ -126,32 +127,26 @@ def main():
         with path.open() as stream:
             count = sum(1 for _ in csv.DictReader(stream))
         assert count == sum(row["all_atoms_count"] for row in contacts[filename] if row["accepted"])
-    store = work / "store"
-    command("precompute", ["precompute", "--input-dir", str(inputs), "--store", str(store)])
+    from pdb2net.config_loader import activate_config
+    from pdb2net.structure_analysis import prepare_structure, analyze_prepared
+    from pdb2net.structure_facts import canonical_json
+    cfg.update(output_path=str(work / "prepared"), export_detailed_interactions=True)
+    activate_config(cfg)
+    prepared, streams = [], {}
+    for source in sorted(inputs.iterdir()):
+        rows = []
+        item = prepare_structure(source, contact_sink=rows.append)
+        prepared.append(item)
+        streams[item["structure_identity"]["canonical_id"]] = lambda rows=rows: iter(rows)
+    before = canonical_json(prepared)
     shutil.rmtree(inputs)
-    shutil.rmtree(references)
-
-    def hashes():
-        return {str(p.relative_to(store)): hashlib.sha256(p.read_bytes()).hexdigest()
-                for p in store.rglob("*") if p.is_file()}
-
-    before = hashes()
-    if os.name == "posix":
-        for path in store.rglob("*"):
-            path.chmod(0o555 if path.is_dir() else 0o444)
-        store.chmod(0o555)
-    try:
-        command("assemble", ["assemble", "--store", str(store), "--pdb-id", "4hhb", "--pdb-id", "1bna",
-                             "--output-dir", str(work / "assembled"), "--web-output-dir", str(work / "assembled-web")])
-        verify_outputs(work / "assembled-web", facts, contacts)
-        assert hashes() == before, "Assembly changed the store"
-    finally:
-        if os.name == "posix":
-            store.chmod(0o755)
-            for path in store.rglob("*"):
-                path.chmod(0o755 if path.is_dir() else 0o644)
+    analyze_prepared(prepared, cfg, contact_sources=streams, web_output_dir=str(work / "prepared-web"))
+    verify_outputs(work / "prepared-web", facts, contacts)
+    assert canonical_json(prepared) == before
+    for source in (work / "raw-web/interactions").glob("*.csv"):
+        assert source.read_bytes() == (work / "prepared-web/interactions" / source.name).read_bytes()
     print(json.dumps({"status": "passed", "package": str(package), "structures": 2,
-                      "networks_per_run": 3, "read_only_store": True, "cytoscape_extra": False}))
+                      "networks_per_run": 3, "immutable_facts": True, "fresh_annotation": True, "cytoscape_extra": False}))
 
 
 if __name__ == "__main__":

@@ -1,15 +1,14 @@
 # Server Backend Usage
 
-External applications call PDB2Net through its installed CLI and documented
-output contracts. Core receives filesystem paths and validated configuration;
+External applications call PDB2Net through its installed CLI or documented Python API and output contracts. Core receives filesystem paths and validated configuration;
 the caller owns HTTP validation, access policy, scheduling, notifications and
 deployment. No particular web framework, database or adapter repository is
 required by Core.
 
-Use `pdb2net run` for supplied structure files and `pdb2net assemble` for PDB
-IDs in an offline-built schema-3 store. Assembly never downloads structures or
-populates missing entries. Whether an application exposes either command, and
-how it accepts user input, is the application's responsibility.
+Use `pdb2net run` for supplied structure files. Applications with a managed
+structure collection can call the [prepared-input API](prepared_structures.md)
+in a fresh child process. Core owns scientific processing; the application owns
+its store, updates and strictly read-only runtime retrieval.
 
 ## Recommended Worker Command
 
@@ -50,11 +49,11 @@ pdb2net capabilities --json
 
 The JSON document is the stable handshake between Core and an external worker.
 It reports the PDB2Net package version, capability schema, CLI contract, web
-output contract, precomputed-artifact schema, available commands, input
+output contract, prepared-facts schema, available commands, input
 formats, network outputs, model policies, and relevant features. The probe does not
 load machine-local configuration or inspect reference data.
 
-Capability schema 3 is intentionally small. Integrations check the required
+Capability schema 4 is intentionally small. Integrations check the required
 scalar contract versions and that their required command, format, output,
 policy, and feature members are present. They do not compare the complete JSON
 document and do not duplicate Core's CLI, configuration, scientific, CX2, or
@@ -168,27 +167,29 @@ Worker concurrency and admission limits are deployment decisions for the caller.
 Choose them from measured memory, storage and execution costs on the target
 system; Core's processing-batch limit alone does not establish a safe job count.
 
-## PDB-ID Store Mode
+## Prepared input integration
 
-The `precompute`/`assemble` path is optional for standalone Core users and
-provides offline-store access for applications that accept PDB IDs. It is documented in
-[`precomputed_store.md`](precomputed_store.md). Schema 3 stores compact geometry,
-standard-profile edges, and chain annotations, not coordinates or detailed
-atom-pair CSVs. It therefore rejects detailed interaction export and enforces
-fixed per-entry and per-request artifact ceilings.
+Core exposes `prepare_structure` and `analyze_prepared` through the installed
+Python package. An adapter may retain reference-independent facts and atom
+contacts offline, then pass selected validated entries to Core for fresh
+annotation and export. No archive or persistence implementation is part of Core.
+See [the facts API](prepared_structures.md) for exact fields and profiles.
 
-Build each store generation offline. Runtime workers mount only the published
-store and read it without archive access or write permission.
-
-Set `PDB2NET_REFERENCE_MANIFEST_ID` to an immutable manifest identity covering
-reference checksums and exact BLAST+/DIAMOND versions.
-Do not reuse it after a reference or toolchain change. Mirror refreshes flow
-through a new target directory, offline precompute, scientific/contract
-validation, and external store promotion. Ordinary local
-`pdb2net run --input-dir ...`, including enriched NextGen uploads, remains
-independent of a precomputed store and all web infrastructure.
+A runtime reader must not download, populate or silently replace a missing
+entry. Select one immutable structure snapshot and one immutable reference
+generation at job start. Reference changes do not require geometry rebuilding.
+Use a fresh process and explicit configuration paths for each generation.
+Detailed CSV export is supported when the caller supplies complete contact
+iterators; network-only requests do not need those iterators.
 
 ## Output Contract
+
+The current output contract is **3.0**. `prepared_inputs` is a required top-level
+field: null for raw/failed runs, otherwise the validated provenance described in
+[prepared structures](prepared_structures.md#public-contracts-and-provenance).
+The former `references.precomputed_store` block is removed. `references.manifest_id`
+identifies the current annotation references, independently of geometry.
+
 
 PDB2Net always keeps its normal timestamped internal output under
 `--output-dir`, with folders such as:
@@ -227,7 +228,7 @@ interaction tables. If publication fails partway through, Core removes the
 partial copies created by that attempt; internal run artifacts remain available
 for diagnosis.
 
-Contract `2.0` contains `identities` and `structure_inputs` alongside annotation
+Contract `3.0` retains `identities` and `structure_inputs` alongside annotation
 counts, reference identity/metadata, resource observations, and
 `skipped_outputs`. Combined graphs
 over the configured node or edge cap are listed in `skipped_outputs` and
@@ -240,8 +241,7 @@ the exact defaults or advanced settings used for a job.
 The four network projections and their model restrictions are described in the
 [README](../README.md#what-the-four-network-outputs-mean). Cross-file `identity`
 links carry zero geometric contact count; they still contribute to the number
-of exported edges in artifact metadata. Summary schema and count fields are
-unchanged. Interpret contact analyses using the edge type, not merely a positive
+of exported edges in artifact metadata. These count fields retain their meaning in summary contract `3.0`. Interpret contact analyses using the edge type, not merely a positive
 or zero weight.
 
 ### File exclusions and result status
@@ -264,8 +264,8 @@ a selected model. The entire file is omitted, including its named chains; the
 message asks the user to correct the identifiers or export the structure again.
 The existing model selection applies (`first` ignores later models). This cause
 uses the ordinary `INPUT_FILE_SKIPPED` warning and needs no adapter-specific
-classification or additional UI. An offline `precompute` failure with this
-code still prevents final manifest publication.
+classification or additional UI. Preparation rejects this cause; an adapter
+must not expose an incomplete structure as available.
 
 Q01 uses the same fields for `INVALID_ATOM_OCCUPANCY` and
 `AMBIGUOUS_ATOM_IDENTITY` file exclusions. If other chains remain usable,
@@ -296,10 +296,8 @@ result artifacts, and distinguish a diagnostic-report download from a successful
 result download. Display warnings as escaped text; do not parse their message
 strings as structured fields or rebuild Core's error classification in Web.
 
-The Core output schema and CLI contract versions remain unchanged. The Web
-adapter must nevertheless support exclusion feedback before this raw-run
-behavior is enabled; a version handshake alone does not verify that UI behavior.
-These rules do not enable partial `assemble` results or partial store publication.
+Exclusion feedback remains required independently of the version handshake.
+Prepared-input analysis does not silently return a subset of requested entries.
 
 ## Web UI Settings Model
 

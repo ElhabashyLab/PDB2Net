@@ -31,6 +31,7 @@ from scipy.spatial import cKDTree
 
 from .config_loader import config
 from .contact_atoms import ContactView, contact_positions, count_contacts
+from .input_contract import InputValidationError
 
 INTERACTION_PIPELINE_VERSION = "pdb2net-distance-classification-v2"
 ALLOWED_INTERACTION_TYPES = frozenset(
@@ -242,116 +243,59 @@ RADIUS_CA: float = float(config["distance_thresholds"]["ca_radius"])
 RADIUS_ALL_ATOMS: float = float(config["distance_thresholds"]["all_atoms_radius"])
 
 
+def chain_pairs(chains):
+    """Yield each pair of distinct author chains within one model once."""
+    unique = {}
+    for chain in chains:
+        previous = unique.setdefault(chain["unique_chain_id"], chain)
+        if (previous.get("model_index", 1), previous["chain_id"]) != (chain.get("model_index", 1), chain["chain_id"]):
+            raise InputValidationError("DUPLICATE_CHAIN_IDENTITY", "One chain identity describes different chains or models.")
+    for left, right in itertools.combinations(unique.values(), 2):
+        if left.get("model_index", 1) != right.get("model_index", 1) or left["chain_id"] == right["chain_id"]:
+            continue
+        yield left, right
+
+
+def select_interaction(structure, left, right, all_atoms_count, ca_neighbors, *, filters=None):
+    """Apply the same annotation-dependent rules to measured or prepared counts."""
+    filters = _interaction_filters() if filters is None else filters
+    kind = determine_interaction_type(left.get("molecule_type"), right.get("molecule_type"))
+    if kind is None or all_atoms_count < _required_all_atom_contacts(kind, filters):
+        return None
+    if kind == "Protein-Protein" and ca_neighbors < filters["protein_protein_min_ca_neighbors"]:
+        return None
+    result = {
+        "file_path": structure["file_path"],
+        "structure_key": str(structure.get("structure_identity", {}).get("key") or left.get("structure_key") or ""),
+        "model_index": int(left.get("model_index", 1)),
+        "chain_a": left["unique_chain_id"], "chain_b": right["unique_chain_id"],
+        "all_atoms_count": int(all_atoms_count), "interaction_type": kind,
+    }
+    if kind == "Protein-Protein":
+        result["ca_neighbors"] = int(ca_neighbors)
+    return result
+
+
 def calculate_distances_with_ckdtree(combined_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Compute inter-chain interactions using cKDTree.
-
-    For each structure:
-      1) Build or reuse KD-trees for "ca" and "all_atoms" per chain.
-      2) Iterate over unique chain pairs (unordered) and infer interaction type.
-      3) For nucleic acids, count all-atom neighbors at the configured radius.
-      4) For proteins, require the configured Cα-neighbor minimum first,
-         then confirm with the configured all-atom contact minimum.
-      5) Emit a result for pairs that meet the criteria.
-
-    Parameters
-    ----------
-    combined_data : list[dict]
-        Items produced by earlier stages, each with:
-          - "file_path" (str)
-          - "atom_data" (list of chain dicts, each with "unique_chain_id",
-            "chain_id", "molecule_type", and "residues" including atoms)
-
-    Returns
-    -------
-    list[dict]
-        Each result dict contains:
-          - "file_path": str
-          - "chain_a": str  (unique_chain_id)
-          - "chain_b": str  (unique_chain_id)
-          - "all_atoms_count": int
-          - "interaction_type": str
-    """
-    results: List[Dict[str, Any]] = []
-
-    nucleic_acid_types = {"Nucleic Acid", "DNA", "RNA", "DNA/RNA"}
-    radius_ca, radius_all_atoms = _distance_thresholds()
+    """Measure contacts, retaining the raw path's type and C-alpha prefilters."""
+    results = []
+    radius_ca, radius_all = _distance_thresholds()
     filters = _interaction_filters()
-
-    for file_data in combined_data:
-        file_path = file_data["file_path"]
-        atom_data = file_data["atom_data"]
-
-        # Views are local to one structure; models remain separate below.
-        local_views = {
-            (c["unique_chain_id"], t): ContactView(c, t)
-            for c in atom_data for t in ("ca", "all_atoms")
-        }
-
-        seen_pairs: set[Tuple[str, str]] = set()  # deduplicate unordered chain pairs
-
-        for chain_a, chain_b in itertools.combinations(atom_data, 2):
-            # Models are alternative coordinate sets, never physical peers.
-            if chain_a.get("model_index", 1) != chain_b.get("model_index", 1):
+    for structure in combined_data:
+        chains = structure["atom_data"]
+        views = {(c["unique_chain_id"], t): ContactView(c, t) for c in chains for t in ("ca", "all_atoms")}
+        for left, right in chain_pairs(chains):
+            kind = determine_interaction_type(left.get("molecule_type"), right.get("molecule_type"))
+            if kind is None:
                 continue
-            if chain_a["chain_id"] == chain_b["chain_id"]:
-                continue
-
-            # Unordered pair key based on unique chain ids
-            key = tuple(sorted([chain_a["unique_chain_id"], chain_b["unique_chain_id"]]))
-            if key in seen_pairs:
-                continue
-            seen_pairs.add(key)
-
-            interaction_type = determine_interaction_type(
-                chain_a.get("molecule_type", "Unknown"),
-                chain_b.get("molecule_type", "Unknown"),
-            )
-            if not interaction_type:
-                continue
-
-            # Any Nucleic Acid involvement → use all-atom proximity directly
-            if (chain_a.get("molecule_type") in nucleic_acid_types or
-                chain_b.get("molecule_type") in nucleic_acid_types):
-
-                all_atoms_count = count_contacts(
-                    local_views.get((chain_a["unique_chain_id"], "all_atoms")),
-                    local_views.get((chain_b["unique_chain_id"], "all_atoms")),
-                    radius=radius_all_atoms,
-                )
-                if all_atoms_count >= _required_all_atom_contacts(interaction_type, filters):
-                    results.append({
-                        "file_path": file_path,
-                        "structure_key": str(file_data.get("structure_identity", {}).get("key") or chain_a.get("structure_key") or ""),
-                        "model_index": int(chain_a.get("model_index", 1)),
-                        "chain_a": chain_a["unique_chain_id"],
-                        "chain_b": chain_b["unique_chain_id"],
-                        "all_atoms_count": int(all_atoms_count),
-                        "interaction_type": interaction_type,
-                    })
-                continue
-
-            # Protein–Protein: require a minimum number of nearby Cα atoms first
-            ca_neighbors = count_contacts(
-                local_views.get((chain_a["unique_chain_id"], "ca")),
-                local_views.get((chain_b["unique_chain_id"], "ca")),
-                radius=radius_ca,
-            )
-            if ca_neighbors >= filters["protein_protein_min_ca_neighbors"]:
-                all_atoms_count = count_contacts(
-                    local_views.get((chain_a["unique_chain_id"], "all_atoms")),
-                    local_views.get((chain_b["unique_chain_id"], "all_atoms")),
-                    radius=radius_all_atoms,
-                )
-                if all_atoms_count >= filters["protein_protein_min_all_atom_contacts"]:
-                    results.append({
-                        "file_path": file_path,
-                        "structure_key": str(file_data.get("structure_identity", {}).get("key") or chain_a.get("structure_key") or ""),
-                        "model_index": int(chain_a.get("model_index", 1)),
-                        "chain_a": chain_a["unique_chain_id"],
-                        "chain_b": chain_b["unique_chain_id"],
-                        "ca_neighbors": int(ca_neighbors),
-                        "all_atoms_count": int(all_atoms_count),
-                        "interaction_type": interaction_type,
-                    })
-
+            a, b = left["unique_chain_id"], right["unique_chain_id"]
+            ca_count = 0
+            if kind == "Protein-Protein":
+                ca_count = count_contacts(views[a, "ca"], views[b, "ca"], radius_ca)
+                if ca_count < filters["protein_protein_min_ca_neighbors"]:
+                    continue
+            all_count = count_contacts(views[a, "all_atoms"], views[b, "all_atoms"], radius_all)
+            edge = select_interaction(structure, left, right, all_count, ca_count, filters=filters)
+            if edge is not None:
+                results.append(edge)
     return results

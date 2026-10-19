@@ -232,7 +232,7 @@ def test_timeout_aborts_annotation_without_cache_or_diamond(monkeypatch):
 
 
 def test_runtime_limit_does_not_change_store_or_sequence_cache_signature(monkeypatch, tmp_path):
-    from pdb2net.precomputed import profile_id
+    from pdb2net.structure_facts import profile_id
 
     monkeypatch.setitem(matcher.config, "reference_manifest_id", "unchanged-generation")
     monkeypatch.setitem(matcher.config, "blast_db_path", str(tmp_path))

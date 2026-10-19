@@ -206,3 +206,22 @@ def test_randomized_alternative_union_and_minima_match_exhaustive_oracle():
                 assert count_contacts(a, b, radius) == len(expected)
                 observed = {(x.site[0], y.site[0]): d for x, y, d in unique_contacts(a, b, radius)}
                 assert observed == pytest.approx(expected)
+
+
+def test_chain_pair_iteration_preserves_order_and_models_without_quadratic_storage():
+    import tracemalloc
+    a = {"unique_chain_id": "T:model1:A", "chain_id": "A", "model_index": 1}
+    b = {"unique_chain_id": "T:model1:B", "chain_id": "B", "model_index": 1}
+    c = {"unique_chain_id": "T:model2:A", "chain_id": "A", "model_index": 2}
+    d = {"unique_chain_id": "T:model2:B", "chain_id": "B", "model_index": 2}
+    assert list(distances.chain_pairs([a, b, dict(a), c, d, dict(d)])) == [(a, b), (c, d)]
+    with pytest.raises(InputValidationError, match="DUPLICATE_CHAIN_IDENTITY"):
+        list(distances.chain_pairs([a, {**a, "model_index": 2}]))
+    chains = [{"unique_chain_id": f"T:{i}", "chain_id": str(i)} for i in range(500)]
+    tracemalloc.start()
+    try:
+        assert sum(1 for _ in distances.chain_pairs(chains)) == 124_750
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 1_000_000  # the iterator must not retain all 124,750 pair tuples

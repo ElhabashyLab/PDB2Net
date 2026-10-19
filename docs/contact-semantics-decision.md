@@ -45,8 +45,8 @@ the residue label, for example `10A:ALA`.
 With the default profile, protein pairs must have at least ten C-alpha pairs
 within 12 Å and at least one heavy-atom pair within 5 Å. Protein–nucleic-acid and
 nucleic-acid pairs require at least one heavy-atom pair within 5 Å. The raw CLI
-supports configured thresholds and filters; the fixed store profile is described
-in [Precomputed store](precomputed_store.md).
+supports configured thresholds and filters; the fixed prepared-input profile is described
+in [Prepared structures](prepared_structures.md).
 
 Only interchain contacts within the same model are calculated. `first` selects
 the first model; `all` keeps model-qualified chain identities without calculating
@@ -68,5 +68,5 @@ frozen real-structure suite supplies independent expected contact counts; the
 
 Parser and interaction fingerprints distinguish incompatible geometry rules.
 Current version identifiers and rebuild requirements are maintained in
-[Precomputed store](precomputed_store.md). A shared wrong result in raw and
-assembled output is not, by itself, independent scientific validation.
+[Prepared structures](prepared_structures.md). A shared wrong result in raw and
+prepared output is not, by itself, independent scientific validation.

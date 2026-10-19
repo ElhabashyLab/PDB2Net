@@ -203,6 +203,7 @@ def export_detailed_interactions(
     run_output_path: str,
     *,
     budget: DetailedInteractionBudget | None = None,
+    contact_rows=None,
 ) -> DetailedInteractionBudget:
     """Write one bounded per-structure detailed interaction table."""
     pdb_id = structure_data["pdb_id"]
@@ -217,7 +218,6 @@ def export_detailed_interactions(
     chains_by_unique_id = {
         str(chain.get("unique_chain_id") or chain["chain_id"]): chain for chain in atom_data
     }
-    contact_views = {key: ContactView(chain) for key, chain in chains_by_unique_id.items()}
 
     output_root = Path(run_output_path)
     output_root.mkdir(parents=True, exist_ok=True)
@@ -226,37 +226,29 @@ def export_detailed_interactions(
     )
     output_file = output_root / f"{output_stem}.csv"
 
-    with _AtomicBoundedCsvWriter(output_file, active_budget) as writer:
-        for interaction in interactions:
-            chain_a_raw = str(interaction.get("chain_a", ""))
-            chain_b_raw = str(interaction.get("chain_b", ""))
-            chain_a_data = chains_by_unique_id.get(chain_a_raw)
-            chain_b_data = chains_by_unique_id.get(chain_b_raw)
-            if not chain_a_data or not chain_b_data:
+    accepted = {(str(edge["chain_a"]), str(edge["chain_b"])): edge for edge in interactions}
+
+    def measured_rows():
+        views = {key: ContactView(chain) for key, chain in chains_by_unique_id.items()}
+        for a, b in accepted:
+            if a not in views or b not in views:
                 continue
-            chain_a_id = chain_a_raw if include_models else str(chain_a_data.get("chain_id") or "")
-            chain_b_id = chain_b_raw if include_models else str(chain_b_data.get("chain_id") or "")
+            for left, right, distance in unique_contacts(views[a], views[b], radius, budget=active_budget):
+                yield (a, b, left.site[0], left.site[1], left.residue, left.atom_name,
+                       right.site[0], right.site[1], right.residue, right.atom_name, distance)
 
-            uniprot_a = chain_a_data.get("uniprot_id", "UNKNOWN")
-            uniprot_b = chain_b_data.get("uniprot_id", "UNKNOWN")
-            interaction_type = interaction.get("interaction_type", "AA")
-            for atom_a, atom_b, distance in unique_contacts(
-                contact_views[chain_a_raw], contact_views[chain_b_raw], radius, budget=active_budget
-            ):
-                writer.write(
-                    (
-                        pdb_id,
-                        chain_a_id,
-                        atom_a.residue,
-                        atom_a.atom_name,
-                        chain_b_id,
-                        atom_b.residue,
-                        atom_b.atom_name,
-                        round(distance, 2),
-                        uniprot_a,
-                        uniprot_b,
-                        interaction_type,
-                    )
-                )
-
+    rows = measured_rows() if contact_rows is None else contact_rows
+    with _AtomicBoundedCsvWriter(output_file, active_budget) as writer:
+        for row in rows:
+            a, b = row[:2]
+            edge = accepted.get((a, b))
+            if edge is None:
+                continue
+            left, right = chains_by_unique_id[a], chains_by_unique_id[b]
+            writer.write((
+                pdb_id, a if include_models else str(left.get("chain_id") or ""), row[4], row[5],
+                b if include_models else str(right.get("chain_id") or ""), row[8], row[9], round(row[10], 2),
+                left.get("uniprot_id", "UNKNOWN"), right.get("uniprot_id", "UNKNOWN"),
+                edge.get("interaction_type", "AA"),
+            ))
     return active_budget

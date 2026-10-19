@@ -2,14 +2,15 @@
 
 import copy
 import csv
-import hashlib
 import json
 from pathlib import Path
 
 import pytest
 
-from pdb2net import config_loader, pipeline, precomputed
+from pdb2net import config_loader, pipeline
 from pdb2net.uniprot_matcher import classify_molecule_type
+from pdb2net.structure_analysis import prepare_structure, analyze_prepared
+from pdb2net.structure_facts import canonical_json
 
 
 def modified_cif(names, kind="polyribonucleotide", canonical="A"):
@@ -68,7 +69,7 @@ def configured(tmp_path):
     (["A", "PSU", "PSU"], "polyribonucleotide", "A", "RNA"),
     (["5MC"] * 3, "polydeoxyribonucleotide", "DA", "DNA"),
 ])
-def test_modified_polymer_contacts_and_lengths_survive_raw_and_store(configured, names, kind, canonical, molecule):
+def test_modified_polymer_contacts_and_lengths_survive_raw_and_prepared(configured, names, kind, canonical, molecule):
     root = configured
     inputs = root / "inputs"
     inputs.mkdir()
@@ -90,15 +91,11 @@ def test_modified_polymer_contacts_and_lengths_survive_raw_and_store(configured,
     cfg = copy.deepcopy(config_loader.get_config())
     cfg.update(export_detailed_interactions=False, output_path=str(root / "assembled"))
     config_loader.activate_config(cfg)
-    store = root / "store"
-    report = precomputed.precompute_sources(store, [source])
-    assert report["failed"] == 0 and report["written"] == 1
+    facts = prepare_structure(source)
+    before = canonical_json(facts)
     source.unlink()
-    before = {p.relative_to(store): hashlib.sha256(p.read_bytes()).hexdigest()
-              for p in store.rglob("*") if p.is_file()}
-    assembled = precomputed.run_assemble_pipeline(store, ["1abc"])
-    assert before == {p.relative_to(store): hashlib.sha256(p.read_bytes()).hexdigest()
-                      for p in store.rglob("*") if p.is_file()}
+    assembled = analyze_prepared([facts], cfg)
+    assert canonical_json(facts) == before
     for run in (raw, assembled):
         cx2, = Path(run.chain_dir).glob("*.cx2")
         aspects = {key: value for block in json.loads(cx2.read_text()) for key, value in block.items()}

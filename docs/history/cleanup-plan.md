@@ -4,7 +4,7 @@ The clean-release work established the standalone Core and its external CLI
 integration boundary. This summary preserves architectural rationale, not an
 implementation checklist or permission to resume previous work.
 
-## Retained decisions
+## Decisions at that baseline
 
 - Raw-file analysis remains the scientific reference path.
 - Offline `precompute` is the only store writer; `assemble` consumes complete
@@ -17,8 +17,9 @@ implementation checklist or permission to resume previous work.
 - Removed runtime lazy population and earlier compatibility/release-management
   mechanisms are not part of the supported architecture.
 
+The former Core-owned store has since been replaced by the prepared-input API.
 Current behavior is specified in [Architecture](../architecture.md),
-[Precomputed store](../precomputed_store.md) and the
+[Prepared structures](../prepared_structures.md) and the
 [backend contract](../server_backend_usage.md). Remaining verification work is
 tracked in [current status](../core-quality-plan.md).
 

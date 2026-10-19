@@ -9,7 +9,7 @@ from .contracts import (
     CAPABILITIES_SCHEMA_VERSION,
     CLI_CONTRACT_VERSION,
     OUTPUT_CONTRACT_VERSION,
-    PRECOMPUTED_ARTIFACT_SCHEMA_VERSION,
+    STRUCTURE_FACTS_SCHEMA_VERSION,
 )
 
 
@@ -20,8 +20,8 @@ def capability_document() -> dict[str, Any]:
         "pdb2net_version": __version__,
         "cli_contract_version": CLI_CONTRACT_VERSION,
         "output_contract_version": OUTPUT_CONTRACT_VERSION,
-        "precomputed_artifact_schema_version": PRECOMPUTED_ARTIFACT_SCHEMA_VERSION,
-        "commands": ["run", "precompute", "assemble", "capabilities"],
+        "structure_facts_schema_version": STRUCTURE_FACTS_SCHEMA_VERSION,
+        "commands": ["run", "capabilities"],
         "input_formats": [
             ".pdb",
             ".cif",
@@ -42,7 +42,7 @@ def capability_document() -> dict[str, Any]:
             "detailed_interactions",
             "embedded_sifts",
             "diamond_uniref90",
-            "precomputed_store",
+            "prepared_structure_analysis",
         ],
     }
 

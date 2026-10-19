@@ -1,4 +1,4 @@
-"""Run the checked-in real NextGen excerpt through CLI and read-only assembly."""
+"""Run the checked-in real NextGen excerpt through CLI and coordinate-free analysis."""
 
 import hashlib
 import json
@@ -62,25 +62,19 @@ def test_checked_in_nextgen_cli_preserves_independent_annotation_expectations(tm
 
     cli(["run", "--input-dir", str(inputs), "--output-dir", str(tmp_path / "raw"),
          "--web-output-dir", str(tmp_path / "raw-web")])
-    store = tmp_path / "store"
-    cli(["precompute", "--input-dir", str(inputs), "--store", str(store)])
-    (inputs / FIXTURE.name).unlink()  # Assembly cannot rely on the original input.
-    before = {str(p.relative_to(store)): p.read_bytes() for p in store.rglob("*") if p.is_file()}
-    if os.name == "posix":
-        for path in store.rglob("*"):
-            path.chmod(0o555 if path.is_dir() else 0o444)
-        store.chmod(0o555)
-    try:
-        cli(["assemble", "--store", str(store), "--pdb-id", "8aly",
-             "--output-dir", str(tmp_path / "assembled"),
-             "--web-output-dir", str(tmp_path / "assembled-web")])
-        after = {str(p.relative_to(store)): p.read_bytes() for p in store.rglob("*") if p.is_file()}
-        assert after == before
-    finally:
-        if os.name == "posix":
-            store.chmod(0o755)
-            for path in store.rglob("*"):
-                path.chmod(0o755 if path.is_dir() else 0o644)
+    script = r"""
+import json,sys
+from pathlib import Path
+from pdb2net.config_loader import load_config,activate_config
+from pdb2net.structure_analysis import prepare_structure,analyze_prepared
+root,source=map(Path,sys.argv[1:])
+cfg=load_config(explicit_file=root/'config.json');cfg['output_path']=str(root/'assembled');activate_config(cfg)
+facts=prepare_structure(source);source.unlink()
+analyze_prepared([facts],cfg,web_output_dir=str(root/'assembled-web'))
+"""
+    result=subprocess.run([sys.executable,"-c",script,str(tmp_path),str(inputs/FIXTURE.name)],
+                          cwd=ROOT,env=env,capture_output=True,text=True,timeout=30)
+    assert result.returncode==0,result.stdout+result.stderr
 
     # Both paths are checked against the original fixture facts, not each other.
     for directory in [tmp_path / "raw-web", tmp_path / "assembled-web"]:

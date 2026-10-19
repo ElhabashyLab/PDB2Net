@@ -6,6 +6,8 @@ from pdb2net.outputs import _cx2_counts
 from pdb2net.structure_identity import identity_from_official_id
 
 import json
+import ntpath
+import posixpath
 
 import pytest
 
@@ -130,6 +132,49 @@ def test_per_pdb_protein_metadata_does_not_leak_other_inputs(monkeypatch, revers
     assert combined["pdb_ids"] == "ONE1, TWO2"
     assert combined["source_files"] == "ONE1.cif, TWO2.cif"
     assert combined["source_chains"] == "ONE1:A, TWO2:A"
+
+
+@pytest.mark.parametrize(("path_module", "paths", "labels"), [
+    (ntpath, (r"C:\inputs\one.cif", r"D:\inputs\two.cif"), ("one.cif", "two.cif")),
+    (ntpath, (r"\\server\share\one.cif", r"\\server\share\two.cif"), ("one.cif", "two.cif")),
+    (ntpath, (r"C:one.cif", r"inputs\two.cif"), ("one.cif", "two.cif")),
+    (posixpath, ("/inputs/one.cif", "inputs/two.cif"), ("one.cif", "two.cif")),
+    (posixpath, (r"/inputs/part\one.cif", r"/inputs/part\two.cif"),
+     (r"part\one.cif", r"part\two.cif")),
+    (ntpath, ("pdb:pdb_00001abc", "pdb:pdb_00002xyz"), ("pdb:pdb_00001abc", "pdb:pdb_00002xyz")),
+    (posixpath, ("", None), ("1ABC", "2XYZ")),
+])
+def test_protein_cx2_source_labels_follow_native_path_rules(tmp_path, monkeypatch, path_module, paths, labels):
+    # Exercise the actual stdlib Windows/POSIX implementations on any test host,
+    # without changing os.path globally or requiring a Windows filesystem.
+    monkeypatch.setattr(protein_network, "basename", path_module.basename, raising=False)
+    monkeypatch.setitem(config, "open_in_cytoscape", False)
+    monkeypatch.setitem(config, "layout_mode", "python_fast")
+    structures = [
+        {"pdb_id": "1ABC", "file_path": paths[0], "atom_data": [_protein_chain("A", "P12345"), _dna_chain("D")]},
+        {"pdb_id": "2XYZ", "file_path": paths[1], "atom_data": [_protein_chain("A", "P12345")]},
+    ]
+    create_protein_network(
+        [{"chain_a": "1ABC:A", "chain_b": "1ABC:D", "all_atoms_count": 5}],
+        structures, str(tmp_path), {"protein_per_pdb": True, "combined_protein_network": True},
+    )
+    exported = {}
+    for path in tmp_path.glob("*.cx2"):
+        _cx2_counts(path)
+        aspects = {key: value for block in json.loads(path.read_text()) for key, value in block.items()}
+        exported[path.stem] = aspects
+    assert len(exported) == 3
+    for pdb_id, label in zip(("1ABC", "2XYZ"), labels):
+        nodes = {n["v"]["name"]: n["v"] for n in exported[f"Protein_Network_{pdb_id}"]["nodes"]}
+        assert nodes["P12345"]["source_files"] == label
+        if pdb_id == "1ABC":
+            assert nodes["1ABC:D"]["source_file"] == label
+            edge, = exported[f"Protein_Network_{pdb_id}"]["edges"]
+            assert edge["v"]["all_atoms_count"] == 5
+    node, = exported["Combined_Protein_Network_P12345"]["nodes"]
+    expected = ", ".join(sorted(labels))
+    assert node["v"]["source_files"] == expected
+    assert f"Source files: {expected}" in node["v"]["tooltip"]
 
 
 def test_combined_protein_networks_follow_linked_chain_components(monkeypatch) -> None:

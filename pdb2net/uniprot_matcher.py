@@ -697,6 +697,8 @@ def extract_sequence_from_parsed_data(chain_data: Dict[str, Any]) -> str:
     Uses residue key 'residue_name' (project convention) with a fallback to 'resname'.
     Known non-polymers are excluded. Unknown / unmapped polymer residues become 'X'.
     """
+    if "residues" not in chain_data and "structure_sequence" in chain_data:
+        return chain_data["structure_sequence"]
     residues = _polymer_residues(chain_data)
     if not residues:
         return ""
@@ -1418,6 +1420,8 @@ def classify_molecule_type(chain_data: Dict[str, Any], label: str = "", debug: b
     Reads residue key 'residue_name' with fallback to 'resname'. When names
     cannot determine a type, use consistent supported polymer-type metadata.
     """
+    if "residues" not in chain_data and "structure_molecule_type" in chain_data:
+        return chain_data["structure_molecule_type"]
     residues = _polymer_residues(chain_data)
     if not residues:
         return "Unknown"

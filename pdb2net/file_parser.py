@@ -672,6 +672,8 @@ def parse_structure_input(
         _raise_changed(file_path)
     return {
         "structure": structure,
+        "source_sha256": hashlib.sha256(payload).hexdigest(),
+        "source_expanded_bytes": len(payload),
         "atom_occupancies": occupancies,
         "structure_identity": identity.as_dict(),
         "identity_warnings": warnings,

@@ -8,7 +8,8 @@ import re
 import gemmi
 import pytest
 
-from pdb2net import precomputed
+from pdb2net.structure_analysis import prepare_structure
+from pdb2net.structure_facts import materialize_facts, profile_id
 from pdb2net import network_annotations
 from pdb2net import unknown_molecule_uniprot
 from pdb2net.config_loader import config
@@ -348,47 +349,24 @@ def test_identity_is_content_first_and_extended_canonical(tmp_path: Path) -> Non
     assert future_identity.display_id == "pdb_12345678"
 
 
-def test_tooltip_selection_does_not_change_precompute_profiles(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_tooltip_selection_does_not_change_geometry_profiles(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(config, "reference_manifest_id", "profile-test-v1")
-    profile_before = precomputed.profile_id()
+    profile_before = profile_id()
 
     monkeypatch.setitem(config["network_annotations"], "tooltip_fields", ["uniprot", "pfam"])
 
-    assert precomputed.profile_id() == profile_before
+    assert profile_id() == profile_before
 
 
-def test_precompute_keeps_all_embedded_segments_when_tooltip_is_uniprot_only(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_preparation_keeps_all_embedded_segments_when_tooltip_is_uniprot_only(tmp_path, monkeypatch):
     source = tmp_path / "pdb_00001abc_xyz-enrich.cif"
     source.write_text(_enriched_mmcif(), encoding="utf-8")
-    monkeypatch.setitem(config, "reference_manifest_id", "nextgen-test-v1")
     monkeypatch.setitem(config, "structure_model_policy", "first")
     monkeypatch.setitem(config["network_annotations"], "tooltip_fields", ["uniprot"])
-    parsed = process_single_file(str(source))
-    assert parsed is not None
-
-    from pdb2net import pipeline, reference_data, unknown_molecule_uniprot
-    from pdb2net.precomputed import build
-    from pdb2net.precomputed.schema import materialize_entry
-
-    monkeypatch.setattr(pipeline, "_validate_required_reference_files", lambda: None)
-    monkeypatch.setattr(reference_data, "load_pdb_fasta_headers", lambda *_args: {})
-    monkeypatch.setattr(
-        pipeline, "_parse_input_files", lambda _paths, **_kwargs: [parsed]
-    )
-    monkeypatch.setattr(
-        unknown_molecule_uniprot, "process_molecule_info", lambda *_args, **_kwargs: None
-    )
-    monkeypatch.setattr(pipeline, "_run_blast_annotation", lambda _data: None)
-    monkeypatch.setattr(build, "calculate_distances_with_ckdtree", lambda _data: [])
-
-    report = precomputed.precompute_sources(tmp_path / "store", [source])
-    assert report["failed"] == 0
-    cached = precomputed.load_entry(tmp_path / "store", "1abc")
-    structure, _interactions, _references = materialize_entry(cached)
-    annotations = structure["atom_data"][0]["embedded_annotations"]
-    assert set(annotations) == {"uniprot", "pfam", "cath", "scop2"}
+    facts = prepare_structure(source)
+    source.unlink()
+    structure = materialize_facts(facts)
+    assert set(structure["atom_data"][0]["embedded_annotations"]) == {"uniprot", "pfam", "cath", "scop2"}
 
 
 def test_network_annotation_config_rejects_unknown_tooltip_database() -> None:

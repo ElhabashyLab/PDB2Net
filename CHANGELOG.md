@@ -1,12 +1,26 @@
 # Changelog
 
-The RC2–RC4 entries below record unreleased development history. Their older
+The RC2–RC5 entries below record unreleased development history. Their older
 server-interface snapshots, output contracts, profile namespaces, and rollout
-ideas are superseded by the RC5 clean-release baseline and must not be treated
+ideas are superseded by the RC6 prepared-input boundary and must not be treated
 as current compatibility requirements.
+
+## v0.2.0-rc6 - Unreleased
+
+- Replace the standalone precompute/store commands with a documented prepared-
+  structure Python API. External adapters own persistence and offline updates.
+- Preserve unfiltered geometry and streamed atom contacts while performing
+  annotation, interaction selection and detailed export with current references.
+- Publish capability schema 4, CLI contract 3, Web output contract 3.0 and
+  structure facts schema 1. Keep scientific CX2/CSV behavior and local `run`.
+- Add validated path-free prepared-input provenance and retain independent
+  scientific expectations in raw/prepared and installed-package regressions.
 
 ## v0.2.0-rc5 - Unreleased
 
+- Use native path rules for protein-network source labels (F11), so Windows
+  paths contribute filenames to node metadata and tooltips. Preserve POSIX
+  filenames, store labels and contact weights.
 - Retain fully modified supported polymer chains and use unambiguous polymer
   types when residue-name inference is unknown (F08). Preserve determinate
   name-based types and reference precedence; parser/annotation fingerprints v6

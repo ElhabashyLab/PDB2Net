@@ -44,7 +44,7 @@ installed in the venv:
 ## Small real fixture in the default suite
 
 The normal suite runs the checked-in, provenance-documented 8ALY NextGen excerpt
-through the real headless CLI, offline precompute, and read-only assembly. It
+through the real headless CLI and coordinate-free prepared analysis. It
 asserts known author-chain mapping, UniProt/Pfam segment ranges and CX2 contents.
 Tiny synthetic FASTA/TSV lookups are created under pytest's temporary directory;
 this test needs neither an external dataset nor a BLAST database or Cytoscape.
@@ -63,11 +63,11 @@ and three frozen mini-reference files in `tests/fixtures/core_reference/`:
 CI also installs the built wheel and its runtime dependencies into a separate
 environment without the Cytoscape extra. From outside the checkout,
 `scripts/check_installed_pipeline.py` exercises the installed console command
-through `run`, `precompute`, and `assemble` using frozen 4HHB/1BNA inputs.
+through `run` and the public prepared-input Python API using frozen 4HHB/1BNA inputs.
 Both paths are checked against fixed chain identities, annotations, polymer
 lengths, contact counts and protein aggregation. Raw CSV row counts are also
-checked. Sources and reference copies are removed before assembly; store
-permissions and file hashes enforce the read-only check.
+checked. Coordinate sources are removed before prepared analysis; immutable
+facts and byte-equal CSVs are checked while annotation still uses the references.
 
 To repeat with an already installed wheel (use a new work directory):
 
@@ -128,12 +128,12 @@ atom selectors or KD-trees. Reproduce candidates outside the accepted directory:
 .venv/bin/python tests/reference_oracle.py --output-dir /tmp/pdb2net-reference-candidates
 ```
 
-Review differences before changing accepted expectations. Raw/store agreement
+Review differences before changing accepted expectations. Raw/prepared agreement
 alone is not independent scientific validation. Tests also check all 652 atom
 pairs in the small 1BNA CSV, a real competing BLAST hit, and a controlled miss.
 The F06/F07 length regressions run normally: 1EHZ has 76 nt, both 170D chains
-have 12 nt, and 6M17 chains A/C have 605 aa. A dedicated raw/precompute/assemble
-case verifies these lengths in compact entries and read-only output as well.
+have 12 nt, and 6M17 chains A/C have 605 aa. A dedicated raw/prepared
+case verifies these lengths in compact facts and coordinate-free output as well.
 `tests/test_polymer_lengths.py` checks raw/compact export consistency, modified
 and unknown polymers, excluded nonpolymers and legacy name-only calls. Length
 counting does not apply atom-occupancy or contact filters.
@@ -158,8 +158,9 @@ site unions, insertion codes and residue alternatives, minimum-distance CSV
 witnesses, inclusive thresholds, the Cα minimum and row-budget prechecks.
 `tests/test_contact_atoms.py` contains the small contact oracles;
 `tests/test_atom_metadata.py` tests source metadata independently of selection.
-The precomputed end-to-end test checks raw/store agreement with alternatives
-and water, while profile tests reject the old parser/interaction versions.
+Prepared-input tests retain independent alternative-position, insertion and
+occupancy witnesses through serialization and CSV. Geometry profiles reject
+incompatible facts while remaining independent of annotation references.
 The nine paired-format examples in `docs/examples/q01_contact_examples.py`
 also compare the implemented union rule with hand-counted alternatives.
 
@@ -183,6 +184,12 @@ propagation. `tests/test_data_processor.py` also checks whitespace-only names,
 the unchanged rejection before residue selection, and first/all model scope.
 
 ## Local Configuration
+
+Prepared-input regression tests are in `tests/test_structure_analysis.py`.
+They use frozen structures, independent contact expectations and disposable
+reference generations. Run them with the existing integration tools; see
+[the API contract](prepared_structures.md). They also verify that prepared
+analysis works after its coordinate inputs have been removed.
 
 Search lifecycle tests use finite fake executables rather than large databases.
 They check actual process exit, query cleanup, cancelled launch races, a timeout
@@ -282,8 +289,8 @@ Expected result:
 
 - `configs/config.base.json` exists in the installed copy
 - `configs/config.local.json` does not exist in the installed copy
-- `pdb2net --version` and help for `run`, `precompute`, `assemble`, and
-  `capabilities` work after installation
+- `pdb2net --version` and help for `run` and `capabilities` work after installation
+- removed `pdb2net.precomputed` modules are absent from the installed wheel
 
 ## Full Pipeline Requirements
 

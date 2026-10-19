@@ -2,20 +2,20 @@
 
 PDB2Net is a batch pipeline for turning PDB/mmCIF structure files into protein and chain interaction networks.
 
-## Clean-release baseline
+## Product boundary
 
 Core is the standalone scientific product. Its current public boundary is
-package `0.2.0rc5`, capability schema `3`, CLI contract `2`, Web output contract
-`2.0`, and precomputed artifact schema `3`. A Web adapter may install and call
-the package, but Core never imports or depends on PHP, Apache, MariaDB, Docker,
-or a Web repository.
+package `0.2.0rc6`, capability schema `4`, CLI contract `3`, Web output contract
+`3.0`, and prepared structure facts schema `1`. External applications install
+the package and use the CLI or documented Python API. Core has no dependency
+on a web framework, database service, deployment or adapter repository.
 
-The raw-file pipeline is the scientific reference path. The optional store only
-changes the input adapter: offline `precompute` writes one immutable fixed-profile
-store, while `assemble` reads published entries. Runtime archive lookup,
-downloads, lazy population, and writable worker stores are intentionally absent.
-Changes to scientific behavior, these contracts, or this repository boundary
-require explicit user approval.
+The raw-file pipeline is the scientific reference path. Preparation retains
+reference-independent chain facts and geometric candidates; analysis annotates
+them with the current reference generation and uses the same contact filters
+and exporters. Storage, archive synchronization and scheduling belong to the
+external adapter. Runtime prepared analysis never downloads structures or
+populates missing entries. See [prepared structures](prepared_structures.md).
 
 ## Pipeline
 
@@ -43,8 +43,8 @@ inputs. Unexpected, integrity, resource and operational failures abort the run;
 if no usable structures remain, the run fails with the collected diagnostics.
 The complete status/count interpretation is documented in
 [Server Backend Usage](server_backend_usage.md#file-exclusions-and-result-status).
-These raw-run rules do not change the store builder's manifest-last publication
-or read-only assembly behavior.
+Prepared-input analysis validates all supplied structures and fails rather
+than silently dropping a requested input. An adapter owns its publication policy.
 
 Contact views retain all eligible alternative positions but count each pair of
 sites once; a site is identified within its structure/model/chain by author
@@ -70,6 +70,10 @@ zero-contact chains with eligible atoms remain. Model selection is unchanged.
 
 ## Main Modules
 
+- `pdb2net/structure_analysis.py` and `structure_facts.py`: reference-independent
+  preparation and fresh analysis of validated compact structures, sharing raw
+  annotation, contact filtering and export. See [prepared inputs](prepared_structures.md)
+  for the API and current integration status.
 - `pdb2net/config_loader.py`: layered configuration, path expansion, environment overrides, and headless defaults.
 - `pdb2net/structure_identity.py`: canonical Extended PDB IDs, classic aliases,
   archive sharding, and stable identities for non-PDB uploads.
@@ -92,8 +96,6 @@ zero-contact chains with eligible atoms remain. Model selection is unchanged.
 - `pdb2net/outputs.py`: per-run output folders and the versioned run/web output contract.
 - `pdb2net/batching.py`: streamed batch sizing, timeout handling, and skipped-batch logging.
 - `pdb2net/pipeline.py`: single-run orchestration, worker selection, parsing, annotation, interaction detection, and export sequencing.
-- `pdb2net/precomputed/`: schema-3 validation and bounded I/O, the sole offline
-  store builder, and the read-only assembly consumer.
 - `pdb2net/main.py`: stable public entry points for single-run and batch execution.
 
 ## Network Views
@@ -116,8 +118,8 @@ equality is not implied by the headless guarantee.
 
 The store contains measured within-structure chain contacts; cross-file
 identity links are constructed during output generation. The identity-link
-presentation change alone required no geometry rebuild; entries must still
-match the current complete store profile.
+presentation change alone required no geometry rebuild; facts must still
+match the current geometry profile.
 Previously exported CX2 files retain the former value until regenerated.
 
 ## External Inputs
@@ -138,14 +140,11 @@ In desktop mode, the optional `cytoscape` package extra lets PDB2Net connect to
 Cytoscape through py4cytoscape, create networks in the UI, apply styles, and
 also export CX2. The base package does not depend on py4cytoscape.
 
-The optional precomputed mode changes only the input adapter. Schema 3 stores
-compact geometry/interactions separately from chain annotations and retained
-embedded SIFTS segments; `assemble` merges the validated sections and feeds them
-into the same network exporters. It does not persist raw coordinates or detailed
-atom-pair CSVs. One directory contains one complete fixed profile. Offline
-`precompute` is its only writer, while assembly is read-only. Store promotion
-and retention remain deployment concerns.
-The ordinary local `run --input-dir` path does not require this store.
+Prepared analysis accepts compact chain facts, annotation-independent pair
+counts, and optional atom-contact iterators. It recomputes annotation and final
+interaction selection for each invocation; detailed CSVs use the stored minimum
+witnesses and current assignments. Reference changes do not invalidate geometry.
+The ordinary local `run --input-dir` path does not require prepared inputs.
 
 ## Configuration
 

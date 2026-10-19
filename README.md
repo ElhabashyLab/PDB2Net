@@ -12,7 +12,6 @@ It uses **Gemmi** for structure parsing, **SciPy cKDTree** for distance-based in
 - Full UniProt annotation via SIFTS and BLAST+, including embedded SIFTS in enriched NextGen mmCIF
 - Configurable UniProt, Pfam, CATH, and SCOP2 segment annotations in existing CX2 tooltips
 - Export of chain, protein, and combined networks (CX2 format)  
-- Optional versioned per-PDB precompute store for fast repeated assembly
 - Machine-readable, configuration-free capability contract for deployment compatibility checks
 
 ## Documentation
@@ -21,7 +20,7 @@ It uses **Gemmi** for structure parsing, **SciPy cKDTree** for distance-based in
   [network projections](docs/network-semantics-decision.md)
 - [Architecture](docs/architecture.md) and [development checks](docs/development.md)
 - [Reference and search lifecycle](docs/runtime-reference-decisions.md)
-- [Precomputed store](docs/precomputed_store.md) and [backend contract](docs/server_backend_usage.md)
+- [Backend contract](docs/server_backend_usage.md) and developer [prepared-input API](docs/prepared_structures.md)
 - [Validation summary](docs/core-quality-audit.md) and [remaining work](docs/core-quality-plan.md)
 
 ## Installation
@@ -459,9 +458,8 @@ An empty or whitespace-only chain identifier in a selected model produces
 `MISSING_CHAIN_ID` and excludes the whole file, even if it also contains named
 chains. Correct the chain identifiers or export the structure again; Core does
 not invent names. With `structure_model_policy: "first"`, later models do not
-participate in this check; with `"all"`, every selected model does. Offline
-`precompute` reports the same cause and does not publish a final store manifest
-when any input fails.
+participate in this check; with `"all"`, every selected model does. Structure
+preparation rejects the same invalid identities.
 
 ### Sequence-search timeout and cancellation
 
@@ -484,7 +482,7 @@ negative search result nor a reason for DIAMOND fallback. Scientific cache/store
 profiles are unchanged by this runtime setting.
 
 Ctrl+C during sequence searching triggers the same cleanup. The library then
-propagates `KeyboardInterrupt`; `run` and `precompute` CLI commands return 130.
+propagates `KeyboardInterrupt`; the `run` CLI command returns 130.
 Folder-based raw runs retain a failed summary with `RUN_INTERRUPTED` when the
 reporting path is available. No success result is published. With `null`, a
 standalone search can still run indefinitely unless interrupted; the existing
@@ -502,8 +500,8 @@ tables. In-place replacement during a running process is unsupported and is
 not detected by repeated file scans.
 
 The caches serve different purposes: parsed reference lookups live in RAM;
-sequence-search results use a database/policy-specific cache; precomputed entries
-belong to a fixed scientific/reference profile. The Web workflow already starts
+sequence-search results use a database/policy-specific cache; prepared structural
+facts depend on source contents and geometry rules, independently of references. The Web workflow already starts
 a new Core process per job and mounts references read-only. No automatic cache
 invalidation, reference-file hashing per job or change in memory usage is implied.
 
@@ -533,8 +531,8 @@ a zero weight alone does not exclude them from unweighted graph statistics.
 PDB2Net analyzes supplied coordinates. It does not generate assembly/symmetry
 partners or determine whether a crystal contact is biologically relevant.
 Already expanded coordinates can be analyzed when their chains have unique
-identifiers within the selected model. `assemble` reads precomputed networks;
-it does not build a biological assembly.
+identifiers within the selected model. Prepared-input analysis also uses supplied
+asymmetric-unit geometry and does not build biological assemblies.
 
 With `structure_model_policy: "all"`, per-structure chain networks are exported
 separately for each model; no geometric contacts cross model boundaries.
@@ -543,48 +541,13 @@ across files by UniProt identity. Both protein outputs are rejected for `all`.
 Model indices in outputs are sequential positions, not necessarily the source
 file's original MODEL serial numbers. There is no merging of model contact counts.
 
-### Optional precomputed PDB store
+### Integration with external applications
 
-The normal laptop/desktop workflow above remains unchanged and does not require
-a cache, database server, Docker, or the webserver repository. For repeated
-analysis of a local PDB archive, PDB2Net can additionally precompute the compact
-graph primitives for each structure:
-
-```bash
-export PDB2NET_REFERENCE_MANIFEST_ID="pdb-sifts-swissprot-2026-07"
-
-pdb2net precompute \
-  --input-dir /srv/pdb/archive \
-  --store /srv/pdb2net/precomputed \
-  --config /srv/pdb2net/config.json \
-  --recursive \
-  --headless
-```
-
-The store contains annotated chain metadata and filtered chain-pair interaction
-edges for one versioned standard profile. It deliberately contains neither raw
-coordinates nor detailed atom-pair CSV data. Assemble one or more cached PDB
-entries into the usual CX2 outputs with:
-
-```bash
-pdb2net assemble \
-  --store /srv/pdb2net/precomputed \
-  --pdb-id pdb_00001abc \
-  --pdb-id pdb_00002xyz \
-  --output-dir ./outputs \
-  --headless
-```
-
-`assemble` is read-only. An absent entry fails with
-`PRECOMPUTED_ENTRY_MISSING`; add it by building a new store with the offline
-`precompute` command and promote that store operationally.
-
-Precomputed schema 3 uses canonical Extended PDB IDs and one fixed scientific
-profile per store. It requires `structure_model_policy: "first"`, a non-empty
-and operationally versioned `reference_manifest_id`, and
-`export_detailed_interactions: false`. See
-[`docs/precomputed_store.md`](docs/precomputed_store.md) for the artifact layout,
-validation, and safe promotion procedure.
+Local users analyze structure files with `pdb2net run` and keep the results in
+their output directory. No structure-store setup or maintenance is required.
+External applications can use the [prepared-input Python API](docs/prepared_structures.md)
+to retain structure measurements while applying current annotation references
+for each request. Persistence and scheduled updates belong to those applications.
 
 ## **User input**  
 Valid PDB/mmCIF files found in `input_folder_path`

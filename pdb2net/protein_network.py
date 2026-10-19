@@ -24,6 +24,7 @@ Notes
 
 from __future__ import annotations
 
+from os.path import basename
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple
 
 from .components import build_identity_edges, find_linked_components, make_component_title
@@ -85,7 +86,7 @@ def create_protein_network(
     for structure in combined_data:
         pdb_id = structure["pdb_id"]
         file_path = str(structure.get("file_path") or "")
-        file_label = file_path.rsplit("/", 1)[-1] if file_path else pdb_id
+        file_label = basename(file_path) if file_path else pdb_id
         for chain in structure["atom_data"]:
             chain_id = chain["chain_id"]
             uid = str(chain.get("unique_chain_id") or f"{pdb_id}:{chain_id}")

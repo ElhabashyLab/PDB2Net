@@ -114,43 +114,28 @@ def test_partial_chain_exclusion_reaches_reports_without_becoming_file_exclusion
         assert json.loads(Path(report).read_text())["warnings"] == warnings
 
 
-def test_precompute_reports_empty_chain_and_rejects_empty_structure(setup_run):
-    from pdb2net import precomputed
-
+def test_preparation_retains_exclusion_warnings_and_rejects_empty_structure(setup_run):
+    from pdb2net.structure_analysis import prepare_structure
     partial = setup_run / "1abc.pdb"
     partial.write_text(_pdb().replace("  1.00 20.00", "  0.00 20.00", 1))
-    report = precomputed.precompute_sources(setup_run / "partial-store", [partial])
-    assert report["failed"] == 0 and report["written"] == 1
-    assert report["warnings"][0]["code"] == "CHAIN_WITHOUT_CONTACT_ATOMS"
-    entry = precomputed.load_entry(setup_run / "partial-store", "1abc")
-    assert entry["counts"]["chains"] == 1
-    assert "input_warnings" not in entry["geometry"]["structure"]  # Schema remains compact.
-
+    facts = prepare_structure(partial)
+    assert facts["warnings"][0]["code"] == "CHAIN_WITHOUT_CONTACT_ATOMS"
+    assert len(facts["chains"]) == 1
     empty = setup_run / "3abc.pdb"
     empty.write_text(_pdb("3ABC").replace("  1.00 20.00", "  0.00 20.00"))
-    report = precomputed.precompute_sources(setup_run / "empty-store", [empty])
-    assert report["written"] == 0 and report["failed"] == 1
-    assert report["errors"][0]["code"] == "NO_VALID_CHAINS"
-    assert not (setup_run / "empty-store/manifest.json").exists()
+    with pytest.raises(InputValidationError) as error:
+        prepare_structure(empty)
+    assert error.value.code == "NO_VALID_CHAINS"
 
 
 @pytest.mark.parametrize("extension", ["pdb", "cif"])
-def test_precompute_reports_missing_chain_id_without_publishing_store(setup_run, extension):
-    from pdb2net import precomputed
-
-    good = setup_run / "1abc.pdb"
-    good.write_text(_pdb())
+def test_preparation_rejects_missing_chain_identity(setup_run, extension):
+    from pdb2net.structure_analysis import prepare_structure
     bad = setup_run / f"3abc.{extension}"
     bad.write_text(_missing_chain_input(extension))
-    store = setup_run / "missing-chain-store"
-    report = precomputed.precompute_sources(store, [good, bad])
-
-    assert report["written"] == 1 and report["failed"] == 1
-    assert len(report["errors"]) == 1
-    assert report["errors"][0]["pdb_id"] == "pdb_00003abc"
-    assert report["errors"][0]["code"] == "MISSING_CHAIN_ID"
-    assert "manifest" not in report
-    assert not (store / "manifest.json").exists()
+    with pytest.raises(InputValidationError) as error:
+        prepare_structure(bad)
+    assert error.value.code == "MISSING_CHAIN_ID"
 
 
 def test_all_unusable_files_keep_all_diagnostics(setup_run):
@@ -338,18 +323,10 @@ def test_unavailable_interrupt_report_cannot_replace_keyboard_interrupt(setup_ru
         _run(setup_run, "unreportable", {"1abc.pdb": _pdb()})
 
 
-@pytest.mark.parametrize("command", ["run", "precompute"])
-def test_cli_user_interrupt_returns_130(setup_run, monkeypatch, capsys, command):
+def test_cli_user_interrupt_returns_130(setup_run, monkeypatch, capsys):
     from pdb2net.__main__ import main
-    from pdb2net import precomputed
-
     def interrupt(*args, **kwargs):
         raise KeyboardInterrupt
-    if command == "run":
-        monkeypatch.setattr(pipeline, "run_pipeline", interrupt)
-        args = ["--output-dir", str(setup_run / "out")]
-    else:
-        monkeypatch.setattr(precomputed, "precompute_directory", interrupt)
-        args = ["--store", str(setup_run / "store")]
-    assert main([command, "--input-dir", str(setup_run), *args, "--headless"]) == 130
+    monkeypatch.setattr(pipeline, "run_pipeline", interrupt)
+    assert main(["run", "--input-dir", str(setup_run), "--output-dir", str(setup_run / "out"), "--headless"]) == 130
     assert "interrupted by user" in capsys.readouterr().err

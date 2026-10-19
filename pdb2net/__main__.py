@@ -114,55 +114,6 @@ def build_parser() -> argparse.ArgumentParser:
         "Export detailed atom/residue interaction CSV files.",
     )
 
-    precompute = subparsers.add_parser(
-        "precompute",
-        help="Precompute portable per-PDB graph entries for a standard scientific profile.",
-    )
-    precompute.add_argument(
-        "--input-dir",
-        required=True,
-        help="Folder containing PDB/mmCIF sources, optionally gzip-compressed.",
-    )
-    precompute.add_argument("--store", required=True, help="Portable precomputed-store root.")
-    precompute.add_argument("--config", help="Optional JSON config file loaded after local config.")
-    precompute.add_argument(
-        "--recursive",
-        action="store_true",
-        help="Discover supported structure files below nested input folders.",
-    )
-    precompute.add_argument(
-        "--headless",
-        action="store_true",
-        help="Keep the command independent of a running Cytoscape UI.",
-    )
-
-    assemble = subparsers.add_parser(
-        "assemble",
-        help="Assemble normal PDB2Net networks from validated precomputed entries.",
-    )
-    assemble.add_argument("--store", required=True, help="Portable precomputed-store root.")
-    assemble.add_argument(
-        "--pdb-id",
-        action="append",
-        required=True,
-        help="PDB ID to assemble; repeat this option to combine several structures.",
-    )
-    assemble.add_argument(
-        "--output-dir",
-        required=True,
-        help="Folder where timestamped internal run output is written.",
-    )
-    assemble.add_argument(
-        "--web-output-dir",
-        help="Optional stable output folder with summary.json, networks/, and interactions/.",
-    )
-    assemble.add_argument("--config", help="Optional JSON config file loaded after local config.")
-    assemble.add_argument(
-        "--headless",
-        action="store_true",
-        help="Disable live Cytoscape and write CX2 files only.",
-    )
-
     return parser
 
 
@@ -178,8 +129,8 @@ def capabilities_command(args: argparse.Namespace) -> int:
         print(f"CLI contract: {document['cli_contract_version']}")
         print(f"Web output contract: {document['output_contract_version']}")
         print(
-            "Precomputed artifact schema: "
-            f"{document['precomputed_artifact_schema_version']}"
+            "Prepared structure schema: "
+            f"{document['structure_facts_schema_version']}"
         )
     return 0
 
@@ -300,92 +251,6 @@ def run_command(args: argparse.Namespace) -> int:
     return 0
 
 
-def _load_auxiliary_config(args: argparse.Namespace) -> dict[str, Any]:
-    """Load config for additive commands without changing normal ``run`` flags."""
-    from .config_loader import activate_config, load_config
-
-    loaded = load_config(explicit_file=args.config)
-    if getattr(args, "headless", False):
-        loaded["open_in_cytoscape"] = False
-    return activate_config(loaded)
-
-
-def precompute_command(args: argparse.Namespace) -> int:
-    """Populate a portable store with compact standard-profile graph entries."""
-    from .config_loader import ConfigError
-
-    try:
-        _load_auxiliary_config(args)
-    except ConfigError as exc:
-        print(f"PDB2Net precompute configuration failed: {exc}", file=sys.stderr)
-        return 1
-
-    try:
-        from .precomputed import precompute_directory
-
-        report = precompute_directory(args.store, args.input_dir, recursive=args.recursive)
-    except KeyboardInterrupt:
-        print("PDB2Net precompute interrupted by user.", file=sys.stderr)
-        return 130
-    except Exception as exc:
-        print(f"PDB2Net precompute failed: {exc}", file=sys.stderr)
-        return 1
-
-    print(
-        "PDB2Net precompute complete: "
-        f"{report['written']} written, {report['cache_hits']} cache hit(s), "
-        f"{report['failed']} failed"
-    )
-    print(f"Profile: {report['profile_id']}")
-    print(f"Store: {Path(args.store).expanduser()}")
-    for warning in report.get("warnings", []):
-        print(f"Precompute warning: {warning.get('code', 'WARNING')}: {warning.get('message', '')}", file=sys.stderr)
-    for error in report.get("errors", []):
-        print(
-            f"Precompute error for {error.get('pdb_id', 'UNKNOWN')}: "
-            f"{error.get('code', 'ERROR')}: {error.get('message', '')}",
-            file=sys.stderr,
-        )
-    return 1 if report.get("failed") else 0
-
-
-def assemble_command(args: argparse.Namespace) -> int:
-    """Create normal outputs from selected validated cache entries."""
-    from .config_loader import ConfigError
-
-    try:
-        config = _load_auxiliary_config(args)
-        config["output_path"] = str(Path(args.output_dir).expanduser())
-    except ConfigError as exc:
-        print(f"PDB2Net assemble configuration failed: {exc}", file=sys.stderr)
-        return 1
-
-    try:
-        if config.get("open_in_cytoscape", True):
-            from .cytoscape import ensure_cytoscape_running
-
-            ensure_cytoscape_running()
-
-        from .precomputed import run_assemble_pipeline
-
-        output_paths = run_assemble_pipeline(
-            args.store,
-            args.pdb_id,
-            web_output_dir=args.web_output_dir,
-        )
-    except Exception as exc:
-        print(f"PDB2Net assemble failed: {exc}", file=sys.stderr)
-        if args.web_output_dir:
-            print(f"Web output summary: {Path(args.web_output_dir) / 'summary.json'}", file=sys.stderr)
-        return 1
-
-    print(f"PDB2Net assemble complete: {output_paths.run_output_path}")
-    print(f"Run summary: {output_paths.summary_file}")
-    if args.web_output_dir:
-        print(f"Web output summary: {Path(args.web_output_dir) / 'summary.json'}")
-    return 0
-
-
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point."""
     parser = build_parser()
@@ -395,10 +260,6 @@ def main(argv: list[str] | None = None) -> int:
         return run_command(args)
     if args.command == "capabilities":
         return capabilities_command(args)
-    if args.command == "precompute":
-        return precompute_command(args)
-    if args.command == "assemble":
-        return assemble_command(args)
 
     parser.print_help()
     return 2

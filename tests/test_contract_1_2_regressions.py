@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from pdb2net import distances, file_parser, pipeline, precomputed
+from pdb2net import distances, file_parser, pipeline
 from pdb2net.config_loader import config
 from pdb2net.input_contract import InputValidationError
 from pdb2net.structure_identity import (
@@ -41,10 +41,6 @@ def test_official_id_grammar_normalization_and_archive_shard_are_exact() -> None
             StructureIdentity("local", unsafe)
 
 
-def test_precomputed_requests_reject_legacy_extended_identity_duplicates() -> None:
-    with pytest.raises(InputValidationError) as error:
-        precomputed.normalize_requested_ids(["1ABC", "pdb_00001abc"])
-    _assert_code(error, "DUPLICATE_STRUCTURE_IDENTITY")
 
 
 def test_equivalent_content_identity_claims_coalesce(tmp_path: Path) -> None:

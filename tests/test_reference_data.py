@@ -101,7 +101,7 @@ import json, sys
 from pathlib import Path
 from pdb2net import config_loader, uniprot_matcher as search
 from pdb2net.unknown_molecule_uniprot import process_molecule_info
-from pdb2net.precomputed import profile_id
+from pdb2net.structure_facts import profile_id
 config_loader.activate_config(json.loads(Path(sys.argv[1]).read_text()))
 search._CACHE_ENABLED = True
 annotations = []
@@ -125,4 +125,4 @@ print(json.dumps({"annotations":annotations, "cached":cached, "profile":profile_
     assert observed[0]["annotations"] == observed[1]["annotations"] == [["P12345", "First name"]] * 2
     assert observed[2]["annotations"] == [["Q99999", "Second name"]] * 2
     assert [result["cached"] for result in observed] == [False, True, False]
-    assert observed[0]["profile"] == observed[1]["profile"] != observed[2]["profile"]
+    assert observed[0]["profile"] == observed[1]["profile"] == observed[2]["profile"]

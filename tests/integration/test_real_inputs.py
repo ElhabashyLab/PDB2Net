@@ -295,7 +295,7 @@ def run(case, files, overrides=None, *, expect=0, legacy=False):
     assert summary["status"] == ("success" if expect == 0 else "failed")
     if not legacy and expect == 0:
         assert summary["errors"] == []
-        assert summary["output_contract_version"] == "2.0"
+        assert summary["output_contract_version"] == "3.0"
         assert summary["counts"]["networks"] == len(
             list((case / "web/networks").glob("*.cx2"))
         )
@@ -771,53 +771,51 @@ def test_nonpolymer_amino_acids_do_not_inflate_protein_length(tmp_path, data_fil
     assert (actual["A"], actual["C"]) == (605, 605)
 
 
-def test_polymer_lengths_survive_precompute_and_readonly_assembly(tmp_path, data_files):
-    from pdb2net import precomputed
+def prepared_run(case, raw):
+    script = r"""
+import hashlib,json,shutil,sys
+from pathlib import Path
+from pdb2net import pipeline
+from pdb2net.config_loader import activate_config
+from pdb2net.structure_analysis import prepare_structure,analyze_prepared
+from pdb2net.structure_facts import canonical_json
+raw,case=map(Path,sys.argv[1:])
+cfg=json.loads((raw/'config.json').read_text());cfg['output_path']=str(case/'work');activate_config(cfg)
+payloads=[];streams={}
+for source in sorted((raw/'inputs').iterdir()):
+    rows=[]
+    facts=prepare_structure(source,contact_sink=rows.append if cfg.get('export_detailed_interactions') else None)
+    payloads.append(facts);streams[facts['structure_identity']['canonical_id']]=lambda rows=rows:iter(rows)
+path=case/'facts.json';path.write_bytes(canonical_json(payloads));path.chmod(0o444)
+before=hashlib.sha256(path.read_bytes()).hexdigest()
+shutil.rmtree(raw/'inputs')
+def forbidden(*args,**kwargs):raise AssertionError('Prepared analysis cannot parse coordinates')
+pipeline.process_single_file=forbidden
+analyze_prepared(json.loads(path.read_bytes()),cfg,contact_sources=streams,web_output_dir=str(case/'web'))
+assert hashlib.sha256(path.read_bytes()).hexdigest()==before
+"""
+    result=command(case,["-c",script,str(raw),str(case)])
+    assert result.returncode==0,result.stdout[-4000:]+result.stderr
+    return json.loads((case/"facts.json").read_text())
 
-    expected = {
-        "1ehz": {"A": (0, 76)},
-        "170d": {"A": (0, 12), "B": (0, 12)},
-        "6m17": {"A": (605, 0), "B": (748, 0), "C": (605, 0),
-                 "D": (748, 0), "E": (183, 0), "F": (183, 0)},
+
+def test_polymer_lengths_survive_preparation_and_coordinate_free_analysis(tmp_path,data_files):
+    expected={
+        "1ehz":{"A":(0,76)},"170d":{"A":(0,12),"B":(0,12)},
+        "6m17":{"A":(605,0),"B":(748,0),"C":(605,0),"D":(748,0),"E":(183,0),"F":(183,0)},
     }
-    raw = tmp_path / "raw-lengths"
-    run(raw, [data_files[f"{pdbid}.cif"] for pdbid in expected])
-    store = tmp_path / "length-store"
-    result = command(tmp_path / "build-lengths", [
-        "-m", "pdb2net", "precompute", "--input-dir", str(raw / "inputs"),
-        "--store", str(store), "--config", str(raw / "config.json"), "--headless"])
-    assert result.returncode == 0, result.stdout + result.stderr
-    for pdbid, lengths in expected.items():
-        chains = precomputed.load_entry(store, pdbid)["geometry"]["structure"]["atom_data"]
-        assert {c["chain_id"]: (c["aa_len"], c["nt_len"]) for c in chains} == lengths
-    before = {str(p.relative_to(store)): hashlib.sha256(p.read_bytes()).hexdigest()
-              for p in store.rglob("*") if p.is_file()}
-    shutil.rmtree(raw / "inputs")
-    if os.name == "posix":
-        for path in store.rglob("*"):
-            path.chmod(0o555 if path.is_dir() else 0o444)
-        store.chmod(0o555)
-    assembled = tmp_path / "assembled-lengths"
-    try:
-        args = ["-m", "pdb2net", "assemble", "--store", str(store)]
-        for pdbid in expected:
-            args.extend(["--pdb-id", pdbid])
-        args.extend(["--output-dir", str(assembled / "work"), "--web-output-dir", str(assembled / "web"),
-                     "--config", str(raw / "config.json"), "--headless"])
-        result = command(assembled, args)
-        assert result.returncode == 0, result.stdout + result.stderr
-        assert before == {str(p.relative_to(store)): hashlib.sha256(p.read_bytes()).hexdigest()
-                          for p in store.rglob("*") if p.is_file()}
-    finally:
-        if os.name == "posix":
-            store.chmod(0o755)
-            for path in store.rglob("*"):
-                path.chmod(0o755 if path.is_dir() else 0o644)
-    assert network_set(raw) == network_set(assembled)
-    for case in (raw, assembled):
-        for pdbid, lengths in expected.items():
-            nodes, _ = network(case / f"web/networks/Chain_Interaction_Network_{pdbid.upper()}.cx2")
-            assert {n["name"].split(":")[-1]: (n["aa_len"], n["nt_len"]) for n in nodes} == lengths
+    raw=tmp_path/"raw-lengths"
+    run(raw,[data_files[f"{pdbid}.cif"] for pdbid in expected])
+    prepared=tmp_path/"prepared-lengths"
+    facts=prepared_run(prepared,raw)
+    for item in facts:
+        pdbid=item["structure_identity"]["legacy_id"]
+        assert {c["chain_id"]:(c["aa_len"],c["nt_len"]) for c in item["chains"]}==expected[pdbid]
+    assert network_set(raw)==network_set(prepared)
+    for case in (raw,prepared):
+        for pdbid,lengths in expected.items():
+            nodes,_=network(case/f"web/networks/Chain_Interaction_Network_{pdbid.upper()}.cx2")
+            assert {n["name"].split(":")[-1]:(n["aa_len"],n["nt_len"]) for n in nodes}==lengths
 
 
 @pytest.mark.parametrize(("filename", "case"), [("4hhb.pdb", "4hhb_competitor"), ("9rat.pdb", "9rat_without_target")])
@@ -859,108 +857,20 @@ def test_controlled_search_competitor_and_miss(filename, case, tmp_path, data_fi
         assert summary["annotations"]["by_source"] == {"blastp_swissprot": 4}
 
 
-def test_real_precompute_assemble_equivalence_and_readonly_store(tmp_path, data_files, reference_expected):
-    raw = tmp_path / "raw"
-    run(raw, [data_files["6m17.cif"], data_files["6w41.cif"], data_files[NEXTGEN_NAME]])
-    store = tmp_path / "store"
-    result = command(
-        tmp_path / "precompute",
-        [
-            "-m",
-            "pdb2net",
-            "precompute",
-            "--input-dir",
-            str(raw / "inputs"),
-            "--store",
-            str(store),
-            "--config",
-            str(raw / "config.json"),
-            "--headless",
-        ],
-    )
-    assert result.returncode == 0, result.stdout[-4000:] + result.stderr
-
-    def snapshot():
-        return {
-            str(p.relative_to(store)): hashlib.sha256(p.read_bytes()).hexdigest()
-            for p in store.rglob("*")
-            if p.is_file()
-        }
-
-    before = snapshot()
-    for path in store.rglob("*"):
-        path.chmod(0o555 if path.is_dir() else 0o444)
-    store.chmod(0o555)
-    assembled = tmp_path / "assembled"
-    args = [
-        "-m",
-        "pdb2net",
-        "assemble",
-        "--store",
-        str(store),
-        "--pdb-id",
-        "6m17",
-        "--pdb-id",
-        "6w41",
-        "--pdb-id",
-        "8aly",
-        "--output-dir",
-        str(assembled / "work"),
-        "--web-output-dir",
-        str(assembled / "web"),
-        "--config",
-        str(raw / "config.json"),
-        "--headless",
-    ]
-    result = command(assembled, args)
-    assert result.returncode == 0, result.stdout[-4000:] + result.stderr
-    assert before == snapshot()
-    assert network_set(raw) == network_set(assembled)
+def test_real_prepared_equivalence_against_independent_combined_expectations(tmp_path,data_files,reference_expected):
+    raw=tmp_path/"raw"
+    names=["6m17.cif","6w41.cif",NEXTGEN_NAME]
+    run(raw,[data_files[name] for name in names])
+    prepared=tmp_path/"prepared"
+    prepared_run(prepared,raw)
+    assert network_set(raw)==network_set(prepared)
     assert any("Protein" in name for name in network_set(raw))
     assert any("Combined" in name for name in network_set(raw))
-    for case in (raw, assembled):
-        assert_combined_exports(case, ["6m17.cif", "6w41.cif", NEXTGEN_NAME], reference_expected)
-    comparison = command(
-        tmp_path / "cx2-comparison",
-        [
-            "scripts/compare_cx2_outputs.py",
-            "compare",
-            "--actual",
-            str(raw / "web/networks"),
-            "--expected",
-            str(assembled / "web/networks"),
-            "--out",
-            str(tmp_path / "cx2-comparison.md"),
-            "--json-out",
-            str(tmp_path / "cx2-comparison.json"),
-        ],
-    )
-    assert comparison.returncode == 0, (tmp_path / "cx2-comparison.md").read_text(
-        encoding="utf-8"
-    )
-    assert (
-        json.loads((tmp_path / "cx2-comparison.json").read_text(encoding="utf-8"))[
-            "status"
-        ]
-        == "PASS"
-    )
-    missing = command(
-        tmp_path / "missing",
-        [
-            "-m",
-            "pdb2net",
-            "assemble",
-            "--store",
-            str(store),
-            "--pdb-id",
-            "9rat",
-            "--output-dir",
-            str(tmp_path / "missing/work"),
-            "--config",
-            str(raw / "config.json"),
-            "--headless",
-        ],
-    )
-    assert missing.returncode != 0
-    assert "PRECOMPUTED_ENTRY_MISSING" in missing.stdout + missing.stderr
-    assert before == snapshot()
+    for case in (raw,prepared):
+        assert_combined_exports(case,names,reference_expected)
+    comparison=command(tmp_path/"comparison",[
+        "scripts/compare_cx2_outputs.py","compare","--actual",str(raw/"web/networks"),
+        "--expected",str(prepared/"web/networks"),"--out",str(tmp_path/"comparison.md"),
+        "--json-out",str(tmp_path/"comparison.json")])
+    assert comparison.returncode==0,(tmp_path/"comparison.md").read_text()
+    assert json.loads((tmp_path/"comparison.json").read_text())["status"]=="PASS"

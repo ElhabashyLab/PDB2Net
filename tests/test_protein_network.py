@@ -235,6 +235,67 @@ def test_combined_protein_networks_follow_linked_chain_components(monkeypatch) -
     assert nodes_only["edges"] == []
 
 
+@pytest.mark.parametrize("reverse", [False, True])
+def test_combined_protein_cx2_metadata_uses_only_component_chains(tmp_path, monkeypatch, reverse):
+    monkeypatch.setitem(config, "open_in_cytoscape", False)
+    monkeypatch.setitem(config, "layout_mode", "python_fast")
+    monkeypatch.setitem(config["network_annotations"], "tooltip_fields", ["pfam"])
+    excluded = {"database": "pfam", "accession": "PF00001", "pdb_start": 1, "pdb_end": 10}
+    included = {"database": "pfam", "accession": "PF00002", "pdb_start": 11, "pdb_end": 20}
+    structures = [
+        {"pdb_id": "1ABC", "file_path": "/inputs/one.cif", "atom_data": [
+            _protein_chain("A", "P12345"),
+            {**_protein_chain("B", "Q99999"), "molecule_name": "Excluded isolated chain",
+             "embedded_annotations": {"pfam": [excluded]}},
+            {**_protein_chain("C", "Q99999"), "molecule_name": "Included contacting chain",
+             "embedded_annotations": {"pfam": [included]}},
+        ]},
+        {"pdb_id": "2XYZ", "file_path": "/inputs/two.cif", "atom_data": [
+            _protein_chain("A", "P12345"),
+        ]},
+    ]
+    if reverse:
+        structures.reverse()
+        for structure in structures:
+            structure["atom_data"].reverse()
+    create_protein_network(
+        [{"chain_a": "1ABC:A", "chain_b": "1ABC:C", "all_atoms_count": 10}],
+        structures, str(tmp_path), {"protein_per_pdb": True, "combined_protein_network": True},
+    )
+    exported = {}
+    for path in tmp_path.glob("*.cx2"):
+        _cx2_counts(path)
+        exported[path.stem] = {
+            key: value for block in json.loads(path.read_text()) for key, value in block.items()
+        }
+    combined = exported["Combined_Protein_Network_P12345_Q99999"]
+    nodes = {node["v"]["uniprot_id"]: node["v"] for node in combined["nodes"]}
+    node = nodes["Q99999"]
+    assert node["source_chains"] == "1ABC:C"
+    assert node["source_files"] == "one.cif"
+    assert node["pdb_ids"] == "1ABC" and node["pdb_count"] == 1
+    assert node["molecule_name"] == "Included contacting chain"
+    assert "Source chains: 1ABC:C" in node["tooltip"]
+    assert "1ABC:B" not in node["tooltip"]
+    assert "PF00002" in node["tooltip"] and "PF00001" not in node["tooltip"]
+    assert json.loads(node["annotation_pfam"]) == [included]
+    assert node["annotation_pfam_total"] == 1
+    assert nodes["P12345"]["source_chains"] == "1ABC:A, 2XYZ:A"
+    assert nodes["P12345"]["source_files"] == "one.cif, two.cif"
+    edge, = combined["edges"]
+    assert edge["v"]["all_atoms_count"] == 10
+
+    # Per-structure protein projection intentionally includes both same-accession chains.
+    per_structure = {
+        node["v"]["uniprot_id"]: node["v"]
+        for node in exported["Protein_Network_1ABC"]["nodes"]
+    }["Q99999"]
+    assert per_structure["source_chains"] == "1ABC:B, 1ABC:C"
+    assert "Chains: B, C" in per_structure["tooltip"]
+    assert "Length: 2 aa" in per_structure["tooltip"]
+    assert json.loads(per_structure["annotation_pfam"]) == [excluded, included]
+
+
 def test_protein_na_nodes_include_filterable_source_metadata(monkeypatch) -> None:
     exported = []
 

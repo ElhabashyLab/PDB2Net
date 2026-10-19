@@ -18,6 +18,12 @@ are separate layers. Search signatures distinguish relevant database/policy
 changes; geometry profiles distinguish structure rules independently of reference generations.
 Deleting a search cache does not refresh a process's reference mappings.
 
+Swiss-Prot selection policy version 4 prefers lower E-values when reducing
+equal-bitscore HSPs for the same accession, consistently with the subsequent
+between-accession ranking. The signature change excludes old positive and
+negative search-cache entries. It does not change prepared geometry. The default
+`max_hsps: 1` limits exposure to the earlier multi-HSP ranking error.
+
 ## Optional search timeout
 
 `sequence_search_timeout_seconds` is shared by BLASTP and DIAMOND. Its default

@@ -33,7 +33,7 @@ from .config_loader import config
 from .contact_atoms import ContactView, contact_positions, count_contacts
 from .input_contract import InputValidationError
 
-INTERACTION_PIPELINE_VERSION = "pdb2net-distance-classification-v2"
+INTERACTION_PIPELINE_VERSION = "pdb2net-distance-classification-v3"
 ALLOWED_INTERACTION_TYPES = frozenset(
     {
         "Protein-Protein",

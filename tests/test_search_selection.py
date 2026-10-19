@@ -1,6 +1,7 @@
 """Independent boundary cases for Swiss-Prot selection and its format retry."""
 
 import copy
+from itertools import permutations
 import subprocess
 from pathlib import Path
 
@@ -72,6 +73,35 @@ def test_coverage_relaxation_requires_both_stronger_identity_and_bitscore(covera
     assert (hit is not None) == accepted
 
 
+@pytest.mark.parametrize("qcovs", [True, False])
+def test_same_accession_hsp_preserves_perfect_tie_decision(qcovs):
+    better = row(evalue=1e-20, bitscore=100, pident=100, qcovs=qcovs)
+    worse = row(evalue=1.01e-20, bitscore=100, pident=80, qcovs=qcovs)
+    contender = row(evalue=1e-20, bitscore=99, pident=100, qcovs=qcovs).replace(
+        "sp|P12345|TEST", "sp|Q54321|TEST",
+    )
+    # Retaining the poorer HSP incorrectly makes an otherwise perfect tie
+    # ambiguous. All input orders must preserve the better evidence.
+    for records in permutations([better, worse, contender]):
+        hit = matcher._select_blastp_swissprot_hit(
+            "A" * 100, list(records), use_qcovs=qcovs,
+        )
+        assert hit is not None
+        assert (hit.accession, hit.evalue, hit.pident) == ("P12345", 1e-20, 100)
+
+
+@pytest.mark.parametrize("qcovs", [True, False])
+def test_same_accession_lower_evalue_wins_even_with_lower_identity(qcovs):
+    records = [
+        row(evalue=1e-20, bitscore=100, pident=80, qcovs=qcovs),
+        row(evalue=1.01e-20, bitscore=100, pident=100, qcovs=qcovs),
+    ]
+    for order in (records, records[::-1]):
+        hit = matcher._select_blastp_swissprot_hit("A" * 100, order, use_qcovs=qcovs)
+        assert hit is not None
+        assert (hit.evalue, hit.pident) == (1e-20, 80)
+
+
 def test_backend_format_retry_preserves_a_full_alignment(tmp_path, monkeypatch):
     formats = []
 
@@ -129,7 +159,7 @@ def test_search_policy_invalidates_negative_cache_without_invalidating_geometry(
 
     def old_policy():
         value = policy()
-        value["swissprot"]["selection_policy"]["version"] = 2
+        value["swissprot"]["selection_policy"]["version"] = 3
         return value
 
     try:

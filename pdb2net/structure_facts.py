@@ -39,7 +39,7 @@ def geometry_profile():
         "facts_schema": STRUCTURE_FACTS_SCHEMA_VERSION,
         "parser": PARSER_SEMANTICS, "gemmi": gemmi.__version__,
         "contacts": INTERACTION_PIPELINE_VERSION,
-        "sequence_type_policy": "polymer-residues-v1", "length_policy": "polymer-length-v4",
+        "sequence_type_policy": "polymer-residues-v2", "length_policy": "polymer-length-v4",
         "source_scope": "asymmetric_unit", "structure_model_policy": "first",
         "ca_radius": 12.0, "all_atoms_radius": 5.0,
     }

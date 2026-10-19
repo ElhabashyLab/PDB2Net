@@ -140,6 +140,26 @@ def test_unmarked_internal_residue_records_keep_their_existing_meaning():
     assert uniprot_matcher.classify_molecule_type(chain) == "Protein"
 
 
+@pytest.mark.parametrize(("residue", "sequence", "query", "eligible"), [
+    ("SEC", "AAAU", "AAAU", True),
+    ("PYL", "AAAO", "AAAX", False),
+])
+def test_rare_encoded_amino_acids_keep_their_sequence_identity(
+    tmp_path, monkeypatch, residue, sequence, query, eligible,
+):
+    # Both are encoded amino acids, not unknown residues. BLAST still masks O.
+    names = ["ALA", "ALA", "ALA", residue]
+    records = [("ATOM", name, number, "CA", float(number), "P", 1)
+               for number, name in enumerate(names, 1)]
+    source = tmp_path / "1abc.cif"
+    source.write_text(_structure_text("cif", records))
+    (chain,) = pipeline.process_single_file(str(source))["atom_data"]
+    monkeypatch.setitem(uniprot_matcher.config, "blast", {"max_x_fraction": 0.2})
+
+    assert uniprot_matcher.extract_sequence_from_parsed_data(chain) == sequence
+    assert uniprot_matcher._prepare_blast_sequence(chain) == (query, eligible)
+
+
 def test_nonpolymer_nucleotide_with_empty_query_does_not_require_blast(tmp_path, monkeypatch):
     source = tmp_path / "1abc.cif"
     source.write_text(_structure_text("cif", [RECORDS[6]]))

@@ -169,6 +169,15 @@ witnesses, inclusive thresholds, the Cα minimum and row-budget prechecks.
 Prepared-input tests retain independent alternative-position, insertion and
 occupancy witnesses through serialization and CSV. Geometry profiles reject
 incompatible facts while remaining independent of annotation references.
+Boundary regressions include translated decimal 3–4–5 pairs, 12 Å pairs,
+just-inside/outside positions, artificial KD-tree search bounds, alternatives
+and row-budget checks. Prepared tests retain the corrected boundary contact
+through serialization and reject earlier contact/sequence profiles. Rare-residue
+tests verify SEC/PYL identity in parsed CIF and source-free prepared PDB facts.
+Multi-HSP tests permute rows and check the direction of the E-value preference;
+the search-cache test verifies rejection of earlier-policy negative hits.
+Combined-protein CX2 tests exclude an isolated same-accession chain's name and
+annotation evidence from component metadata while preserving per-structure data.
 The nine paired-format examples in `docs/examples/q01_contact_examples.py`
 also compare the implemented union rule with hand-counted alternatives.
 

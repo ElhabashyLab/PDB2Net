@@ -92,8 +92,10 @@ def _blast_cache_path() -> str:
         or os.path.join(_blast_db_path(), "blast_cache.sqlite3")
     )
 
-# 3-letter → 1-letter amino-acid mapping (Biopython)
-three_to_one: Dict[str, str] = IUPACData.protein_letters_3to1
+# Include the two encoded amino acids absent from Biopython's standard map.
+three_to_one: Dict[str, str] = {
+    **IUPACData.protein_letters_3to1, "Sec": "U", "Pyl": "O",
+}
 
 # Common modified residues (PDB) → canonical amino acids.
 # This reduces artificial 'X' inflation from frequent modifications
@@ -215,7 +217,7 @@ def _search_policy_payload() -> Dict[str, Any]:
                 "long": _blast_search_parameters(200)[:4],
             },
             "selection_policy": {
-                "version": 3,
+                "version": 4,
                 "dynamic_margin_fraction": 0.05,
                 "dynamic_margin_floor": 4.0,
                 "dynamic_margin_cap": 10.0,
@@ -864,7 +866,11 @@ def _select_blastp_swissprot_hit(
 
         current = (reviewed, bitscore, evalue, qcov, pident, accession, title)
         previous = best_per_accession.get(accession)
-        if previous is None or current[:5] > previous[:5]:
+        # Prefer lower E-values, consistently with the cross-accession ranking.
+        current_rank = (reviewed, bitscore, -evalue, qcov, pident)
+        if previous is None or current_rank > (
+            previous[0], previous[1], -previous[2], previous[3], previous[4]
+        ):
             best_per_accession[accession] = current
 
     if not seen_any:

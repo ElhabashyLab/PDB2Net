@@ -18,6 +18,49 @@ from scripts.compare_cx2_outputs import compare_directories
 DATA = Path(__file__).parent / "fixtures/core_reference"
 
 
+@pytest.mark.parametrize("special,expected", [("SEC", "AAAU"), ("PYL", "AAAO")])
+def test_prepared_sequences_preserve_rare_amino_acids_without_sources(tmp_path, monkeypatch, special, expected):
+    from pdb2net.structure_facts import materialize_facts
+    from pdb2net.uniprot_matcher import extract_sequence_from_parsed_data
+    monkeypatch.setitem(config, "structure_model_policy", "first")
+    source = tmp_path / "1abc.pdb"
+    source.write_text("HEADER".ljust(62) + "1ABC\n" + "".join(
+        f"ATOM  {i:5d}  CA  {name} A{i:4d}    {i * 3.:8.3f}{0.:8.3f}{0.:8.3f}  1.00 20.00           C  \n"
+        for i, name in enumerate(("ALA", "ALA", "ALA", special), 1)) + "TER\nEND\n")
+    saved = canonical_json(prepare_structure(source))
+    source.unlink()
+    restored = materialize_facts(json.loads(saved))["atom_data"][0]
+    assert restored["structure_sequence"] == expected
+    assert extract_sequence_from_parsed_data(restored) == expected
+    assert restored["aa_len"] == 4
+
+
+def test_prepared_exact_boundary_contacts_survive_serialization(tmp_path, monkeypatch):
+    from pdb2net.structure_facts import profile_id
+    monkeypatch.setitem(config, "structure_model_policy", "first")
+    source = tmp_path / "1abc.pdb"
+    source.write_text("HEADER".ljust(62) + "1ABC\n" + "".join(
+        f"ATOM  {i:5d}  CA  ALA {chain}{1:4d}    {x:8.3f}{y:8.3f}{z:8.3f}  1.00 20.00           C  \nTER\n"
+        for i, (chain, x, y, z) in enumerate([
+            ("A", -4.533, 66.745, -21.694), ("B", -1.533, 70.745, -21.694)], 1)) + "END\n")
+    rows = []
+    facts = json.loads(canonical_json(prepare_structure(source, contact_sink=rows.append)))
+    source.unlink()
+    assert facts["pairs"] == [{"chain_a": "1ABC:A", "chain_b": "1ABC:B",
+                               "all_atoms_count": 1, "ca_neighbors": 1}]
+    assert len(list(validate_contacts(facts, json.loads(json.dumps(rows))))) == 1
+    assert rows[0][-1] == 5.
+    # Even internally consistent old profiles must fail rather than silently
+    # reusing facts with lost sequences or the old numerical contact policy.
+    for field, old in [("contacts", "pdb2net-distance-classification-v2"),
+                       ("sequence_type_policy", "polymer-residues-v1")]:
+        stale = copy.deepcopy(facts)
+        stale["profile"][field] = old
+        stale["profile_id"] = profile_id(stale["profile"])
+        with pytest.raises(InputValidationError, match="profile is incompatible"):
+            validate_facts(stale)
+
+
 @pytest.fixture
 def settings(tmp_path, integration_config):
     previous = copy.deepcopy(dict(config))

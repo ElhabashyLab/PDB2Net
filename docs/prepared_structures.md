@@ -25,6 +25,18 @@ contacts and 12 Å C-alpha neighbours, using the current occupancy and alternati
 site rules. Its identity includes parser/Gemmi, sequence/type, length and contact
 policies, and excludes reference generations, sequence-search policy and rendering.
 
+The current contact policy is `pdb2net-distance-classification-v3` (exact decimal
+decisions at numerical cutoff boundaries), and the sequence/type policy is
+`polymer-residues-v2` (preserved SEC/PYL sequence identities). Facts produced with
+the earlier policies are incompatible and must not be relabelled as current.
+Adapters need a new matching store generation built from source structures before
+using the new Core with prepared inputs. Existing readers may finish with their
+old Core and store; preserve that pair until the replacement is validated.
+The facts schema remains version 1. Sequence corrections alone do not change
+geometry, but both corrections deliberately change the complete profile so old
+results cannot be silently reused. Missing boundary contacts cannot be recovered
+from coordinate-free facts alone.
+
 Facts contain canonical structure/chain identities, observed-polymer search
 sequences, structural fallback types, polymer lengths, embedded source evidence,
 input diagnostics, the SHA-256 of the expanded source bytes, and candidate-pair

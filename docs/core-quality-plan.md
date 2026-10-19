@@ -1,5 +1,37 @@
 # Current verification status and remaining work
 
+## Precompute audit corrections
+
+Four subsequent audit findings are corrected locally:
+
+- Structural sequences retain SEC as U and PYL as O. Existing search masking
+  of O remains unchanged. Prepared sequence/type policy is now
+  `polymer-residues-v2`.
+- Contact decisions at numerical cutoff boundaries use exact decimal squared
+  distances, with bounded KD-tree candidate selection. Contact policy is now
+  `pdb2net-distance-classification-v3`; just-outside pairs remain excluded.
+- Same-accession, equal-bitscore HSP reduction prefers the lower E-value.
+  Swiss-Prot search selection policy 4 invalidates earlier cached decisions.
+- Combined protein metadata uses only chains in its linked component, including
+  source labels, names, embedded annotation evidence and tooltips.
+
+Local Python 3.12 verification passed 697 tests (26 additional cases), Ruff,
+and the isolated installed-wheel raw/prepared pipeline check without Cytoscape.
+The suite reports three existing `datetime.utcnow()` deprecation warnings.
+Independent code and documentation reviews found no remaining blockers;
+the independent numerical review additionally checked 640 boundary cases against
+direct exact arithmetic, including alternative positions and large translations.
+Frozen scientific fixtures and their expected results were not changed.
+
+The profile changes deliberately reject all earlier-profile prepared facts,
+including internally consistent old hashes. Adapters need a new store generation
+prepared from sources; preserve the previous Core/store pair until transition
+validation completes. The facts schema and output contracts remain unchanged.
+These local corrections are not yet published or deployed; the archive build
+must wait for the reviewed Core/store transition. No automated migration is added.
+
+## Earlier verification baseline
+
 The published prepared-input revision `61888ec` passed 653 tests under Python
 3.11 and 3.12/Linux, plus Ruff and the isolated installed-wheel check in
 [CI](https://github.com/ElhabashyLab/PDB2Net/actions/runs/39248747446).

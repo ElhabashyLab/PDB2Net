@@ -40,6 +40,15 @@ residue name, atom name, altloc and coordinates in deterministic order. Only the
 CSV distance is rounded to two decimal places. Insertion codes remain part of
 the residue label, for example `10A:ALA`.
 
+At the numerical cutoff boundary, inclusion uses an exact squared-distance
+comparison of the shortest round-trip decimal representations of the parsed
+coordinates and radius. This prevents ordinary decimal boundary contacts from
+disappearing through floating-point arithmetic. A coordinate-scale guard of eight
+floating-point ULPs only selects candidates for that comparison; it does not
+increase the scientific cutoff. Pairs just outside remain excluded. Original CIF
+number tokens with precision beyond the parsed floats are not reconstructed.
+The same decision applies to counts and detailed witnesses at both radii.
+
 ## Interaction filters and models
 
 With the default profile, protein pairs must have at least ten C-alpha pairs
@@ -55,6 +64,9 @@ applies AlphaFold confidence filtering.
 
 Annotation sequences and displayed polymer lengths use observed residue records,
 not the occupancy-filtered contact view. Missing residues are not reconstructed.
+Protein sequences preserve canonical selenocysteine (`SEC` → `U`) and
+pyrrolysine (`PYL` → `O`). Search preparation still masks `O` as `X` under its
+existing policy; the stored structural sequence retains `O`.
 See the [README](../README.md) and [architecture](architecture.md) for the
 distinction between parsing, annotation, contact selection and compaction.
 

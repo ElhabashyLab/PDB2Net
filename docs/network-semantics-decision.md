@@ -49,6 +49,13 @@ connected, no same-structure identity edge is added, and the group has `n - 1`
 identity edges. Combined outputs are these linked components, not a union of
 every input structure.
 
+Combined protein names, source chains/files, annotation evidence and tooltips
+come only from chains in that linked component. An isolated chain outside it
+does not contribute metadata merely because it shares a UniProt accession with
+one of its nodes. Per-structure protein metadata still aggregates all relevant
+chains in that structure. Correcting output provenance requires regenerating
+outputs, not rebuilding structural facts.
+
 Identity edges have `interaction_type: "identity"` and contact count zero.
 They do not represent measured distances between files. Ordinary contact edges
 remain positive. The Python layout uses a separate historical attraction strength

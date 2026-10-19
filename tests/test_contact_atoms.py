@@ -99,10 +99,67 @@ def test_no_altloc_count_uses_count_neighbors_without_enumerating_pairs():
     b = ContactView(chain(residue(2, [("CA", 1, "", 1)])))
     class CountOnly:
         def count_neighbors(self, other, radius):
-            assert other is b.tree and radius == 5
-            return 1
+            assert other is b.tree and radius[0] < 5 < radius[1]
+            return [1, 1]
     a.tree = CountOnly()
     assert count_contacts(a, b, 5) == 1
+
+
+@pytest.mark.parametrize("alternatives", [False, True])
+@pytest.mark.parametrize("a,b,radius", [
+    ((0., 0., 0.), (3., 4., 0.), 5.),
+    ((-4.533, 66.745, -21.694), (-1.533, 70.745, -21.694), 5.),
+    ((4.533, -66.745, 21.694), (1.533, -70.745, 21.694), 5.),
+    ((-43.999, 0., 0.), (-31.999, 0., 0.), 12.),
+    ((43.999, 0., 0.), (31.999, 0., 0.), 12.),
+])
+def test_decimal_exact_boundary_survives_translation(a, b, radius, alternatives):
+    def view(coords):
+        data = chain(residue(1, [("CA", 0., "A" if alternatives else "", 1.)]))
+        data["residues"][0]["atoms"][0]["coordinates"] = coords
+        if alternatives:
+            data["residues"][0]["atoms"].append({"atom_name": "CA", "altloc": "B",
+                "occupancy": .5, "coordinates": [coords[0], coords[1], coords[2] + 100.]})
+        return ContactView(data)
+    left, right = view(a), view(b)
+    assert count_contacts(left, right, radius) == 1
+    rows = list(unique_contacts(left, right, radius, budget=DetailedInteractionBudget(max_rows=1)))
+    assert len(rows) == 1 and rows[0][-1] == radius
+
+
+@pytest.mark.parametrize("alternatives", [False, True])
+@pytest.mark.parametrize("radius", [5., 12.])
+def test_boundary_guard_does_not_admit_outside_contacts_or_overcharge_budget(radius, alternatives):
+    # All three positions are within the numerical candidate shell, but only
+    # the two decimal positions <= radius are contacts (independent expectation).
+    positions = [math.nextafter(radius, 0.), radius, math.nextafter(radius, math.inf)]
+    left = chain(*(residue(i, [("CA", x, "A" if alternatives else "", 1.)])
+                   for i, x in enumerate(positions)))
+    if alternatives:
+        for res in left["residues"]:
+            res["atoms"].append({"atom_name": "CA", "altloc": "B", "occupancy": .5,
+                                 "coordinates": [100., 0., 0.]})
+    av, bv = ContactView(left), ContactView(chain(residue(0, [("CA", 0., "", 1.)])))
+    assert count_contacts(av, bv, radius) == 2
+    rows = list(unique_contacts(av, bv, radius, budget=DetailedInteractionBudget(max_rows=2)))
+    assert [a.site[0] for a, _, _ in rows] == ["0", "1"]
+    assert [d for _, _, d in rows] == positions[:2]
+    with pytest.raises(InputValidationError, match="DETAILED_INTERACTION_ROW_LIMIT_EXCEEDED"):
+        list(unique_contacts(av, bv, radius, budget=DetailedInteractionBudget(max_rows=1)))
+
+
+def test_artificial_tree_boundaries_keep_count_and_witnesses_consistent():
+    # Exercise both sides of the guard as well as its exact artificial bounds.
+    radius = 5.
+    guard = 8 * math.ulp(radius)
+    positions = [math.nextafter(radius - guard, 0.), radius - guard,
+                 math.nextafter(radius - guard, math.inf), radius,
+                 math.nextafter(radius + guard, 0.), radius + guard,
+                 math.nextafter(radius + guard, math.inf)]
+    left = ContactView(chain(*(residue(i, [("CA", x, "", 1.)]) for i, x in enumerate(positions))))
+    right = ContactView(chain(residue(0, [("CA", 0., "", 1.)])))
+    assert count_contacts(left, right, radius) == 4
+    assert [a.site[0] for a, _, _ in unique_contacts(left, right, radius)] == ["0", "1", "2", "3"]
 
 
 def test_conflicting_positions_without_alternative_identity_fail():

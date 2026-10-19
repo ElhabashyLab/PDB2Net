@@ -53,6 +53,14 @@ residues, so it complements rather than replaces the full-structure suite below.
 
 ## Frozen real-file integration tests
 
+The annotation regressions also generate a 200,001-row polymer mapping table
+around two synthetic coordinate residues, both with and without embedded SIFTS.
+They verify successful preparation and known chain/annotation results without
+large coordinate downloads. Small boundary cases separately enforce real SIFTS
+segment limits and structural mapping limits, and preserve quoted/missing CIF
+token interpretation. Existing enriched real-fixture tests cover mapping
+precedence, ambiguity and atom-site fallback.
+
 The default suite now includes the real-file checks using the 23 full structures
 and three frozen mini-reference files in `tests/fixtures/core_reference/`:
 

@@ -13,6 +13,13 @@ row to a caller-provided callback. No external annotation references or search
 database are required. A callback failure aborts preparation; the caller must
 discard incomplete outputs and enforce its streaming byte/row limits.
 
+Embedded annotation extraction distinguishes structural chain-mapping tables
+from SIFTS segment tables. Polymer-scheme and atom-site mappings read only their
+two chain-ID columns, with a separate ceiling of 20 million rows per mapping
+table. Genuine SIFTS segment categories retain their 200,000-row ceiling.
+Large polymer tables therefore do not consume the annotation-segment budget.
+Scheme precedence, ambiguous mappings and atom-site fallback are unchanged.
+
 The fixed profile covers the asymmetric unit, first model, 5 Å polymer-heavy-atom
 contacts and 12 Å C-alpha neighbours, using the current occupancy and alternative
 site rules. Its identity includes parser/Gemmi, sequence/type, length and contact

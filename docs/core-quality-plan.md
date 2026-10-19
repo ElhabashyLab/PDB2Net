@@ -9,6 +9,17 @@ See the [validation summary](core-quality-audit.md).
 
 ## Completed
 
+- Polymer-to-author chain mapping no longer consumes the 200,000-row embedded
+  SIFTS segment budget. Structural mapping uses column views and a separate
+  20-million-row ceiling (the existing atom-mapping bound); true segment limits
+  and mapping semantics remain unchanged. Regression covers large polymer
+  tables with and without embedded annotations. Parser/store and annotation
+  fingerprints remain unchanged because previously successful inputs retain
+  their facts and annotation results; previously rejected inputs have no
+  successful prepared revision to invalidate. Local Python 3.12 verification
+  passed 671 tests, Ruff and the isolated installed-wheel raw/prepared check.
+  Independent review found no remaining blockers, including preservation of
+  CIF token interpretation and existing tag-suffix case handling.
 - Scientific regression uses frozen structure/reference fixtures and independent
   expected sequences, lengths, contacts and network projections.
 - Polymer-role/type lengths exclude nonpolymers and include modified residues.

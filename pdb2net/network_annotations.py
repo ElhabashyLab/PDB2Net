@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from collections import Counter
+from itertools import zip_longest
 import json
 import math
 from typing import Any, Iterable, Mapping, Sequence
+
+import gemmi
 
 from .config_loader import config
 from .input_contract import InputValidationError
@@ -31,6 +34,9 @@ NETWORK_ANNOTATION_RULES = {
 
 
 MAX_EMBEDDED_SEGMENT_ROWS = 200_000
+# Chain mapping traverses structural rows, not annotation segments. Keep the
+# existing 20-million-row atom mapping ceiling independent of the segment cap.
+MAX_CHAIN_MAPPING_ROWS = 20_000_000
 MAX_EMBEDDED_FIELD_LENGTH = 2_000
 MAX_ANNOTATION_BYTES_PER_DATABASE = 65_536
 MAX_ANNOTATION_BYTES_PER_NODE = 262_144
@@ -149,30 +155,51 @@ def _category_rows(category: Mapping[str, Sequence[Any]]) -> Iterable[dict[str, 
         }
 
 
+def _clean_chain_token(token: str | None) -> str | None:
+    # Preserve get_mmcif_category's decoding (including its '.' -> False)
+    # while reading column views rather than copying whole structural tables.
+    if token is None:
+        return None
+    return _clean(False if token == "." else gemmi.cif.as_string(token))
+
+
+def _chain_column(block: Any, tag: str):
+    column = block.find_values(tag)
+    # Category dictionaries retain suffix case, while find_values ignores it.
+    # Preserve existing mapping behavior rather than broaden tag recognition.
+    if column.tag and column.tag.partition(".")[2] == tag.partition(".")[2]:
+        return column
+    return ()
+
+
 def _label_to_author_chains(block: Any) -> dict[str, tuple[str, ...]]:
     scheme_mapped: dict[str, set[str]] = {}
-    scheme = block.get_mmcif_category("_pdbx_poly_seq_scheme.")
-    if scheme:
-        for row in _category_rows(scheme):
-            label = _clean(row.get("asym_id"))
-            author = _clean(row.get("pdb_strand_id"))
-            if label and author:
-                scheme_mapped.setdefault(label, set()).add(author)
+    labels = _chain_column(block, "_pdbx_poly_seq_scheme.asym_id")
+    authors = _chain_column(block, "_pdbx_poly_seq_scheme.pdb_strand_id")
+    if max(len(labels), len(authors)) > MAX_CHAIN_MAPPING_ROWS:
+        raise InputValidationError(
+            "EMBEDDED_ANNOTATION_LIMIT_EXCEEDED",
+            "The mmCIF polymer scheme exceeds the supported chain-mapping limit "
+            f"of {MAX_CHAIN_MAPPING_ROWS} rows.",
+        )
+    for label_raw, author_raw in zip_longest(labels, authors):
+        label = _clean_chain_token(label_raw)
+        author = _clean_chain_token(author_raw)
+        if label and author:
+            scheme_mapped.setdefault(label, set()).add(author)
     atom_mapped: dict[str, set[str]] = {}
-    atom_site = block.get_mmcif_category("_atom_site.")
-    if atom_site:
-        labels = atom_site.get("label_asym_id", [])
-        authors = atom_site.get("auth_asym_id", [])
-        if max(len(labels), len(authors)) > MAX_EMBEDDED_SEGMENT_ROWS * 100:
-            raise InputValidationError(
-                "STRUCTURE_ATOM_LIMIT_EXCEEDED",
-                "The mmCIF atom table exceeds the supported annotation-mapping limit.",
-            )
-        for label_raw, author_raw in zip(labels, authors):
-            label = _clean(label_raw)
-            author = _clean(author_raw)
-            if label and author:
-                atom_mapped.setdefault(label, set()).add(author)
+    labels = _chain_column(block, "_atom_site.label_asym_id")
+    authors = _chain_column(block, "_atom_site.auth_asym_id")
+    if max(len(labels), len(authors)) > MAX_CHAIN_MAPPING_ROWS:
+        raise InputValidationError(
+            "STRUCTURE_ATOM_LIMIT_EXCEEDED",
+            "The mmCIF atom table exceeds the supported annotation-mapping limit.",
+        )
+    for label_raw, author_raw in zip(labels, authors):
+        label = _clean_chain_token(label_raw)
+        author = _clean_chain_token(author_raw)
+        if label and author:
+            atom_mapped.setdefault(label, set()).add(author)
     # The polymer scheme is authoritative when it mentions a label. Atom-site
     # mappings are a fallback only, not a way to vote an ambiguous scheme away.
     mapped = dict(scheme_mapped)

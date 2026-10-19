@@ -258,6 +258,116 @@ def test_atom_site_is_used_when_poly_seq_scheme_mapping_is_absent() -> None:
     assert extracted["by_chain"]["E"]["uniprot"][0]["accession"] == "Q9H2K2"
 
 
+@pytest.mark.parametrize("enriched", [False, True])
+def test_large_polymer_scheme_is_not_an_annotation_segment_budget(
+    tmp_path: Path, enriched: bool,
+) -> None:
+    content = _enriched_mmcif()
+    label = gemmi.cif.read_string(content).sole_block().get_mmcif_category(
+        "_atom_site."
+    )["label_asym_id"][0]
+    if not enriched:
+        content = content.split("\nloop_\n_pdbx_sifts_unp_segments.entity_id", 1)[0]
+    # Structural rows can exceed the genuine 200,000-segment cap while mapping
+    # to just one chain. Keep coordinates tiny and scientific expectations fixed.
+    content += (
+        "\nloop_\n_pdbx_poly_seq_scheme.asym_id\n"
+        "_pdbx_poly_seq_scheme.pdb_strand_id\n"
+        + f"{label} Z\n" * 200_001
+    )
+    source = tmp_path / "1abc.cif"
+    source.write_text(content, encoding="utf-8")
+    facts = prepare_structure(source)
+    assert facts["structure_identity"]["canonical_id"] == "pdb_00001abc"
+    assert len(facts["chains"]) == 1
+    assert facts["chains"][0]["chain_id"] == "Z"
+    assert facts["chains"][0]["aa_len"] == 2
+    assert facts["pairs"] == []
+    annotations = facts["chains"][0]["embedded_annotations"]
+    if enriched:
+        assert annotations["uniprot"][0]["accession"] == "P12345"
+        assert annotations["pfam"][0]["accession"] == "PF00001"
+    else:
+        assert not annotations
+
+
+@pytest.mark.parametrize("category", ["unp", "xref_db"])
+def test_real_embedded_segments_still_enforce_their_own_row_limit(
+    monkeypatch: pytest.MonkeyPatch, category: str,
+) -> None:
+    monkeypatch.setattr(network_annotations, "MAX_EMBEDDED_SEGMENT_ROWS", 2)
+    prefix = f"data_probe\nloop_\n_pdbx_sifts_{category}_segments.asym_id\n"
+    at_limit = extract_embedded_annotations(gemmi.cif.read_string(prefix + "A\n" * 2).sole_block())
+    assert at_limit["invalid_segment_count"] == 2
+    with pytest.raises(InputValidationError) as error:
+        extract_embedded_annotations(gemmi.cif.read_string(prefix + "A\n" * 3).sole_block())
+    assert error.value.code == "EMBEDDED_ANNOTATION_LIMIT_EXCEEDED"
+
+
+@pytest.mark.parametrize(
+    "prefix,label,author,error_code",
+    [
+        ("_pdbx_poly_seq_scheme.", "asym_id", "pdb_strand_id", "EMBEDDED_ANNOTATION_LIMIT_EXCEEDED"),
+        ("_atom_site.", "label_asym_id", "auth_asym_id", "STRUCTURE_ATOM_LIMIT_EXCEEDED"),
+    ],
+)
+def test_chain_mapping_has_a_separate_finite_row_budget(
+    monkeypatch: pytest.MonkeyPatch, prefix: str, label: str, author: str, error_code: str,
+) -> None:
+    monkeypatch.setattr(network_annotations, "MAX_CHAIN_MAPPING_ROWS", 2)
+    header = f"data_probe\nloop_\n{prefix}{label}\n{prefix}{author}\n"
+    assert not extract_embedded_annotations(
+        gemmi.cif.read_string(header + "A E\n" * 2).sole_block()
+    )["by_chain"]
+    with pytest.raises(InputValidationError) as error:
+        extract_embedded_annotations(gemmi.cif.read_string(header + "A E\n" * 3).sole_block())
+    assert error.value.code == error_code
+
+
+@pytest.mark.parametrize(
+    "author,expected",
+    [("E", "E"), ("'E'", "E"), ('"E"', "E"), ("?", "F"), ("'.'", "F"), (".", "False")],
+)
+def test_chain_column_views_preserve_category_token_interpretation(author: str, expected: str) -> None:
+    # Preserve the existing Gemmi category-decoding behavior, including its
+    # unquoted '.' -> False conversion, rather than change mapping semantics.
+    content = (
+        "data_probe\nloop_\n_pdbx_poly_seq_scheme.asym_id\n"
+        f"_pdbx_poly_seq_scheme.pdb_strand_id\n'A' {author}\n"
+        "loop_\n_atom_site.label_asym_id\n_atom_site.auth_asym_id\n\"A\" F\n"
+    )
+    assert network_annotations._label_to_author_chains(
+        gemmi.cif.read_string(content).sole_block()
+    ) == {"A": (expected,)}
+
+
+@pytest.mark.parametrize(
+    "tag",
+    ["_pdbx_poly_seq_scheme.ASYM_ID", "_pdbx_poly_seq_scheme.PDB_STRAND_ID",
+     "_atom_site.LABEL_ASYM_ID", "_atom_site.AUTH_ASYM_ID"],
+)
+def test_chain_column_suffix_case_does_not_change_existing_mapping(tag: str) -> None:
+    content = "data_probe\n"
+    scheme = tag.startswith("_pdbx_poly_seq_scheme.")
+    if scheme:
+        content += "loop_\n_pdbx_poly_seq_scheme.asym_id\n_pdbx_poly_seq_scheme.pdb_strand_id\nA B\n"
+    content += "loop_\n_atom_site.label_asym_id\n_atom_site.auth_asym_id\nA F\n"
+    content = content.replace(tag.lower(), tag)
+    assert network_annotations._label_to_author_chains(
+        gemmi.cif.read_string(content).sole_block()
+    ) == ({"A": ("F",)} if scheme else {})
+
+
+@pytest.mark.parametrize(
+    "prefix,label,author",
+    [("_PDBX_POLY_SEQ_SCHEME.", "asym_id", "pdb_strand_id"),
+     ("_ATOM_SITE.", "label_asym_id", "auth_asym_id")],
+)
+def test_chain_mapping_keeps_case_insensitive_category_prefixes(prefix, label, author) -> None:
+    block = gemmi.cif.read_string(f"data_probe\nloop_\n{prefix}{label}\n{prefix}{author}\nA E\n").sole_block()
+    assert network_annotations._label_to_author_chains(block) == {"A": ("E",)}
+
+
 @pytest.mark.parametrize(
     ("headers", "expected_name"),
     [

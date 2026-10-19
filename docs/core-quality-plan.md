@@ -1,11 +1,11 @@
 # Current verification status and remaining work
 
-The published development baseline `5ca056c` passed 664 tests under Python
-3.11 and 3.12/Linux, including 44 frozen real-input integration cases, plus Ruff
-and the isolated installed-wheel check in [CI](https://github.com/ElhabashyLab/PDB2Net/actions/runs/39139887748).
-The subsequent Windows source-label correction passed 46 focused local export
-and store checks. This exercises Windows path semantics on Linux, not a complete
-Windows platform acceptance. See the [validation summary](core-quality-audit.md).
+The published prepared-input revision `61888ec` passed 653 tests under Python
+3.11 and 3.12/Linux, plus Ruff and the isolated installed-wheel check in
+[CI](https://github.com/ElhabashyLab/PDB2Net/actions/runs/39248747446).
+This includes the Windows source-label correction, exercised through Windows
+path semantics on Linux rather than a complete Windows platform acceptance.
+See the [validation summary](core-quality-audit.md).
 
 ## Completed
 
@@ -25,7 +25,7 @@ Windows platform acceptance. See the [validation summary](core-quality-audit.md)
 
 ## Remaining work
 
-The local prepared-input transition is implemented: Core 0.2.0rc6 provides
+The prepared-input transition is implemented: Core 0.2.0rc6 provides
 capabilities 4, CLI 3, outputs 3.0 and facts 1. The former Core store commands
 are removed; adapters own persistence while the shared API prepares, validates,
 annotates and exports. The final Core suite passed 653 tests on Python 3.12;
@@ -36,13 +36,13 @@ independent expected values were retained when replacing old store tests.
 
 Existing real fixtures also passed a bounded preparation/streaming measurement,
 including the 20-chain full 8ALY structure and its enriched counterpart. Those
-results do not establish whole-archive capacity. The final independent review found no remaining blocker. No remote publication
-has occurred.
+results do not establish whole-archive capacity. The final independent review
+found no remaining blocker. The working branch is published and remote CI passed;
+it has not been merged into `main` or released.
 
 | Item | Scope |
 | --- | --- |
 | Platform acceptance | Verify supported Windows/macOS installation, paths, external tools and cancellation. Linux checks do not establish those results. |
-| Remote CI and publication | Confirm CI for the eventual submitted revision. Release, tag, push and deployment are separate authorized actions. |
 | Optional test maintenance | Reduce repeated full CLI runs for already-covered polymer lengths where this preserves focused regression diagnostics. |
 
 No full archive run or production deployment is part of this local transition.

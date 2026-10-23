@@ -248,7 +248,7 @@ def _activate_parsing_worker(config_snapshot: Mapping[str, Any]) -> None:
     activate_config(dict(config_snapshot))
 
 
-def discover_input_files(input_path_or_filelist: Union[str, List[str]]) -> List[str]:
+def discover_input_files(input_path_or_filelist: Union[str, List[str]], *, allow_empty: bool = False) -> List[str]:
     """Resolve a folder or internal file list into valid structure files."""
     if isinstance(input_path_or_filelist, list):
         return [file_path for file_path in input_path_or_filelist if is_valid_file(file_path)]
@@ -280,7 +280,7 @@ def discover_input_files(input_path_or_filelist: Union[str, List[str]]) -> List[
                 )
             if entry.is_file(follow_symlinks=False) and is_valid_file(entry.path):
                 file_paths.append(entry.path)
-    if not file_paths:
+    if not file_paths and not allow_empty:
         raise InputValidationError(
             "NO_VALID_INPUT_FILES",
             f"input_folder_path contains no supported .pdb, .cif, or .mmcif files: {input_path}",
@@ -1366,7 +1366,9 @@ def _input_exclusion_warnings(
     ]
 
 
-def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: str | None = None) -> RunOutputPaths:
+def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: str | None = None,
+                 *, prepared_structures=None, prepared_contact_sources=None,
+                 prepared_provenance=None, prepared_uploads=None) -> RunOutputPaths:
     """Run the full single-process pipeline for a folder or explicit file list."""
     network_config = config["networks"]
     start_time_total = time.time()
@@ -1379,6 +1381,9 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
     file_errors: dict[str, Exception] = {}
     inventory: InputInventory | None = None
     parsed_any = False
+    prepared_payloads, prepared_data, replaced_paths = [], [], set()
+    selected_provenance = None
+    extra_input_count = 0
 
     try:
         _validate_output_root()
@@ -1389,7 +1394,7 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
             )
         _validate_analysis_config()
         network_annotation_config()
-        file_paths = discover_input_files(input_path_or_filelist)
+        file_paths = discover_input_files(input_path_or_filelist, allow_empty=prepared_structures is not None)
         _validate_web_reference_manifest(web_output_dir)
         if web_output_dir:
             web_output_reservation_attempted = True
@@ -1398,6 +1403,68 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
         inventory = inspect_input_files(file_paths, errors_by_path=file_errors)
         _combined_graph_limits()
         preflight_identities = _preflight_structure_identities(file_paths, inventory, errors_by_path=file_errors)
+        if prepared_structures is not None:
+            from .structure_analysis import reusable_upload
+            from .structure_facts import (MAX_REQUEST_CHAINS, MAX_REQUEST_PAIRS, geometry_profile,
+                                          materialize_facts, prepared_provenance as make_provenance, validate_facts)
+            payloads = []
+            seen_prepared = set()
+            uploads = dict(prepared_uploads or {})
+            total_chains = total_pairs = 0
+            for payload in prepared_structures:
+                payload = validate_facts(payload)
+                identity = payload["structure_identity"]["canonical_id"]
+                if identity in seen_prepared:
+                    raise InputValidationError("DUPLICATE_STRUCTURE_IDENTITY", "Prepared inputs are duplicated.")
+                seen_prepared.add(identity)
+                total_chains += len(payload["chains"])
+                total_pairs += len(payload["pairs"])
+                if total_chains > MAX_REQUEST_CHAINS or total_pairs > MAX_REQUEST_PAIRS:
+                    raise InputValidationError("STRUCTURE_FACTS_LIMIT_EXCEEDED", "Prepared input limits exceeded.")
+                payloads.append(payload)
+                maximum_inputs = _resource_limits()["max_input_files"]
+                if maximum_inputs is not None and len(payloads) > maximum_inputs:
+                    raise InputValidationError("INPUT_FILE_COUNT_LIMIT_EXCEEDED", "Too many prepared inputs.")
+            if set(uploads) - seen_prepared:
+                raise InputValidationError("INVALID_STRUCTURE_FACTS", "Unknown prepared upload mapping.")
+            original_provenance = make_provenance(payloads, prepared_provenance) if payloads else None
+            profile = geometry_profile()
+            compatible = (config.get("structure_model_policy", "first") == "first"
+                          and all(config["distance_thresholds"][key] == profile[key]
+                                  for key in ("ca_radius", "all_atoms_radius")))
+            for payload in payloads:
+                identity = payload["structure_identity"]["canonical_id"]
+                source = uploads.get(identity)
+                if source is not None:
+                    source = str(source)
+                    if source not in file_paths or source in replaced_paths:
+                        raise InputValidationError("INVALID_STRUCTURE_FACTS", "Prepared upload is outside the input selection.")
+                    source_index = file_paths.index(source)
+                    if source in file_errors or not reusable_upload(
+                        source, payload, config,
+                        expected_signature=inventory.file_signatures[source_index],
+                        expected_sha256=inventory.file_sha256[source_index],
+                    ):
+                        continue
+                    replaced_paths.add(source)
+                else:
+                    if not compatible:
+                        raise InputValidationError("STRUCTURE_PROFILE_UNSUPPORTED", "Prepared PDB inputs require the stored model policy and radii.")
+                    extra_input_count += 1
+                materialized = materialize_facts(payload, use_embedded_sifts=network_annotation_config()["use_embedded_sifts"])
+                if source is not None:
+                    materialized["file_path"] = source
+                prepared_payloads.append(payload)
+                prepared_data.append(materialized)
+            _validate_input_file_count(file_paths + [""] * extra_input_count, _resource_limits())
+            identities = [value.key for path, value in preflight_identities.items() if path not in replaced_paths]
+            identities.extend(StructureIdentity.from_mapping(value["structure_identity"]).key for value in prepared_data)
+            if len(identities) != len(set(identities)):
+                raise InputValidationError("DUPLICATE_STRUCTURE_IDENTITY", "Selected uploaded and PDB structures share an identity. Remove the duplicate selection.")
+            if prepared_payloads:
+                selected_provenance = dict(original_provenance)
+                used = {payload["structure_identity"]["canonical_id"] for payload in prepared_payloads}
+                selected_provenance["entries"] = [entry for entry in original_provenance["entries"] if entry["pdb_id"] in used]
         _validate_required_reference_files()
         output_paths = create_run_output_paths(config["output_path"])
         limits = _resource_limits()
@@ -1435,7 +1502,7 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
             create_processing_batches(file_paths, inventory),
             start=1,
         ):
-            batch_paths = [path for path in batch_paths if path not in file_errors]
+            batch_paths = [path for path in batch_paths if path not in file_errors and path not in replaced_paths]
             if not batch_paths:
                 continue
             batch_bytes = sum(Path(path).stat().st_size for path in batch_paths)
@@ -1549,6 +1616,13 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
             del batch_data
             gc.collect()
 
+        if prepared_data:
+            from .structure_analysis import _analyze_prepared_batch
+            _register_unique_chain_ids(prepared_data, seen_chain_ids)
+            results.extend(_analyze_prepared_batch(prepared_payloads, prepared_data, output_paths,
+                                                   prepared_contact_sources, detailed_interaction_budget, timings))
+            combined_data.extend(prepared_data)
+
         if not combined_data:
             if parsed_any:
                 raise InputValidationError(
@@ -1589,9 +1663,15 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
             "interactions": len(results),
             "skipped_outputs": len(skipped_outputs),
         }
+        resources = _resource_summary(inventory, processing_batches=processing_batches,
+                                      parsing_workers_used=parsing_workers_used,
+                                      detailed_interactions=detailed_interaction_budget)
+        resources["input"]["files"] = len(file_paths) + extra_input_count
+        if prepared_data:
+            resources["processing"].update(mode="mixed", reused_structures=len(prepared_data))
         write_run_manifest(
             output_paths.manifest_file,
-            input_files=[path for path in file_paths if path not in file_errors],
+            input_files=[value["file_path"] for value in combined_data],
             output_paths=output_paths,
             config_snapshot=_config_snapshot(network_config),
             status="success",
@@ -1603,12 +1683,8 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
             extra_counts=extra_counts,
             annotations=_annotation_summary(combined_data),
             references=_reference_summary(),
-            resources=_resource_summary(
-                inventory,
-                processing_batches=processing_batches,
-                parsing_workers_used=parsing_workers_used,
-                detailed_interactions=detailed_interaction_budget,
-            ),
+            resources=resources,
+            prepared_inputs=selected_provenance,
             skipped_outputs=skipped_outputs,
             warnings=warnings,
             identities=_identity_summary(combined_data),
@@ -1637,7 +1713,7 @@ def run_pipeline(input_path_or_filelist: Union[str, List[str]], web_output_dir: 
                     started_at=started_at,
                     output_paths=output_paths,
                     warnings=_input_exclusion_warnings(file_paths, file_errors),
-                    resources={"input": {"files": len(file_paths)}} if file_paths else None,
+                    resources={"input": {"files": len(file_paths) + extra_input_count}} if file_paths or extra_input_count else None,
                 )
                 if web_output_dir and (
                     web_output_reserved or not web_output_reservation_attempted

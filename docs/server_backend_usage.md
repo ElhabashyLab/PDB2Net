@@ -184,8 +184,8 @@ iterators; network-only requests do not need those iterators.
 
 ## Output Contract
 
-The current output contract is **3.0**. `prepared_inputs` is a required top-level
-field: null for raw/failed runs, otherwise the validated provenance described in
+The current output contract is **3.1**. `prepared_inputs` is a required top-level
+field: null for fully raw/failed runs, otherwise provenance for the reused subset described in
 [prepared structures](prepared_structures.md#public-contracts-and-provenance).
 The former `references.precomputed_store` block is removed. `references.manifest_id`
 identifies the current annotation references, independently of geometry.
@@ -228,7 +228,7 @@ interaction tables. If publication fails partway through, Core removes the
 partial copies created by that attempt; internal run artifacts remain available
 for diagnosis.
 
-Contract `3.0` retains `identities` and `structure_inputs` alongside annotation
+Contract `3.1` retains `identities` and `structure_inputs` alongside annotation
 counts, reference identity/metadata, resource observations, and
 `skipped_outputs`. Combined graphs
 over the configured node or edge cap are listed in `skipped_outputs` and
@@ -241,7 +241,7 @@ the exact defaults or advanced settings used for a job.
 The four network projections and their model restrictions are described in the
 [README](../README.md#what-the-four-network-outputs-mean). Cross-file `identity`
 links carry zero geometric contact count; they still contribute to the number
-of exported edges in artifact metadata. These count fields retain their meaning in summary contract `3.0`. Interpret contact analyses using the edge type, not merely a positive
+of exported edges in artifact metadata. These count fields retain their meaning in summary contract `3.1`. Interpret contact analyses using the edge type, not merely a positive
 or zero weight.
 
 ### File exclusions and result status

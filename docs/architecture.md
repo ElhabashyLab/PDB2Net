@@ -6,7 +6,7 @@ PDB2Net is a batch pipeline for turning PDB/mmCIF structure files into protein a
 
 Core is the standalone scientific product. Its current public boundary is
 package `0.2.0rc6`, capability schema `4`, CLI contract `3`, Web output contract
-`3.0`, and prepared structure facts schema `1`. External applications install
+`3.1`, and prepared structure facts schema `1`. External applications install
 the package and use the CLI or documented Python API. Core has no dependency
 on a web framework, database service, deployment or adapter repository.
 

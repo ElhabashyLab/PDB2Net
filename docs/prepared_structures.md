@@ -91,7 +91,7 @@ CLI contract 3 provides `run` and `capabilities`; persistence is an external
 adapter responsibility. The former schema-3 Core store and its commands are
 removed, with no migration layer.
 
-Web-output contract 3.0 adds `prepared_inputs`. It is null for raw inputs and
+Web-output contract 3.1 retains `prepared_inputs`. It is null for fully raw inputs and
 failed reports. Prepared runs include facts schema, geometry profile, source
 hashes and revision IDs; an adapter can additionally supply a catalog ID and
 checked timestamp. Direct Python analysis without a catalog uses null for
@@ -109,3 +109,31 @@ independent contact expectations, combined structures, fresh BLAST/SIFTS
 reference generations, compression-independent source identity, corrupt payload
 rejection and atomic detail-export failure. Full-archive capacity and server
 publication are separate acceptance scopes.
+
+## Mixed uploaded and prepared inputs
+
+`analyze_mixed(input_directory, structures, config, contact_sources=None,
+provenance=None, *, upload_sources=None, web_output_dir=None)` runs the ordinary
+bounded raw-file pipeline with supplied prepared facts. `upload_sources` maps
+canonical PDB IDs to selected files in the input directory; other prepared facts
+represent explicit additional inputs. All inputs enter one final network export
+and share the detailed-output budget. The combined input count is bounded.
+
+Replacement is conservative: exact expanded source hash, matching stored radii
+and model policy, matching official filename identity and input format, and
+warning-free stored facts. Incompatible upload candidates follow the ordinary
+raw path. Raw identity resolution and its pinned signatures/hashes still run;
+changed files cannot bypass integrity checks through reuse. Explicit prepared
+inputs retain their strict validation and fixed geometry requirements. Duplicate
+structure identities are errors, not merged silently. Uploaded file diagnostics
+and original labels are retained.
+
+The `mixed_structure_analysis` capability advertises this API. In output 3.1,
+`prepared_inputs.entries` describes only the reused subset, in exported-input
+order; `identities` and `structure_inputs` still describe every processed input.
+The facts schema and geometry profile are unchanged, so this orchestration change
+requires no geometry rebuild. Annotation remains fresh for every invocation.
+
+Web artifact publication allows up to 3 GiB per contact CSV, 512 MiB per network,
+and 3.5 GiB aggregate artifacts, in addition to configured streaming limits.
+CX2/CSV formats, contact rules and standalone raw-file processing are unchanged.

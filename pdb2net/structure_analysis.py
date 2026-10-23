@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from datetime import datetime
+import hashlib
+from pathlib import Path
 import time
 
 from . import __version__, pipeline
@@ -9,7 +11,7 @@ from .config_loader import activate_config, config as active_config
 from .contact_atoms import ContactView, count_contacts, unique_contacts
 from .detailed_results_exporter import DetailedInteractionBudget, export_detailed_interactions
 from .distances import chain_pairs, select_interaction
-from .file_parser import input_file_signature
+from .file_parser import input_file_signature, read_validated_structure_bytes
 from .input_contract import InputValidationError
 from .network_annotations import network_annotation_config
 from .outputs import (
@@ -24,6 +26,88 @@ from .structure_facts import (
     profile_id, prepared_provenance, validate_contacts, validate_facts,
 )
 from .uniprot_matcher import classify_molecule_type, extract_sequence_from_parsed_data
+
+
+def reusable_upload(source, facts, config, *, expected_signature=None, expected_sha256=None):
+    """Conservatively match a raw upload without changing filename semantics.
+
+    A content match alone is insufficient: filenames can supply identity and
+    diagnostics. Only an unambiguous matching official filename, source format,
+    warning-free facts and the stored geometry profile permit replacement.
+    Other uploads simply retain the ordinary raw analysis path.
+    """
+    from .file_parser import extract_structure_identity_from_filename
+
+    validate_facts(facts)
+    profile = geometry_profile()
+    if (config.get("structure_model_policy", "first") != "first"
+            or any(config["distance_thresholds"][key] != profile[key]
+                   for key in ("ca_radius", "all_atoms_radius")) or facts["warnings"]):
+        return False
+    source = str(source)
+    identity = extract_structure_identity_from_filename(source)
+    if identity is None or identity.as_dict() != facts["structure_identity"]:
+        return False
+    filename = Path(source).name.lower().removesuffix(".gz")
+    input_format = "pdb" if filename.endswith(".pdb") else "mmcif"
+    if input_format != facts["input_format"]:
+        return False
+    signature = input_file_signature(source)
+    if expected_signature is not None and signature != expected_signature:
+        raise InputValidationError("INPUT_CHANGED_DURING_PROCESSING", "Upload changed after inspection.")
+    limits = config.get("resource_limits", {})
+    maximum = limits.get("max_single_input_bytes")
+    if maximum is not None and signature[2] > maximum:
+        raise InputValidationError("INPUT_FILE_BYTES_LIMIT_EXCEEDED", "Upload exceeds its byte limit.")
+    payload, expanded = read_validated_structure_bytes(
+        source, expected_signature=expected_signature or signature, expected_sha256=expected_sha256,
+        maximum_expanded_bytes=limits.get("max_single_input_expanded_bytes"),
+    )
+    return (expanded == facts["source_expanded_bytes"]
+            and hashlib.sha256(payload).hexdigest() == facts["source_sha256"])
+
+
+def analyze_mixed(input_directory, structures, config, contact_sources=None,
+                  provenance=None, *, upload_sources=None, web_output_dir=None):
+    """Analyze raw uploads and supplied prepared facts in one ordinary run.
+
+    ``upload_sources`` maps prepared canonical IDs to files in input_directory.
+    Those files are replaced only after exact content/profile/identity checks.
+    Facts without an upload source are explicit additional PDB inputs. Neither
+    path downloads, prepares or writes missing store entries.
+    """
+    activate_config(config)
+    return pipeline.run_pipeline(
+        str(input_directory), web_output_dir,
+        prepared_structures=structures, prepared_contact_sources=contact_sources,
+        prepared_provenance=provenance, prepared_uploads=upload_sources,
+    )
+
+
+def _analyze_prepared_batch(payloads, materialized, output_paths, contact_sources, budget, timings):
+    before = time.monotonic()
+    pipeline.process_molecule_info(materialized)
+    timings.sifts += time.monotonic() - before
+    before = time.monotonic()
+    pipeline._run_blast_annotation(materialized)
+    timings.blast += time.monotonic() - before
+    interactions = []
+    for payload, structure in zip(payloads, materialized):
+        lookup = {chain["unique_chain_id"]: chain for chain in structure["atom_data"]}
+        edges = []
+        for pair in payload["pairs"]:
+            edge = select_interaction(structure, lookup[pair["chain_a"]], lookup[pair["chain_b"]],
+                                      pair["all_atoms_count"], pair["ca_neighbors"])
+            if edge is not None:
+                edges.append(edge)
+        interactions.extend(edges)
+        if active_config.get("export_detailed_interactions"):
+            factory = (contact_sources or {}).get(payload["structure_identity"]["canonical_id"])
+            if not callable(factory):
+                raise InputValidationError("STRUCTURE_CONTACTS_MISSING", "Detailed analysis requires a contact stream for every structure.")
+            export_detailed_interactions(structure, edges, output_paths.distances_dir, budget=budget,
+                                         contact_rows=validate_contacts(payload, factory()))
+    return interactions
 
 
 def prepare_structure(source, profile=None, contact_sink=None):
@@ -139,32 +223,11 @@ def analyze_prepared(structures, config, output_paths=None, contact_sources=None
             raise InputValidationError("NO_PARSEABLE_STRUCTURES", "No prepared inputs were supplied.")
         provenance = prepared_provenance(payloads, provenance)
         output_paths = output_paths or create_run_output_paths(active_config["output_path"])
-        before = time.monotonic()
-        pipeline.process_molecule_info(materialized)
-        timings.sifts = time.monotonic() - before
-        before = time.monotonic()
-        pipeline._run_blast_annotation(materialized)
-        timings.blast = time.monotonic() - before
-        interactions = []
         detailed = bool(active_config.get("export_detailed_interactions"))
         budget = DetailedInteractionBudget(max_rows=limits["max_detailed_interaction_rows"],
                                           max_bytes=limits["max_detailed_interaction_bytes"],
                                           min_free_bytes=limits["min_output_free_bytes"])
-        for payload, structure in zip(payloads, materialized):
-            lookup = {c["unique_chain_id"]: c for c in structure["atom_data"]}
-            edges = []
-            for pair in payload["pairs"]:
-                edge = select_interaction(structure, lookup[pair["chain_a"]], lookup[pair["chain_b"]],
-                                          pair["all_atoms_count"], pair["ca_neighbors"])
-                if edge is not None:
-                    edges.append(edge)
-            interactions.extend(edges)
-            if detailed:
-                factory = (contact_sources or {}).get(payload["structure_identity"]["canonical_id"])
-                if not callable(factory):
-                    raise InputValidationError("STRUCTURE_CONTACTS_MISSING", "Detailed analysis requires a contact stream for every structure.")
-                export_detailed_interactions(structure, edges, output_paths.distances_dir, budget=budget,
-                                             contact_rows=validate_contacts(payload, factory()))
+        interactions = _analyze_prepared_batch(payloads, materialized, output_paths, contact_sources, budget, timings)
         skipped = pipeline._export_network_outputs(materialized, interactions, active_config["networks"], output_paths, timings)
         warnings = pipeline._embedded_annotation_warnings(materialized) + [
             {"code": "COMBINED_GRAPH_LIMIT_EXCEEDED", "message": f"Skipped {item['name']} because configured graph limits were exceeded.", "output": item["name"]}

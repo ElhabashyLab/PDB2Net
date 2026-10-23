@@ -22,7 +22,8 @@ from .structure_identity import StructureIdentity
 MAX_WEB_SUMMARY_BYTES = 1_000_000
 MAX_WEB_ARTIFACTS = 1_000
 MAX_WEB_ARTIFACT_BYTES = 512 * 1024 * 1024
-MAX_WEB_ARTIFACT_TOTAL_BYTES = 2 * 1024 * 1024 * 1024
+MAX_WEB_CSV_BYTES = 3 * 1024 * 1024 * 1024
+MAX_WEB_ARTIFACT_TOTAL_BYTES = 7 * 512 * 1024 * 1024
 _FORBIDDEN_CX1_ASPECTS = {"nodeAttributes", "edgeAttributes", "cartesianLayout"}
 _CX2_ASPECT_ORDER = (
     "metaData",
@@ -560,7 +561,7 @@ def _csv_counts(path: Path) -> tuple[int, list[str]]:
 
 def _artifact_metadata(path: Path, *, kind: str) -> dict[str, Any]:
     size = path.stat().st_size
-    if size > MAX_WEB_ARTIFACT_BYTES:
+    if size > (MAX_WEB_CSV_BYTES if kind == "interaction" else MAX_WEB_ARTIFACT_BYTES):
         raise InputValidationError("WEB_ARTIFACT_TOO_LARGE", f"Artifact {path.name} exceeds the size limit.")
     record: dict[str, Any] = {
         "size_bytes": size,
@@ -725,7 +726,8 @@ def collect_web_outputs(
                 f"Generated artifact is missing or is a symlink: {source.name}",
             )
         size = source.stat().st_size
-        if size > MAX_WEB_ARTIFACT_BYTES:
+        maximum = MAX_WEB_CSV_BYTES if source in interaction_sources else MAX_WEB_ARTIFACT_BYTES
+        if size > maximum:
             raise InputValidationError(
                 "WEB_ARTIFACT_TOO_LARGE", f"Artifact {source.name} exceeds the size limit."
             )
@@ -773,8 +775,10 @@ def collect_web_outputs(
         internal_counts = internal_summary.get("counts") if isinstance(internal_summary.get("counts"), Mapping) else {}
         from .structure_facts import validate_prepared_provenance
         provenance = validate_prepared_provenance(internal_summary.get("prepared_inputs")) if success else None
-        if provenance is not None and [entry["pdb_id"] for entry in provenance["entries"]] != [identity["canonical_id"] for identity in identities]:
-            raise InputValidationError("INVALID_WEB_OUTPUT_CONTRACT", "Prepared provenance does not match exported inputs.")
+        if provenance is not None:
+            reused = [entry["pdb_id"] for entry in provenance["entries"]]
+            if reused != [identity["canonical_id"] for identity in identities if identity["canonical_id"] in reused]:
+                raise InputValidationError("INVALID_WEB_OUTPUT_CONTRACT", "Prepared provenance does not match exported inputs.")
         summary = {
             "prepared_inputs": provenance,
             "output_contract_version": internal_summary.get("output_contract_version", OUTPUT_CONTRACT_VERSION),

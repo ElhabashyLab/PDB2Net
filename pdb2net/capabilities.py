@@ -43,6 +43,7 @@ def capability_document() -> dict[str, Any]:
             "embedded_sifts",
             "diamond_uniref90",
             "prepared_structure_analysis",
+            "mixed_structure_analysis",
         ],
     }
 

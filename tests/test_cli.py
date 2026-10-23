@@ -37,7 +37,7 @@ def test_capabilities_json_reports_stable_server_contracts(capsys) -> None:
         "capabilities_schema_version": "4",
         "pdb2net_version": __version__,
         "cli_contract_version": "3",
-        "output_contract_version": "3.0",
+        "output_contract_version": "3.1",
         "structure_facts_schema_version": "1",
         "commands": ["run", "capabilities"],
         "input_formats": [
@@ -61,6 +61,7 @@ def test_capabilities_json_reports_stable_server_contracts(capsys) -> None:
             "embedded_sifts",
             "diamond_uniref90",
             "prepared_structure_analysis",
+            "mixed_structure_analysis",
         ],
     }
 

@@ -295,7 +295,7 @@ def run(case, files, overrides=None, *, expect=0, legacy=False):
     assert summary["status"] == ("success" if expect == 0 else "failed")
     if not legacy and expect == 0:
         assert summary["errors"] == []
-        assert summary["output_contract_version"] == "3.0"
+        assert summary["output_contract_version"] == "3.1"
         assert summary["counts"]["networks"] == len(
             list((case / "web/networks").glob("*.cx2"))
         )

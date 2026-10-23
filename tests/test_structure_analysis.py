@@ -344,7 +344,7 @@ def test_prepared_public_provenance_matches_facts_and_rejects_forged_source(tmp_
     web = tmp_path / 'web'
     analyze_prepared([facts], settings, provenance=provenance, web_output_dir=str(web))
     summary = json.loads((web/'summary.json').read_text())
-    assert summary['output_contract_version'] == '3.0'
+    assert summary['output_contract_version'] == '3.1'
     assert summary['prepared_inputs'] == provenance
     forged = copy.deepcopy(provenance)
     forged['entries'][0]['source_sha256'] = '0'*64

@@ -330,3 +330,19 @@ data paths, DIAMOND database paths, and executable paths server-controlled.
   of presenting the analyzed subset as a complete submitted dataset.
 - Keep large reference datasets, BLAST databases, and DIAMOND databases outside
   git.
+
+
+### Reference-independent input identity inspection
+
+Adapters may call `pdb2net.file_parser.resolve_structure_identity(file_path,
+maximum_expanded_bytes=...)` before submitting analysis. It returns a
+`StructureIdentity`, warning records and identity claims. Use `identity.key` for
+cross-format uniqueness; content claims take precedence over the original
+filename, and conflicting content claims raise `InputValidationError`. Preserve
+the original filename when presenting a stored upload to this function.
+
+This inspects identity metadata without annotation, contact calculation or
+reference access. mmCIF inspection reads the CIF document; callers should bound
+input size, memory and runtime, and distinguish a deferred check from successful
+inspection. It does not certify usable coordinates or supported chains. Analysis
+still performs its own integrity, identity and scientific validation.

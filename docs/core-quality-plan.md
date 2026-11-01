@@ -1,5 +1,28 @@
 # Current verification status and remaining work
 
+## Bounded negative-occupancy acceptance
+
+Finite negative contact-atom positions are now omitted when they make up at most
+2% of the otherwise eligible nonzero/unknown positions in each selected model.
+The gate shares the existing contact-eligibility pass; counts and CSV share its
+validated selection. Nonfinite/nonnumeric values, excessive negative fractions,
+zero-only structures and unsupported polymer types retain their exclusions.
+A bounded `NEGATIVE_OCCUPANCY_ATOMS_SKIPPED` warning records the omission.
+
+The acceptance extension preserves the successful-input geometry profile and
+facts schema. Twenty existing successful real fixtures produced byte-identical
+facts and identical contact streams before/after the change. All 105 audited
+sources were checked locally: 29 negative-occupancy cases now produce validated
+facts/contact bundles; the other 76 retain `NO_VALID_CHAINS`. Original sources
+and frozen scientific expectations were not changed.
+
+Python 3.12 verification passed 729 tests, including 17 new boundary/reporting/
+raw-prepared parity cases, with three existing `datetime.utcnow()` warnings and
+no skips. Independent review repeated the full suite and verified all 29 local
+bundles. Ruff and the isolated installed-wheel raw/prepared check also passed.
+This is local verification, not publication or deployment; update runtime and
+offline preparation together before publishing newly accepted entries.
+
 ## Precompute audit corrections
 
 Four subsequent audit findings are corrected locally:

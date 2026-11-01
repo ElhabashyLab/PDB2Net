@@ -14,8 +14,27 @@ appropriate: modified polymer residues can use those records.
 Gemmi polymer roles and types supply the structural metadata. Hydrogen and
 deuterium are removed. Explicit zero occupancy excludes a position; positive
 occupancy and unknown occupancy retain it without weighting. Missing occupancy
-does not produce a warning. Invalid occupancy of a relevant contact atom is a
-file-content error.
+does not produce a warning. Nonnumeric/nonfinite occupancy of a relevant contact
+atom remains a file-content error.
+
+Finite negative occupancy is counted during the existing atom-eligibility pass.
+For each selected model, at most 2% of otherwise contact-relevant heavy-atom
+positions may be negative; exactly 2% is accepted. The denominator includes
+positive, unknown and negative occupancy, but excludes explicit zero occupancy,
+H/D atoms, nonpolymers and unsupported polymer types. These are input position
+counts before contact-site deduplication, not unique-site counts. Models never
+subsidize one another. Exceeding the limit rejects the file with
+`INVALID_ATOM_OCCUPANCY`.
+
+After validation, negative positions are omitted by the shared contact filter
+for counts and CSV. Original occupancy, coordinates, residue sequences and
+polymer lengths remain intact. One `NEGATIVE_OCCUPANCY_ATOMS_SKIPPED` warning per
+file reports the total excluded positions, largest selected-model fraction and
+up to ten bounded atom identifiers, with the remaining count stated. The 2%
+threshold is an acceptance guard, not a guarantee that omitted contacts are
+scientifically negligible. There is no method-specific exception or user toggle.
+Low-level contact views still reject negative values unless the structure-level
+gate has completed; the internal validation marker is not part of saved facts.
 
 A chain with no eligible contact atoms is omitted with a chain diagnostic. If
 no usable chain remains, the raw-run file-exclusion rules apply. A retained chain

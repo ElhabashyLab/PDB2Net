@@ -207,12 +207,13 @@ def process_single_file(
             "atom_occupancies": parsed.get("atom_occupancies", {}),
         }
     )
-    from .contact_atoms import contact_positions
+    from .contact_atoms import OccupancyAudit, contact_positions
 
     retained_chains, contact_warnings = [], []
+    occupancy_audit = OccupancyAudit()
     for chain in processed["atom_data"]:
         # Consume all candidates so invalid metadata cannot hide after a valid atom.
-        if sum(1 for _ in contact_positions(chain)):
+        if sum(1 for _ in contact_positions(chain, occupancy_audit=occupancy_audit)):
             retained_chains.append(chain)
         else:
             contact_warnings.append({
@@ -221,6 +222,11 @@ def process_single_file(
                             f"chain {chain['chain_id']!r} excluded: no usable protein/DNA/RNA "
                             "heavy contact atoms. Check polymer assignment and occupancy."),
             })
+    occupancy_warnings = occupancy_audit.finish(Path(file_path).name)
+    if occupancy_warnings:
+        for chain in retained_chains:
+            chain["_negative_occupancy_checked"] = True
+    contact_warnings.extend(occupancy_warnings)
     processed["atom_data"] = retained_chains
     annotation_cfg = network_annotation_config()
     apply_embedded_annotations(

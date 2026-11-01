@@ -276,6 +276,14 @@ zero occupancy and excluded ligands do not individually produce warnings;
 missing occupancy is accepted silently. Contact and CSV semantics are described
 in the [README](../README.md). CSV columns and public contracts are unchanged.
 
+A file within the fixed finite-negative-occupancy allowance remains an analyzed
+input. `NEGATIVE_OCCUPANCY_ATOMS_SKIPPED` reports omitted atom positions, not an
+omitted file. Show it in the existing warning list. Each selected model must
+have at most 2% negative positions among otherwise contact-relevant nonzero or
+unknown-occupancy heavy-atom positions. Nonnumeric/nonfinite values and a model
+above the limit remain `INVALID_ATOM_OCCUPANCY` file exclusions. This is part of
+normal parsing, not an additional upload inspection or a configurable option.
+
 | Outcome | CLI / Core summary | Adapter interpretation |
 | --- | --- | --- |
 | All inputs analyzed | Exit 0, `success` | Completed; display any other warnings. |

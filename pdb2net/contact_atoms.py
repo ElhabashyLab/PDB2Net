@@ -17,6 +17,53 @@ CONTACT_POLYMER_TYPES = {"PeptideL", "PeptideD", "CyclicPseudoPeptide", "Dna", "
 SiteKey = tuple[str, str, str]
 
 
+class OccupancyAudit:
+    """Count input atom positions during the existing contact-eligibility pass."""
+
+    def __init__(self):
+        self.models: dict[int, list[int]] = {}  # considered, finite negative
+        self.examples: list[str] = []
+
+    def record_example(self, chain, residue, atom):
+        if len(self.examples) >= 10:
+            return
+
+        def label(value):
+            text = " ".join(str(value).split())
+            return text if len(text) <= 32 else text[:29] + "..."
+
+        self.examples.append(
+            f"model {chain.get('model_index', 1)}, chain {label(chain.get('chain_id', '?'))}, "
+            f"residue {label(residue.get('residue_number', '?'))}"
+            f"{label(residue.get('insertion_code', ''))} {label(residue.get('residue_name', '?'))}, "
+            f"atom {label(atom.get('atom_name', '?'))}"
+            + (f" altloc {label(atom['altloc'])}" if atom.get('altloc') else "")
+        )
+
+    def finish(self, filename: str) -> list[dict[str, str]]:
+        for model, (considered, negative) in self.models.items():
+            # Exactly 2% is accepted; avoid rounded percentages at the boundary.
+            if negative * 50 > considered:
+                raise InputValidationError(
+                    "INVALID_ATOM_OCCUPANCY",
+                    f"{filename}: model {model} has {negative}/{considered} contact-relevant "
+                    f"atom positions with negative occupancy ({100 * negative / considered:.4g}%), "
+                    "exceeding the 2% limit.",
+                )
+        negative = sum(counts[1] for counts in self.models.values())
+        if not negative:
+            return []
+        maximum = max(100 * bad / total for total, bad in self.models.values() if total)
+        message = (
+            f"{filename}: excluded {negative} atom positions with negative occupancy from contacts; "
+            f"largest affected-model fraction {maximum:.4g}% (limit 2%). "
+            "Contacts involving these positions are omitted. Examples: " + "; ".join(self.examples)
+        )
+        if negative > len(self.examples):
+            message += f"; {negative - len(self.examples)} further excluded positions not listed."
+        return [{"code": "NEGATIVE_OCCUPANCY_ATOMS_SKIPPED", "message": message}]
+
+
 @dataclass(frozen=True)
 class Position:
     site: SiteKey
@@ -31,9 +78,13 @@ class Position:
         return self.residue, self.original_residue, self.atom_name, self.altloc, self.coordinates
 
 
-def contact_positions(chain: dict[str, Any], extraction_type: str = "all_atoms") -> Iterator[Position]:
+def contact_positions(
+    chain: dict[str, Any], extraction_type: str = "all_atoms", *, occupancy_audit: OccupancyAudit | None = None,
+) -> Iterator[Position]:
     """Keep raw residue data intact; omit only positions outside contact scope."""
     seen: dict[tuple[SiteKey, str, str], tuple[float, float, float]] = {}
+    counts = (occupancy_audit.models.setdefault(chain.get("model_index", 1), [0, 0])
+              if occupancy_audit is not None else None)
     for index, residue in enumerate(chain.get("residues", [])):
         if not residue.get("is_polymer", True):
             continue
@@ -47,12 +98,24 @@ def contact_positions(chain: dict[str, Any], extraction_type: str = "all_atoms")
         for atom in residue.get("atoms", []):
             occupancy = atom.get("occupancy")
             if occupancy is not None:
-                if not isinstance(occupancy, (int, float)) or not math.isfinite(occupancy) or occupancy < 0:
+                if not isinstance(occupancy, (int, float)) or not math.isfinite(occupancy):
                     raise InputValidationError(
                         "INVALID_ATOM_OCCUPANCY", "A polymer contact atom has invalid occupancy."
                     )
                 if occupancy == 0:
                     continue
+            if counts is not None:
+                counts[0] += 1
+            if occupancy is not None and occupancy < 0:
+                if counts is not None:
+                    counts[1] += 1
+                    occupancy_audit.record_example(chain, residue, atom)
+                elif not chain.get("_negative_occupancy_checked", False):
+                    # Direct low-level callers cannot bypass the per-model gate.
+                    raise InputValidationError(
+                        "INVALID_ATOM_OCCUPANCY", "Negative occupancy requires structure-level validation."
+                    )
+                continue
             atom_name = str(atom.get("atom_name") or "")
             if extraction_type == "ca" and atom_name != "CA":
                 continue

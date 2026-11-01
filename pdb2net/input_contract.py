@@ -29,7 +29,7 @@ INPUT_EXCLUSION_REASONS = {
     "CONFLICTING_STRUCTURE_IDENTITY": "The structure contains conflicting identities. Correct the file's identity fields.",
     "MISSING_CHAIN_ID": "A chain in a selected model has no identifier. The file was omitted. Correct the chain identifiers or export the structure again.",
     "NO_VALID_CHAINS": "No supported chains were found. Check the structure and model selection or remove this file.",
-    "INVALID_ATOM_OCCUPANCY": "A polymer contact atom has invalid occupancy. Correct nonnumeric, nonfinite or negative occupancy values and export the file again.",
+    "INVALID_ATOM_OCCUPANCY": "A polymer contact atom has nonnumeric/nonfinite occupancy, or negative occupancy exceeds 2% of contact-relevant atom positions in a selected model. Check the original values and export a corrected file.",
     "AMBIGUOUS_ATOM_IDENTITY": "Atom positions or metadata cannot be assigned unambiguously. Check residue numbers, insertion codes, atom names and alternative-location labels.",
 }
 

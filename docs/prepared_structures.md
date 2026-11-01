@@ -37,6 +37,16 @@ geometry, but both corrections deliberately change the complete profile so old
 results cannot be silently reused. Missing boundary contacts cannot be recovered
 from coordinate-free facts alone.
 
+The finite-negative-occupancy acceptance extension preserves the current profile.
+Previously successful inputs had no relevant negative positions; their selected
+atoms, geometry, sequences, lengths and warnings remain identical. Previously
+rejected inputs have no successful facts revision to invalidate. The new 2%
+per-model gate therefore does not relabel or migrate any earlier profile, and
+does not invalidate this profile's existing successful facts. New accepted facts
+retain the bounded omission warning in the existing `warnings` field; no schema
+or output-contract change is required. Update runtime and offline preparation to
+the same Core implementation before publishing such newly accepted entries.
+
 Facts contain canonical structure/chain identities, observed-polymer search
 sequences, structural fallback types, polymer lengths, embedded source evidence,
 input diagnostics, the SHA-256 of the expanded source bytes, and candidate-pair

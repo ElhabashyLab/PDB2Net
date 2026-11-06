@@ -105,8 +105,9 @@ Web-output contract 3.1 retains `prepared_inputs`. It is null for fully raw inpu
 failed reports. Prepared runs include facts schema, geometry profile, source
 hashes and revision IDs; an adapter can additionally supply a catalog ID and
 checked timestamp. Direct Python analysis without a catalog uses null for
-those two snapshot fields. Provenance must match every analyzed input in order
-and contains no filesystem paths. `facts_id` and `validate_prepared_provenance`
+those two snapshot fields. Provenance lists the prepared subset in exported-input
+order; for entirely prepared runs this is every analyzed input. It contains no
+filesystem paths. `facts_id` and `validate_prepared_provenance`
 provide the shared revision-identity and provenance checks. Reference identity
 continues to describe the references actually used during annotation.
 

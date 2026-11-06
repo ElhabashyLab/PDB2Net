@@ -64,8 +64,10 @@ are modified. Unambiguous supported polymer types fill only otherwise unknown
 residue-name classifications; reference annotations and determinate name-based
 types retain their precedence.
 H/D are removed upstream. Explicit zero occupancy is excluded; unknown occupancy
-is retained silently. Invalid relevant occupancy and ambiguous identities use
-typed input errors. Chains with no eligible atoms are removed before annotation;
+is retained silently. Finite negative positions are omitted with a warning when
+they make up at most 2% of otherwise eligible nonzero/unknown contact-atom positions
+in each selected model. Larger fractions, nonfinite/nonnumeric occupancy and
+ambiguous identities use typed input errors. See the [contact rules](contact-semantics-decision.md). Chains with no eligible atoms are removed before annotation;
 zero-contact chains with eligible atoms remain. Model selection is unchanged.
 
 ## Main Modules

@@ -425,6 +425,10 @@ Contact calculations use only heavy atoms of protein/DNA/RNA polymer residues,
 including the actual atoms of modified residues. Water, separate glycans, lipids,
 cofactors, ions and other ligands do not contribute. Explicit occupancy zero is
 excluded; positive or missing occupancy is retained without weighting or warnings.
+Finite negative positions are omitted with `NEGATIVE_OCCUPANCY_ATOMS_SKIPPED` when
+they account for at most 2% of otherwise eligible nonzero/unknown contact-atom
+positions in each selected model. Larger fractions and nonfinite/nonnumeric
+occupancy remain file-content errors. See the [contact rules](docs/contact-semantics-decision.md).
 All eligible alternative positions are considered, but each logical atom-site
 pair counts only once. Detailed CSVs contain one row per such pair with the
 minimum distance (rounded only for display). An insertion code distinguishes

@@ -11,10 +11,15 @@ as current compatibility requirements.
   structure Python API. External adapters own persistence and offline updates.
 - Preserve unfiltered geometry and streamed atom contacts while performing
   annotation, interaction selection and detailed export with current references.
-- Publish capability schema 4, CLI contract 3, Web output contract 3.0 and
+- Publish capability schema 4, CLI contract 3, Web output contract 3.1 and
   structure facts schema 1. Keep scientific CX2/CSV behavior and local `run`.
 - Add validated path-free prepared-input provenance and retain independent
   scientific expectations in raw/prepared and installed-package regressions.
+- Support mixed raw/prepared analysis with one output budget; provenance describes
+  the reused subset in export order.
+- Omit finite negative contact-atom positions within the fixed 2% per-model
+  allowance, with an explicit warning. Preserve the successful-input geometry
+  profile and reject larger fractions and nonfinite/nonnumeric occupancy.
 
 ## v0.2.0-rc5 - Unreleased
 

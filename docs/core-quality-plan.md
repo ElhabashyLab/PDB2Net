@@ -1,5 +1,10 @@
 # Current verification status and remaining work
 
+The current Core 0.2.0rc6 contract is capabilities 4, CLI 3, output 3.1 and facts 1,
+including `mixed_structure_analysis`. The latest full local verification below
+passed 729 tests. Earlier counts and publication records describe their named
+milestones; they are not evidence of publication or deployment of the current pair.
+
 ## Bounded negative-occupancy acceptance
 
 Finite negative contact-atom positions are now omitted when they make up at most
@@ -23,9 +28,9 @@ bundles. Ruff and the isolated installed-wheel raw/prepared check also passed.
 This is local verification, not publication or deployment; update runtime and
 offline preparation together before publishing newly accepted entries.
 
-## Precompute audit corrections
+## Earlier profile-changing audit corrections
 
-Four subsequent audit findings are corrected locally:
+Four audit findings established the current geometry/annotation baseline:
 
 - Structural sequences retain SEC as U and PYL as O. Existing search masking
   of O remains unchanged. Prepared sequence/type policy is now
@@ -38,7 +43,7 @@ Four subsequent audit findings are corrected locally:
 - Combined protein metadata uses only chains in its linked component, including
   source labels, names, embedded annotation evidence and tooltips.
 
-Local Python 3.12 verification passed 697 tests (26 additional cases), Ruff,
+Verification at that milestone passed 697 tests on Python 3.12 (26 additional cases), Ruff,
 and the isolated installed-wheel raw/prepared pipeline check without Cytoscape.
 The suite reports three existing `datetime.utcnow()` deprecation warnings.
 Independent code and documentation reviews found no remaining blockers;
@@ -50,8 +55,9 @@ The profile changes deliberately reject all earlier-profile prepared facts,
 including internally consistent old hashes. Adapters need a new store generation
 prepared from sources; preserve the previous Core/store pair until transition
 validation completes. The facts schema and output contracts remain unchanged.
-These local corrections are not yet published or deployed; the archive build
-must wait for the reviewed Core/store transition. No automated migration is added.
+This requirement applies when upgrading from a profile predating those corrections.
+The later mixed-input and bounded negative-occupancy changes preserve this profile;
+compatible successful facts do not need rebuilding. No automated migration is added.
 
 ## Earlier verification baseline
 
@@ -91,20 +97,17 @@ See the [validation summary](core-quality-audit.md).
 
 ## Remaining work
 
-The prepared-input transition is implemented: Core 0.2.0rc6 provides
-capabilities 4, CLI 3, outputs 3.0 and facts 1. The former Core store commands
-are removed; adapters own persistence while the shared API prepares, validates,
-annotates and exports. The final Core suite passed 653 tests on Python 3.12;
-Ruff and the installed-package raw/prepared check passed without Cytoscape.
-Independent step reviews found and resolved the pair-iteration memory issue;
-iteration now retains memory proportional to chains. Scientific fixtures and
-independent expected values were retained when replacing old store tests.
+The prepared-input transition and mixed-input orchestration are implemented.
+Adapters own persistence while the shared API prepares, validates, annotates and
+exports. The earlier 653-test milestone resolved the pair-iteration memory issue;
+iteration retains memory proportional to chains. Scientific fixtures and independent
+expected values were preserved. The current 729-test verification is recorded above.
 
 Existing real fixtures also passed a bounded preparation/streaming measurement,
 including the 20-chain full 8ALY structure and its enriched counterpart. Those
-results do not establish whole-archive capacity. The final independent review
-found no remaining blocker. The working branch is published and remote CI passed;
-it has not been merged into `main` or released.
+results do not establish whole-archive capacity. Publication and deployment of the
+current paired adapter/Core revisions require their own verification; the earlier
+published baseline and its CI result are documented separately above.
 
 | Item | Scope |
 | --- | --- |

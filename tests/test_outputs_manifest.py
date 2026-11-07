@@ -1,7 +1,9 @@
 import json
 import hashlib
+import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -18,6 +20,58 @@ from pdb2net.outputs import (
     write_run_summary,
 )
 from pdb2net.structure_identity import identity_from_official_id
+
+
+@pytest.mark.parametrize(("platform", "failure"), [
+    ("nt", None), ("posix", None),
+    ("nt", "file"), ("posix", "file"),
+    ("nt", "replace"), ("posix", "replace"), ("posix", "directory"),
+])
+def test_summary_sync_order_and_failures(tmp_path, monkeypatch, platform, failure):
+    path = tmp_path / "summary.json"
+    calls = []
+    directory_fd = -123
+
+    def sync(fd):
+        kind = "directory" if fd == directory_fd else "file"
+        calls.append(kind)
+        if failure == kind:
+            raise OSError("injected sync failure")
+        if kind == "file":
+            os.fsync(fd)
+
+    def replace(source, target):
+        assert calls == ["file"]
+        calls.append("replace")
+        if failure == "replace":
+            raise OSError("injected replace failure")
+        os.replace(source, target)
+
+    def open_directory(directory, flags):
+        assert platform == "posix" and directory == tmp_path and flags == os.O_RDONLY
+        assert calls == ["file", "replace"]
+        return directory_fd
+
+    def close_directory(fd):
+        assert fd == directory_fd
+        calls.append("close")
+
+    monkeypatch.setattr(outputs, "os", SimpleNamespace(**{
+        **vars(os), "name": platform, "fsync": sync, "replace": replace,
+        "open": open_directory, "close": close_directory,
+    }))
+    if failure:
+        with pytest.raises(OSError, match="injected"):
+            outputs._write_public_summary(path, {"status": "success"})
+    else:
+        outputs._write_public_summary(path, {"status": "success"})
+        assert json.loads(path.read_text()) == {"status": "success"}
+        assert calls == (["file", "replace", "directory", "close"] if platform == "posix" else ["file", "replace"])
+    if failure == "directory":
+        assert calls[-1] == "close"
+    if failure in {"file", "replace"}:
+        assert not path.exists()
+    assert not list(tmp_path.glob(".*.tmp"))
 
 
 def _literal_cx2() -> str:

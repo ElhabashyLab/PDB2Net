@@ -1,9 +1,32 @@
 # Current verification status and remaining work
 
 The current Core 0.2.0rc6 contract is capabilities 4, CLI 3, output 3.1 and facts 1,
-including `mixed_structure_analysis`. The latest full local verification below
-passed 729 tests. Earlier counts and publication records describe their named
+including `mixed_structure_analysis`. The latest full local Linux verification below
+passed 746 tests; native Windows passed 732 with 14 explicit platform/privilege
+skips. Earlier counts and publication records describe their named
 milestones; they are not evidence of publication or deployment of the current pair.
+
+## Native Windows file I/O corrections
+
+Windows path-stat and handle-stat calls can disagree on `ctime` for unchanged
+files. Only that cross-API Windows comparison omits `ctime`; full path-to-path
+checks, file identity/size/mtime checks, existing digests and POSIX behavior
+remain intact. Public summary publication retains file fsync and replacement
+on both platforms; only Windows omits unsupported parent-directory fsync.
+Scientific rules, fingerprints and public contracts are unchanged.
+
+The symlink tests skip only on Windows error 1314, and home-directory/path-label
+expectations now account for Windows conventions. Seventeen new cases cover
+handle identity mismatches and summary synchronization ordering/error propagation.
+Python 3.12.3 on Linux passed 746 tests without skips. Native Windows x64 with
+Python 3.12.10 passed 732 tests, with nine existing POSIX-only skips and five
+missing-symlink-privilege skips. Both suites retain three existing `utcnow()`
+deprecation warnings. Isolated installed-wheel raw/prepared checks passed on both
+platforms without the Cytoscape extra. Ruff also passed. Native Python 3.11 and
+macOS were not rerun for this correction.
+Independent review repeated 159 focused tests, checked the native test reports
+and installed product files, and confirmed narrow privilege skips and preserved
+POSIX directory-error propagation without open findings.
 
 ## Bounded negative-occupancy acceptance
 

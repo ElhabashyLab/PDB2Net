@@ -3,6 +3,7 @@ from __future__ import annotations
 import gzip
 import os
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -116,11 +117,11 @@ def test_duplicate_official_local_and_alphafold_identities_are_rejected(
     _assert_code(error, "DUPLICATE_STRUCTURE_IDENTITY")
 
 
-def test_core_and_directory_modes_reject_structure_symlinks(tmp_path: Path) -> None:
+def test_core_and_directory_modes_reject_structure_symlinks(tmp_path: Path, make_symlink) -> None:
     target = tmp_path / "target.cif"
     target.write_bytes(_minimal_mmcif("1abc"))
     link = tmp_path / "linked.cif"
-    link.symlink_to(target)
+    make_symlink(link, target)
 
     with pytest.raises(InputValidationError) as error:
         pipeline.inspect_input_files([str(link)])
@@ -242,6 +243,36 @@ def test_input_signature_change_is_detected_after_read(
     with pytest.raises(InputValidationError) as error:
         file_parser.read_validated_structure_bytes(str(source))
     _assert_code(error, "INPUT_CHANGED_DURING_PROCESSING")
+
+
+@pytest.mark.parametrize("platform", ["posix", "nt"])
+@pytest.mark.parametrize("changed_field", ["st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns"])
+def test_opened_input_rejects_replacement_but_allows_windows_ctime_difference(
+    tmp_path, monkeypatch, platform, changed_field,
+):
+    source = tmp_path / "input.cif"
+    source.write_bytes(_minimal_mmcif("1abc"))
+    expected = file_parser.input_file_signature(source)
+    real_fstat = os.fstat
+
+    def opened_stat(fd):
+        actual = real_fstat(fd)
+        # Model the inspected path and opened handle independently of the host.
+        fields = dict(zip(("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns"), expected))
+        fields[changed_field] += 1
+        return SimpleNamespace(st_mode=actual.st_mode, **fields)
+
+    monkeypatch.setattr(file_parser, "os", SimpleNamespace(**{
+        **vars(os), "name": platform, "fstat": opened_stat,
+    }))
+    if platform == "nt" and changed_field == "st_ctime_ns":
+        with file_parser._open_regular_input(str(source), expected) as handle:
+            assert handle.read() == _minimal_mmcif("1abc")
+    else:
+        with pytest.raises(InputValidationError) as error:
+            with file_parser._open_regular_input(str(source), expected):
+                pytest.fail("Changed input must not be yielded")
+        _assert_code(error, "INPUT_CHANGED_DURING_PROCESSING")
 
 
 def test_same_length_input_rewrite_with_restored_mtime_changes_digest(tmp_path: Path) -> None:

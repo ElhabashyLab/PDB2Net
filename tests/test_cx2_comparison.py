@@ -217,7 +217,7 @@ def test_comparison_recurses_and_compares_real_empty_graph_files(network, tmp_pa
     report = comparison.compare_directories(actual, expected, 20.)
     assert report["status"] == "FAIL"
     assert len(report["files"]) == 1
-    assert report["missing_expected_files"] == ["nested/network.cx2"]
+    assert report["missing_expected_files"] == [str(Path("nested") / "network.cx2")]
 
 
 def test_goldstandard_wrapper_cannot_report_success_for_empty_comparison(tmp_path):

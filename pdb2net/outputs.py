@@ -668,11 +668,14 @@ def _write_public_summary(path: Path, summary: Mapping[str, Any]) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, path)
-        descriptor = os.open(path.parent, os.O_RDONLY)
-        try:
-            os.fsync(descriptor)
-        finally:
-            os.close(descriptor)
+        # Windows cannot open directories this way; the file itself is fsynced
+        # above. Preserve directory durability and error propagation on POSIX.
+        if os.name != "nt":
+            descriptor = os.open(path.parent, os.O_RDONLY)
+            try:
+                os.fsync(descriptor)
+            finally:
+                os.close(descriptor)
     finally:
         temporary.unlink(missing_ok=True)
 

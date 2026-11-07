@@ -136,7 +136,11 @@ def _open_regular_input(file_path: str, expected_signature: FileSignature):
         ) from exc
     try:
         opened = os.fstat(descriptor)
-        if not stat.S_ISREG(opened.st_mode) or _stat_signature(opened) != expected_signature:
+        actual = _stat_signature(opened)
+        # Windows path/handle stat calls can disagree on ctime for an unchanged
+        # file. Keep full path-to-path checks before/after reading on every OS.
+        matches = actual[:4] == expected_signature[:4] if os.name == "nt" else actual == expected_signature
+        if not stat.S_ISREG(opened.st_mode) or not matches:
             _raise_changed(file_path)
         with os.fdopen(descriptor, "rb", closefd=False) as handle:
             yield handle

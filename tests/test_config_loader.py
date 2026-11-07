@@ -155,11 +155,12 @@ def test_environment_paths_are_normalized_after_overrides(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.setenv("PDB2NET_PDB_FASTA", "~/references/pdb_seqres.txt")
 
     loaded = config_loader.load_config()
 
-    assert loaded["pdb_fasta_path"] == str(tmp_path / "references" / "pdb_seqres.txt")
+    assert Path(loaded["pdb_fasta_path"]) == tmp_path / "references" / "pdb_seqres.txt"
 
 
 @pytest.mark.parametrize(

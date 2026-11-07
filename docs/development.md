@@ -215,6 +215,22 @@ Configuration accepts null or positive integer search seconds; runtime limits
 must not affect store/search fingerprints. Real signal/shebang probes are POSIX
 tests; no Windows/macOS cancellation validation is implied by a Linux run.
 
+Native Windows runs use the same suite (`.venv\Scripts\python.exe -m pytest -q -ra`)
+with Windows BLAST+ and, for the optional real search test, DIAMOND on `PATH`.
+The five symlink tests skip only if Windows denies creation with error 1314;
+they still run when that privilege is available. The separate POSIX-only tests
+retain their explicit platform skips. No administrator rights are needed for
+ordinary analysis.
+
+Input checks retain full path-stat comparisons before and after reads. Only the
+Windows comparison between path stat and an opened handle excludes `ctime`,
+because those APIs can disagree for unchanged files; file identity, size and
+modification time must still match. POSIX retains its full handle comparison.
+Public summaries are file-synced and replaced on both platforms. Additional
+parent-directory synchronization is POSIX-only; Windows does not claim the same
+directory-entry durability across abrupt system loss. Scientific profiles and
+output contracts are unchanged.
+
 Reference-loader caches follow a one-generation-per-process contract. New
 reference generations require new paths/manifest IDs and a fresh process (or
 notebook kernel); changing config alone does not invalidate RAM lookups.

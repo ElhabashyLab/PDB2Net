@@ -38,6 +38,18 @@ REFERENCE_FILES = ("pdb_seqres.txt", "sifts.tsv", "swissprot.fasta")
 REFERENCE_DATASET = Path(__file__).parent / "fixtures/core_reference"
 
 
+@pytest.fixture
+def make_symlink():
+    def create(link, target, *, target_is_directory=False):
+        try:
+            link.symlink_to(target, target_is_directory=target_is_directory)
+        except OSError as exc:
+            if getattr(exc, "winerror", None) == 1314:
+                pytest.skip("Windows symlink creation privilege is unavailable")
+            raise
+    return create
+
+
 def pytest_addoption(parser):
     group = parser.getgroup("PDB2Net integration tests")
     group.addoption(

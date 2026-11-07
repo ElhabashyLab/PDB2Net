@@ -215,9 +215,9 @@ def test_existing_unwritable_output_directory_fails(
     assert check_environment._output_path_status(output_dir)[0] is False
 
 
-def test_dangling_output_symlink_fails(tmp_path: Path) -> None:
+def test_dangling_output_symlink_fails(tmp_path: Path, make_symlink) -> None:
     output_path = tmp_path / "outputs"
-    output_path.symlink_to(tmp_path / "missing-target", target_is_directory=True)
+    make_symlink(output_path, tmp_path / "missing-target", target_is_directory=True)
 
     assert check_environment._output_path_status(output_path)[0] is False
 
@@ -294,28 +294,28 @@ def test_unreadable_input_directory_is_not_ready(tmp_path: Path, monkeypatch) ->
     assert check_environment._input_directory_ready(input_dir) is False
 
 
-def test_input_directory_symlink_is_not_ready(tmp_path: Path) -> None:
+def test_input_directory_symlink_is_not_ready(tmp_path: Path, make_symlink) -> None:
     input_dir = tmp_path / "inputs"
     input_dir.mkdir()
     input_link = tmp_path / "input-link"
-    input_link.symlink_to(input_dir, target_is_directory=True)
+    make_symlink(input_link, input_dir, target_is_directory=True)
 
     assert check_environment._input_directory_ready(input_link) is False
 
 
-def test_supported_input_symlink_is_not_ready(tmp_path: Path) -> None:
+def test_supported_input_symlink_is_not_ready(tmp_path: Path, make_symlink) -> None:
     input_dir = tmp_path / "inputs"
     input_dir.mkdir()
     target = tmp_path / "target.cif"
     target.write_text("data_target\n", encoding="utf-8")
-    (input_dir / "link.cif").symlink_to(target)
+    make_symlink(input_dir / "link.cif", target)
 
     assert check_environment._input_directory_ready(input_dir) is False
 
 
-def test_output_below_dangling_parent_symlink_fails(tmp_path: Path) -> None:
+def test_output_below_dangling_parent_symlink_fails(tmp_path: Path, make_symlink) -> None:
     parent = tmp_path / "dangling-parent"
-    parent.symlink_to(tmp_path / "missing-parent", target_is_directory=True)
+    make_symlink(parent, tmp_path / "missing-parent", target_is_directory=True)
 
     assert check_environment._output_path_status(parent / "outputs")[0] is False
 
